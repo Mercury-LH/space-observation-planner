@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# Python environments and caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+build/
+dist/
+.ipynb_checkpoints/
+
+# Local credentials and configuration
+.env
+.env.*
+!.env.example
+
+# Local data, reference materials and generated outputs
+/data/*
+!/data/README.md
+/outputs/
+/references/
+/tmp/
+/logs/
+*.log
+
+# Model weights
+*.pt
+*.pth
+*.ckpt
+*.safetensors
