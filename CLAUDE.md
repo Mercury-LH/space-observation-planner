@@ -9,6 +9,7 @@
 # 云端会话（`CLAUDE_CODE_REMOTE=true`）
 
 - 会话启动时 `scripts/cloud_setup.sh` 已自动执行 `uv sync`；它报失败时先看 `/tmp/cloud_setup.log`。
-- 云端机器 4 核，本地是 10 核 M1 Pro。完整对比（含 CP-SAT 和 8 份计划的 Skyfield 逐秒校验）本地约 30 分钟，云端可能超过 1 小时。长任务用 `nohup uv run python run_compare.py > results/run.log 2>&1 &` 放后台，定期看日志，不要前台干等。
+- 云端机器 4 核，本地是 10 核 M1 Pro。完整对比（含 CP-SAT 和 8 份计划的 Skyfield 逐秒校验）本地约 30 分钟，云端可能超过 1 小时。
+- 会话空闲几分钟后虚拟机会暂停，后台进程也跟着停。长任务必须在同一轮回复里跑完：放后台写日志（`nohup uv run python run_compare.py > results/run.log 2>&1 &`），然后在这一轮里反复查看日志直到结束，不要启动后就结束回复。
 - 只改方案 H 时，先用 `--no-validate` 快速看指标，确认有提升再跑带校验的完整对比。
 - 做完后把代码和 `results/compare.json` 提交并推送到当前分支，回复里写清：改了什么、跑了哪些命令、结果数字、是否通过 Skyfield 校验。用户会回到本地电脑 `git pull` 继续。
