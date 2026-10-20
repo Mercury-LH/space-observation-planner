@@ -1,0 +1,5 @@
+-r scheme_g/requirements.txt
+skyfield>=1.49,<2
+sgp4>=2.24,<3
+skyfield-data>=7,<8
+

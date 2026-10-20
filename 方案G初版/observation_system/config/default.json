@@ -1,0 +1,64 @@
+{
+  "data": {
+    "tle_path": "数据/轨道.txt",
+    "station_path": "数据/站址.txt",
+    "priority_dir": "优先级"
+  },
+  "scenario": {
+    "start_time": "2026-10-01T00:00:00Z",
+    "end_time": "2026-10-07T00:00:00Z",
+    "minimum_elevation_deg": 10.0,
+    "maximum_elevation_deg": 85.0,
+    "maximum_sun_elevation_deg": -6.0,
+    "minimum_window_seconds": 120
+  },
+  "visibility": {
+    "sample_step_seconds": 20,
+    "boundary_tolerance_seconds": 0.25,
+    "workers": 8,
+    "target_limit": null,
+    "station_limit": null
+  },
+  "candidates": {
+    "durations_seconds": [120, 240],
+    "grid_seconds": 30,
+    "max_starts_per_window_duration": 20
+  },
+  "planner_name": "scheme_g",
+  "planner": {
+    "switch_seconds": 30,
+    "cooldown_hours": 48,
+    "min_observation_seconds": 120,
+    "max_observation_seconds": 240,
+    "coverage_weight": 0.5,
+    "score_weight": 0.5,
+    "coverage_normalizer": 10000,
+    "score_normalizer": 90186.0,
+    "top_k_per_window": 4,
+    "high_priority_extra_k": 2,
+    "medium_priority_extra_k": 1,
+    "reflow_per_target": 1,
+    "reflow_per_station_bucket": 3,
+    "reflow_bucket_hours": 6,
+    "max_reflow_candidates": 20000,
+    "solver_time_limit_seconds": 300,
+    "solver_workers": 8,
+    "local_search_max_removals": 50,
+    "random_seed": 42,
+    "ai_weights": {
+      "priority": 1.2,
+      "task_score": 1.0,
+      "rarity": 2.4,
+      "urgency": 1.8,
+      "efficiency": 1.2,
+      "station_flexibility": -0.4,
+      "conflict_pressure": -0.8,
+      "occupation": -0.3
+    },
+    "ai_weights_file": null
+  },
+  "output": {
+    "directory": "outputs/full_pipeline",
+    "cache_windows": true
+  }
+}

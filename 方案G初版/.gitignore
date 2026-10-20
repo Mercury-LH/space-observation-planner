@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.pyc
+scheme_g/outputs/
+outputs/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.log
+*.docx
+.codex_doc_review/
+
+# 比赛原始数据不提交，仅保留目录说明。
+数据/*
+!数据/README.md
+优先级/*
+!优先级/README.md
