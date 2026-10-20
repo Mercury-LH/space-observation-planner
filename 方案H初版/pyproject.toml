@@ -16,6 +16,10 @@ dependencies = [
 famou = [
     "famou-sdk==2.5.0",
 ]
+app = [
+    "plotly>=5.24",
+    "streamlit>=1.40",
+]
 
 [tool.uv]
 package = false

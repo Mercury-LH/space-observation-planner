@@ -152,7 +152,8 @@ def recover(pb: Problem, mu: np.ndarray, cand) -> State:
 
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
-          verbose=True, name="H 价格协调（新算法）") -> tuple[Schedule, dict]:
+          verbose=True, name="H 价格协调（新算法）", progress=None) -> tuple[Schedule, dict]:
+    """progress(fraction, text)：可选的进度回调（产品界面用）。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -186,12 +187,16 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
         g[(mu <= 0) & (g < 0)] = 0.0
         norm = float((g * g).sum())
         hist.append((it, L, best_lb, theta))
+        if progress is not None and it % 10 == 0:
+            progress(0.9 * it / iters, f"价格迭代 {it}/{iters}，当前最好计划 {best_lb:.4f}")
         if verbose and (it % 10 == 0 or it == iters - 1):
             print(f"  [H] it {it:3d}  对偶上界 {L:.4f}  最好可行解 {best_lb:.4f}  步长系数 {theta:.3f}  {time.time() - t0:.0f}s")
         if norm == 0:
             break
         mu = np.maximum(0.0, mu + theta * (L - best_lb) / norm * g)
     ls_stats = {}
+    if progress is not None:
+        progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
     if local_search:
         ls_stats = improve(pb, best_state)
     sch = best_state.schedule(pb, name, time.time() - t0)

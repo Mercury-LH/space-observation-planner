@@ -19,7 +19,8 @@ from .visibility import Windows
 def sub_problem(pb: Problem, rng, target_frac=0.3, n_st=3) -> Problem:
     keep_t = rng.random(pb.n_targets) < target_frac
     keep_s = np.zeros(pb.n_stations, bool)
-    keep_s[rng.choice(pb.n_stations, n_st, replace=False)] = True
+    have = np.unique(pb.w_st)                     # 只在有窗口的站里抽（演示模式可能只保留了几个站）
+    keep_s[rng.choice(have, min(n_st, len(have)), replace=False)] = True
     sel = keep_t[pb.w_tg] & keep_s[pb.w_st]
     win = pb.win
     w2 = Windows(pb.w_st[sel].astype(np.int16), pb.w_tg[sel].astype(np.int32), pb.w_k0[sel].astype(np.int32),

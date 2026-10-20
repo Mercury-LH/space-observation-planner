@@ -252,7 +252,7 @@ def window_features(pb: Problem) -> dict:
     return {
         "scarcity": 1.0 / (1.0 + remaining),
         "urgency": 1.0 / (1.0 + next48),
-        "conflict": mean_load / mean_load.max(),
+        "conflict": mean_load / mean_load.max() if len(mean_load) and mean_load.max() > 0 else mean_load,
         "n_win": n_win,
     }
 
