@@ -1,0 +1,20 @@
+{
+  "name": "geometry_audit_200_6days",
+  "description": "固定真实随机子集跨完整6天的扫描步长敏感性审计。",
+  "data_root": "data/开运联合",
+  "start_utc": "2026-08-04T00:00:00Z",
+  "days": 6,
+  "target_limit": 200,
+  "selection_seed": 20261020,
+  "windows": {
+    "scan_step_s": 30,
+    "target_chunk": 32,
+    "time_chunk_s": 21600,
+    "root_tolerance_s": 0.01,
+    "cache_dir": "outputs/window_cache"
+  },
+  "development_assumptions": [
+    "起始日期为开发选择；仅几何仰角约束",
+    "本配置用于数值敏感性审计，不代表全目标完备性证明"
+  ]
+}

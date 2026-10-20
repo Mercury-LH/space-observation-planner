@@ -1,0 +1,36 @@
+{
+  "name": "congested_1000_3h",
+  "description": "真实数据固定随机1000目标，三站三小时，用于检查资源竞争和联合修复收益。",
+  "data_root": "data/开运联合",
+  "start_utc": "2026-08-04T00:00:00Z",
+  "horizon_s": 10800,
+  "target_limit": 1000,
+  "selection_seed": 20261020,
+  "station_ids": ["1", "5", "9"],
+  "rules": {
+    "min_duration_s": 120,
+    "full_duration_s": 240,
+    "switch_s": 30,
+    "score_mode": "step",
+    "objective": "coverage_then_score",
+    "repeat_gap_s": null,
+    "max_observations_per_target": 1
+  },
+  "windows": {
+    "workers": 1,
+    "scan_step_s": 30,
+    "target_chunk": 32,
+    "time_chunk_s": 21600,
+    "root_tolerance_s": 0.01,
+    "cache_dir": "outputs/window_cache"
+  },
+  "seeds": [0, 1, 2],
+  "alns_iterations": 100,
+  "alns_time_limit_s": 60,
+  "development_assumptions": [
+    "减少站点和时间范围用于制造可研究的资源竞争，不代表正式全规模成绩",
+    "2026-08-04 UTC起始为靠近TLE历元的开发选择",
+    "每目标最多一次，覆盖优先、得分次之；重复计分与目标函数尚待官方确认",
+    "联合修复收益必须实测，不预设其存在或可由学习提升"
+  ]
+}

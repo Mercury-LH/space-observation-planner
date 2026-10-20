@@ -1,0 +1,35 @@
+{
+  "name": "full_10000_6days",
+  "description": "全部真实目标与站点、6天；建议先执行windows命令检查几何性能。",
+  "data_root": "data/开运联合",
+  "start_utc": "2026-08-04T00:00:00Z",
+  "days": 6,
+  "selection_seed": 20261020,
+  "rules": {
+    "min_duration_s": 120,
+    "full_duration_s": 240,
+    "switch_s": 30,
+    "score_mode": "step",
+    "objective": "coverage_then_score",
+    "repeat_gap_s": null,
+    "max_observations_per_target": 1
+  },
+  "windows": {
+    "workers": 4,
+    "scan_step_s": 30,
+    "target_chunk": 32,
+    "time_chunk_s": 21600,
+    "root_tolerance_s": 0.01,
+    "cache_dir": "outputs/window_cache"
+  },
+  "seeds": [0, 1, 2],
+  "greedy_time_limit_s": 300,
+  "alns_iterations": 100,
+  "alns_time_limit_s": 60,
+  "development_assumptions": [
+    "6天起始时间为开发选择，尚未获得主办方统一时间范围",
+    "每目标最多一次，覆盖优先、得分次之；这些不是已确认官方规则",
+    "求解墙钟预算为软限制，单个目标窗口扫描可能超过截止时间",
+    "最终AI方法及创新仍待真实数据实验验证"
+  ]
+}

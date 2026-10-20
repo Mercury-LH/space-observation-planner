@@ -1,0 +1,25 @@
+# Experiment environment: CPython 3.9, macOS arm64.
+# Install before `python -m pip install -e ".[dev]"`.
+absl-py==2.3.1
+certifi==2026.10.19
+exceptiongroup==1.3.1
+immutabledict==4.3.1
+iniconfig==2.1.0
+jplephem==2.24
+numpy==2.0.2
+ortools==9.11.4210
+packaging==26.3
+pandas==2.3.3
+pluggy==1.6.0
+protobuf==5.26.1
+Pygments==2.21.0
+pytest==8.4.2
+python-dateutil==2.9.0.post0
+pytz==2026.5
+scipy==1.13.1
+sgp4==2.25
+six==1.17.0
+skyfield==1.53
+tomli==2.5.0
+typing_extensions==4.16.0
+tzdata==2026.5

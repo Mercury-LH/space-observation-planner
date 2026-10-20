@@ -1,0 +1,468 @@
+{
+  "format": "plan-e-historical-metrics-summary-v1",
+  "record_date": "2026-10-20",
+  "artifact_scope": "Historical aggregate metrics only; not a complete saved run; no raw input, target IDs, task lists, or original manifests are included.",
+  "numeric_policy": "Scores and wall times are rounded to 9 decimal places to remove floating-point display noise.",
+  "development_assumptions": {
+    "start_utc": "2026-08-04T00:00:00Z",
+    "objective": "coverage_then_score",
+    "max_observations_per_target": 1,
+    "score_mode": "step",
+    "min_duration_s": 120,
+    "full_duration_s": 240,
+    "switch_s": 30,
+    "min_elevation_deg": 10,
+    "max_elevation_deg": 85,
+    "night_filter": false,
+    "official_competition_score": false
+  },
+  "comparability_notes": [
+    "Modular greedy/ALNS and the self-contained Famou initial algorithm are distinct implementations and budgets.",
+    "Both Famou variants have a 20-second per-case execution cap, but use 180 versus 2500 search iterations; the comparison does not establish equal-compute superiority.",
+    "The 1000-target Famou case was not used for this cloud feedback; it is not a statistically independent held-out test or a generalization proof.",
+    "The selected Famou candidate has not been validated on the full 10000-target six-day instance.",
+    "Optimistic bounds ignore station competition and apply only to the current numerical window model.",
+    "Main-process peak memory is not the simultaneous total over all processes.",
+    "Solver time, local-evaluation time, and end-to-end experiment time cover different work and must not be interchanged."
+  ],
+  "classical_baseline_scenes": [
+    {
+      "scene": "full_10000_6days_run01",
+      "kind": "full_development_instance",
+      "target_count": 10000,
+      "station_count": 10,
+      "horizon_s": 518400.0,
+      "window_count": 2250812,
+      "all_plans_valid": true,
+      "geometry_checked": true,
+      "window_generation_wall_s": 717.339965375,
+      "window_generation_workers": 4,
+      "end_to_end_wall_s": 1088.384293541,
+      "main_process_peak_rss_mib": 1812.90625,
+      "optimistic_coverage_upper_bound": 10000,
+      "optimistic_observation_score_upper_bound": 30059.2,
+      "algorithms": [
+        {
+          "algorithm": "greedy",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 10000,
+          "observation_score": 30057.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 64.399765208,
+            "validation_wall_s": 27.532097166
+          }
+        },
+        {
+          "algorithm": "alns_seed_0",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 10000,
+          "observation_score": 30057.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 60.039076291,
+            "validation_wall_s": 27.035556417
+          },
+          "budget": {
+            "seed": 0,
+            "requested_iterations": 100,
+            "completed_iterations": 12,
+            "time_limit_s": 60.0,
+            "budget_exhausted": true
+          }
+        },
+        {
+          "algorithm": "alns_seed_1",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 10000,
+          "observation_score": 30057.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 60.034540084,
+            "validation_wall_s": 26.474313834
+          },
+          "budget": {
+            "seed": 1,
+            "requested_iterations": 100,
+            "completed_iterations": 18,
+            "time_limit_s": 60.0,
+            "budget_exhausted": true
+          }
+        },
+        {
+          "algorithm": "alns_seed_2",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 10000,
+          "observation_score": 30057.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 60.086523333,
+            "validation_wall_s": 28.57945775
+          },
+          "budget": {
+            "seed": 2,
+            "requested_iterations": 100,
+            "completed_iterations": 13,
+            "time_limit_s": 60.0,
+            "budget_exhausted": true
+          }
+        }
+      ]
+    },
+    {
+      "scene": "congested_300_1h_run01",
+      "kind": "congested_development_subset",
+      "target_count": 300,
+      "station_count": 2,
+      "horizon_s": 3600.0,
+      "window_count": 139,
+      "all_plans_valid": true,
+      "geometry_checked": true,
+      "window_generation_wall_s": 0.494776542,
+      "window_generation_workers": 1,
+      "end_to_end_wall_s": 2.850455833,
+      "main_process_peak_rss_mib": 70.453125,
+      "optimistic_coverage_upper_bound": 114,
+      "optimistic_observation_score_upper_bound": 327.8,
+      "algorithms": [
+        {
+          "algorithm": "greedy",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 44,
+          "observation_score": 84.0,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.01063275,
+            "validation_wall_s": 0.2658615
+          }
+        },
+        {
+          "algorithm": "alns_seed_0",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 44,
+          "observation_score": 106.0,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.28451025,
+            "validation_wall_s": 0.269903083
+          },
+          "budget": {
+            "seed": 0,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        },
+        {
+          "algorithm": "alns_seed_1",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 44,
+          "observation_score": 84.0,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.292831,
+            "validation_wall_s": 0.275356041
+          },
+          "budget": {
+            "seed": 1,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        },
+        {
+          "algorithm": "alns_seed_2",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 44,
+          "observation_score": 108.0,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.204559208,
+            "validation_wall_s": 0.274849209
+          },
+          "budget": {
+            "seed": 2,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        }
+      ]
+    },
+    {
+      "scene": "congested_1000_3h_run01",
+      "kind": "congested_development_subset",
+      "target_count": 1000,
+      "station_count": 3,
+      "horizon_s": 10800.0,
+      "window_count": 1689,
+      "all_plans_valid": true,
+      "geometry_checked": true,
+      "window_generation_wall_s": 2.591077459,
+      "window_generation_workers": 1,
+      "end_to_end_wall_s": 9.022594458,
+      "main_process_peak_rss_mib": 72.734375,
+      "optimistic_coverage_upper_bound": 848,
+      "optimistic_observation_score_upper_bound": 2491.0,
+      "algorithms": [
+        {
+          "algorithm": "greedy",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 190,
+          "observation_score": 358.8,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.068854958,
+            "validation_wall_s": 0.83837325
+          }
+        },
+        {
+          "algorithm": "alns_seed_0",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 194,
+          "observation_score": 549.2,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.940405208,
+            "validation_wall_s": 0.806045583
+          },
+          "budget": {
+            "seed": 0,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        },
+        {
+          "algorithm": "alns_seed_1",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 191,
+          "observation_score": 486.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.872575375,
+            "validation_wall_s": 0.799256791
+          },
+          "budget": {
+            "seed": 1,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        },
+        {
+          "algorithm": "alns_seed_2",
+          "implementation": "modular_classical_baseline",
+          "coverage_count": 193,
+          "observation_score": 450.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "timing": {
+            "solver_wall_s": 0.890941084,
+            "validation_wall_s": 0.81229525
+          },
+          "budget": {
+            "seed": 2,
+            "requested_iterations": 100,
+            "completed_iterations": 100,
+            "time_limit_s": 60.0,
+            "budget_exhausted": false
+          }
+        }
+      ]
+    }
+  ],
+  "famou": {
+    "completed_cloud_iterations": 10,
+    "cloud_status": "COMPLETED",
+    "worker_elapsed_s": 742.3286185,
+    "worker_exit_code": 0,
+    "unacknowledged_results": 0,
+    "downloaded_entries": 14,
+    "unique_candidate_sources": 11,
+    "candidate_execution_cap_s": 20,
+    "raw_selected_candidate_sha256": "1fd23f07d7c49771ceb48ed49a125f2225195a865066c8e85280cc462c8bcde3",
+    "local_selected_candidate_sha256": "25f919d946fef516d130d1117ed51b0b650297551880ba42f085b2812d2fa752",
+    "scenes": [
+      {
+        "scene": "congested_300_1h_run01",
+        "used_for_cloud_feedback": true,
+        "initial": {
+          "implementation": "self_contained_famou_init",
+          "candidate_sha256": "333655f3d7d7f828e726acd335b6e742b694575367b70939e9f188ebea1de7cc",
+          "search_iterations": 180,
+          "coverage_count": 46,
+          "observation_score": 91.4,
+          "validation": {
+            "valid": true,
+            "geometry_checked": true,
+            "error_code": 0
+          },
+          "local_evaluation_elapsed_s": 0.432184375
+        },
+        "selected": {
+          "implementation": "cloud_candidate_with_local_deterministic_order_fix",
+          "candidate_sha256": "25f919d946fef516d130d1117ed51b0b650297551880ba42f085b2812d2fa752",
+          "search_iterations": 2500,
+          "coverage_count": 48,
+          "observation_score": 111.6,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "solver_wall_s": 0.375539792,
+          "validation_wall_s": 0.158281166,
+          "local_evaluation_elapsed_s": 0.679919834
+        }
+      },
+      {
+        "scene": "congested_1000_3h_run01",
+        "used_for_cloud_feedback": false,
+        "initial": {
+          "implementation": "self_contained_famou_init",
+          "candidate_sha256": "333655f3d7d7f828e726acd335b6e742b694575367b70939e9f188ebea1de7cc",
+          "search_iterations": 180,
+          "coverage_count": 203,
+          "observation_score": 408.6,
+          "validation": {
+            "valid": true,
+            "geometry_checked": true,
+            "error_code": 0
+          },
+          "local_evaluation_elapsed_s": 3.169802708
+        },
+        "selected": {
+          "implementation": "cloud_candidate_with_local_deterministic_order_fix",
+          "candidate_sha256": "25f919d946fef516d130d1117ed51b0b650297551880ba42f085b2812d2fa752",
+          "search_iterations": 2500,
+          "coverage_count": 212,
+          "observation_score": 518.0,
+          "validation": {
+            "valid": true,
+            "structural_valid": true,
+            "geometry_checked": true,
+            "violation_count": 0
+          },
+          "solver_wall_s": 6.916169458,
+          "validation_wall_s": 0.628877042,
+          "local_evaluation_elapsed_s": 7.69129925
+        }
+      }
+    ],
+    "determinism_300": {
+      "independent_process_repeats": 3,
+      "complete_observation_lists_exactly_equal": true,
+      "scope": "Same 300-target instance, fixed seed, corrected station ordering; no claim for all inputs or platforms.",
+      "repeats": [
+        {
+          "repeat": 1,
+          "coverage_count": 48,
+          "observation_score": 111.6,
+          "validation": {
+            "valid": true,
+            "geometry_checked": true,
+            "error_code": 0
+          },
+          "local_evaluation_elapsed_s": 0.679919834,
+          "canonical_plan_sha256": "f43f89deefd8deff454773f5dd3d9b2eee12f214ad00dd0d5b5a96c176fba61e"
+        },
+        {
+          "repeat": 2,
+          "coverage_count": 48,
+          "observation_score": 111.6,
+          "validation": {
+            "valid": true,
+            "geometry_checked": true,
+            "error_code": 0
+          },
+          "local_evaluation_elapsed_s": 0.626780291,
+          "canonical_plan_sha256": "f43f89deefd8deff454773f5dd3d9b2eee12f214ad00dd0d5b5a96c176fba61e"
+        },
+        {
+          "repeat": 3,
+          "coverage_count": 48,
+          "observation_score": 111.6,
+          "validation": {
+            "valid": true,
+            "geometry_checked": true,
+            "error_code": 0
+          },
+          "local_evaluation_elapsed_s": 0.674605291,
+          "canonical_plan_sha256": "f43f89deefd8deff454773f5dd3d9b2eee12f214ad00dd0d5b5a96c176fba61e"
+        }
+      ]
+    }
+  },
+  "verified_correction": {
+    "scene": "congested_300_1h_run01",
+    "algorithm": "alns_seed_2",
+    "observation_score": 108.0,
+    "explanation": "The original saved value is 107.99999999999996; the correct displayed score is 108.0, not 108.2."
+  }
+}

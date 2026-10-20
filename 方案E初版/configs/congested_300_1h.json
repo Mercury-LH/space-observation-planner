@@ -1,0 +1,35 @@
+{
+  "name": "congested_300_1h",
+  "description": "真实轨道子集的短时拥塞开发场景，用于小模型CP参考解；并非完整赛事规模。",
+  "data_root": "data/开运联合",
+  "start_utc": "2026-08-04T00:00:00Z",
+  "horizon_s": 3600,
+  "target_limit": 300,
+  "selection_seed": 20261020,
+  "station_ids": ["1", "5"],
+  "rules": {
+    "min_duration_s": 120,
+    "full_duration_s": 240,
+    "switch_s": 30,
+    "score_mode": "step",
+    "objective": "coverage_then_score",
+    "repeat_gap_s": null,
+    "max_observations_per_target": 1
+  },
+  "windows": {
+    "scan_step_s": 30,
+    "target_chunk": 32,
+    "time_chunk_s": 21600,
+    "root_tolerance_s": 0.01,
+    "cache_dir": "outputs/window_cache"
+  },
+  "seeds": [0, 1, 2],
+  "alns_iterations": 100,
+  "alns_time_limit_s": 60,
+  "development_assumptions": [
+    "300个固定随机目标、2站、1小时为主动设置的拥塞子问题",
+    "2026-08-04 UTC起始靠近TLE历元，但不是官方确定的起始时间",
+    "每目标最多一次，覆盖优先、得分次之；120至240秒保持60%",
+    "仅几何仰角约束，不增加太阳高度、天气和重复间隔要求"
+  ]
+}

@@ -1,0 +1,60 @@
+{
+  "publication_date": "2026-10-20",
+  "environment": "macOS arm64 / CPython 3.9.6 / fresh standalone virtual environment",
+  "install": "uv venv --python ../.venv/bin/python .venv; uv pip install --python .venv/bin/python -r requirements-lock.txt -e .[dev]",
+  "source_import_verified": true,
+  "unit_tests": {
+    "passed": 182,
+    "wall_s": 48.93
+  },
+  "source_identical_to_prepackage_implementation": true,
+  "real_case": {
+    "targets": 300,
+    "stations": 2,
+    "horizon_s": 3600,
+    "window_count": 139,
+    "all_plans_valid": true,
+    "geometry_checked": true,
+    "end_to_end_wall_s": 1.581246499999999,
+    "algorithms": [
+      {
+        "algorithm": "greedy",
+        "coverage_count": 44,
+        "observation_score": 84.0,
+        "valid": true,
+        "geometry_checked": true
+      },
+      {
+        "algorithm": "alns_seed_0",
+        "coverage_count": 44,
+        "observation_score": 106.0,
+        "valid": true,
+        "geometry_checked": true
+      },
+      {
+        "algorithm": "alns_seed_1",
+        "coverage_count": 44,
+        "observation_score": 84.0,
+        "valid": true,
+        "geometry_checked": true
+      },
+      {
+        "algorithm": "alns_seed_2",
+        "coverage_count": 44,
+        "observation_score": 108.0,
+        "valid": true,
+        "geometry_checked": true
+      }
+    ]
+  },
+  "selected_candidate": {
+    "coverage_count": 48,
+    "observation_score": 111.6,
+    "validity": 1.0,
+    "geometry_checked": 1.0,
+    "exact_plan_equal_to_prior_export": true,
+    "source_sha256": "25f919d946fef516d130d1117ed51b0b650297551880ba42f085b2812d2fa752"
+  },
+  "cloud_experiments_started_for_publication": 0,
+  "scope": "Standalone packaging revalidation on the 300-target case; full-scale historical results were not rerun for this documentation release."
+}

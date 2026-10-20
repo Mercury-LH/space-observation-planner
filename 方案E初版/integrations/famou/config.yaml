@@ -1,0 +1,12 @@
+# A small connectivity/optimization trial, not a final competition benchmark.
+project_name: "space-observation-planner"
+cloud_type: "hybrid"
+initial_program: "init.py"
+evaluator: "evaluator.py"
+system_message: "prompt.md"
+evolve_config:
+  # 10 is the minimum accepted by SDK 2.5.0.
+  max_iterations: 10
+timeouts:
+  heartbeat_wait_hours: 1
+  evaluation_wait_hours: 1

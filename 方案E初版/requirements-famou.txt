@@ -1,0 +1,2 @@
+# SDK release specified by the competition's v2.5 manual; Python 3.12.
+famou-sdk==2.5.0
