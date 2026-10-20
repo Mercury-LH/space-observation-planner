@@ -26,6 +26,8 @@ dist/
 # Local data, reference materials and generated outputs
 /data/*
 !/data/README.md
+# 赛题数据压缩包（约 1.6MB）随私有仓库提交，供云端会话运行
+!/data/*.zip
 /outputs/
 /references/
 /tmp/
