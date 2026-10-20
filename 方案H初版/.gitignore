@@ -1,0 +1,5 @@
+# 本地缓存：可见窗口、Skyfield 星历（首次运行自动生成/下载）
+cache/
+# 完整计划明细含目标编号，体积较大，不提交
+results/plan_*.csv
+results/*.log

@@ -1,0 +1,16 @@
+[project]
+name = "obsplan"
+version = "0.1.0"
+description = "空间目标观测任务规划：窗口计算、多算法调度与独立校验"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy>=2.0",
+    "sgp4>=2.23",
+    "numba>=0.60",
+    "ortools>=9.10",
+    "matplotlib>=3.8",
+    "skyfield>=1.49",
+]
+
+[tool.uv]
+package = false
