@@ -29,6 +29,8 @@ uv run python run_compare.py
 ```
 
 数据放在仓库根目录 `data/`（已被 Git 忽略）：直接放 `数据.zip`、`优先级.zip`，或放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 均可。
+测试：`uv run pytest -q`（约 30 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
+
 首次运行会计算可见窗口（M1 Pro 约 30 秒）并缓存，Skyfield 校验会自动下载 DE421 星历（约 17MB）到 `cache/`。
 完整对比（含 CP-SAT 约 9 分钟、8 份计划的 Skyfield 逐秒校验约 18 分钟）约 30 分钟。
 
@@ -76,10 +78,12 @@ uv run python run_compare.py
 | `obsplan/cpsat.py` | G：AI 筛选 + CP-SAT 滚动时域 |
 | `obsplan/lagrange.py` | H：价格协调 |
 | `obsplan/bounds.py` | 网络流上界 |
+| `obsplan/checks.py` | 快速结构检查（不算几何） |
 | `run_compare.py` | 一键对比 |
+| `tests/` | 单元测试：数据、计分、各规划器合法性、上界、伐谋沙箱、Skyfield 校验 |
 
 ## 尚未完成
 
-- 没有单元测试；没有接入伐谋（可复用方案E初版的 `integrations/famou` 链路演化 H 的局部搜索与价格更新规则）。
+- 伐谋已接入（见 `integrations/famou/README.md`），第一次 10 轮试验没有超过人工基线。
 - 规划期以答疑文档为准，若改为数据历元 ±72 小时需重跑。
 - 覆盖/得分的取舍曲线、产品界面、天气等加分项尚未做。
