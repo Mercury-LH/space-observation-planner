@@ -151,9 +151,11 @@ def recover(pb: Problem, mu: np.ndarray, cand) -> State:
     return st
 
 
-def solve(pb: Problem, iters: int = 150, recover_at=(0, 30, 60, 100, 149), local_search=True,
+def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）") -> tuple[Schedule, dict]:
     t0 = time.time()
+    if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
+        recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
     S, T = pb.n_stations, pb.n_samples + 2
     mu = np.zeros((S, T))
     cand = candidates(pb)
