@@ -100,7 +100,8 @@ def replay_weather(pb: Problem, run: Run, threshold: float = CLOUD_THRESHOLD) ->
     return evaluate_under_weather(pb.cfg, pb.ds, run.schedule(), cloud, threshold)
 
 
-def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False) -> Run:
+def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
+                 fast: bool = False) -> Run:
     cfg = pb.cfg
     t0 = time.time()
     mu = None
@@ -113,7 +114,8 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             _, sc = weather_stats(pb)
             kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
             notes["weather_aware"] = True
-        sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, **kw)
+        sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, fast=fast, **kw)
+        notes["mode"] = "快速" if fast else "高质量"
         mu = info["mu"].astype(np.float32)
         notes["ub_relaxed"] = float(info["ub_relaxed"])
     elif algo == "E":
@@ -123,7 +125,7 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
         if progress:
             progress(0.6, "贪心构造与局部搜索……")
         sch, st = algo_weighted(pb, w, "E", return_state=True)
-        improve(pb, st)
+        improve(pb, st, repeat_min_priority=3.0 if fast else None)
         sch = st.schedule(pb, "E", 0)
         notes = {"weights": [float(x) for x in w]}
     else:

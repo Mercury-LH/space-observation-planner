@@ -352,12 +352,20 @@ def swap_repeat_for_extension(st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, 
     return swaps
 
 
-def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbose=False) -> dict:
+def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbose=False,
+            repeat_min_priority: float | None = None) -> dict:
     """局部搜索主流程：
     每轮：覆盖修复（可挤让） -> 左压紧 + 补空 -> 重复观测插入（可挤让） -> 右压紧 + 补空；
     最后：重复观测换延长 -> 延长到 240 秒。"""
+    import time as _time
     from .greedy import candidates, run_greedy
-    stats = {"inserted": 0, "repeats": 0, "moved": 0, "swaps": 0, "extended_cells": 0}
+    stats = {"inserted": 0, "repeats": 0, "moved": 0, "swaps": 0, "extended_cells": 0, "time": {}}
+    clock = [_time.time()]
+
+    def tick(name):
+        now = _time.time()
+        stats["time"][name] = stats["time"].get(name, 0.0) + now - clock[0]
+        clock[0] = now
     cw, cm = candidates(pb, [pb.m_min])
     v = pb.vs * pb.P[pb.w_tg[cw]] * pb.frac[cm]
     has_win = np.diff(pb.t_ptr) > 0
@@ -405,18 +413,24 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
                                        state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                        pb.w_st, pb.w_k0, pb.w_k1, pb.t_ptr, pb.t_win, pb.P, pb.frac,
                                        pb.vc, pb.vs, pb.gap, pb.m_min, max_pos)
+        tick("覆盖修复")
         st_, tg_, a_, m_, w_, alive_, owner_, tc, toa, tom, tt = args()
         mv = compact(station_order(), -1, st_, tg_, a_, m_, w_, alive_, owner_, tc, toa, tom, tt, pb.w_k0, pb.w_k1, pb.gap)
         f1 = fill()
+        tick("压紧与补空")
         rep = np.nonzero((state.t_cnt > 0) & (state.t_cnt < 3))[0]
+        if repeat_min_priority is not None:     # 只对高价值目标做"挤让插入重复观测"，其余交给分档补空
+            rep = rep[pb.P[rep] >= repeat_min_priority]
         rep = rep[np.argsort(-pb.P[rep], kind="stable")]
         state.n, ins2 = repair_coverage(rep, state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                         state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                         pb.w_st, pb.w_k0, pb.w_k1, pb.t_ptr, pb.t_win, pb.P, pb.frac,
                                         pb.vc, pb.vs, pb.gap, pb.m_min, max_pos)
+        tick("重复观测插入")
         st_, tg_, a_, m_, w_, alive_, owner_, tc, toa, tom, tt = args()
         mv += compact(station_order(rev=True), 1, st_, tg_, a_, m_, w_, alive_, owner_, tc, toa, tom, tt, pb.w_k0, pb.w_k1, pb.gap)
         f2 = fill()
+        tick("压紧与补空")
         stats["inserted"] += ins + f1 + f2
         stats["repeats"] += ins2
         stats["moved"] += mv
@@ -425,6 +439,7 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
         if ins + ins2 + f1 + f2 == 0:
             break
     stats["tier_added"], stats["tier_ext"] = tiered_fill()
+    tick("分档补空")
     stats["swaps"] = swap_repeat_for_extension(state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                                state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                                pb.w_k0, pb.w_k1, pb.P, pb.frac, pb.vs, pb.gap, pb.m_max)
@@ -432,4 +447,6 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
     stats["extended_cells"] = extend_all(order, state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                          state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                          pb.w_k0, pb.w_k1, pb.gap, pb.m_max)
+    tick("换延长与延长")
+    stats["time"] = {k: round(v, 1) for k, v in stats["time"].items()}
     return stats

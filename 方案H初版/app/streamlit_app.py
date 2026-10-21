@@ -85,7 +85,9 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
     w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
     algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
-    iters = st.slider("价格迭代次数", 50, 500, 300, 50, disabled=algo != "H")
+    mode = st.radio("模式", ["快速（全量约 1 分钟）", "高质量（全量约 2 分钟）"], horizontal=False)
+    fast = mode.startswith("快速")
+    iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
@@ -102,7 +104,7 @@ if go_btn:
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
     bar = st.sidebar.progress(0.0, text="开始规划……")
     run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
-                       weather=weather and algo == "H")
+                       weather=weather and algo == "H", fast=fast)
     run.subset = subset
     bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)

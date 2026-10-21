@@ -205,9 +205,10 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
 
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
-          verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None
-          ) -> tuple[Schedule, dict]:
-    """progress(fraction, text)：可选的进度回调（产品界面用）。
+          verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
+          fast: bool = False) -> tuple[Schedule, dict]:
+    """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
+    progress(fraction, text)：可选的进度回调（产品界面用）。
     cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
@@ -263,7 +264,7 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     if progress is not None:
         progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
     if local_search:
-        ls_stats = improve(pb, best_state)
+        ls_stats = improve(pb, best_state, repeat_min_priority=3.0 if fast else None)
     sch = best_state.schedule(pb, name, time.time() - t0)
     info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "history": hist, "ls": ls_stats, "mu": best_mu}
     return sch, info
