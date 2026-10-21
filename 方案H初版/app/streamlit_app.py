@@ -77,8 +77,8 @@ if labels:
     choice = st.sidebar.selectbox("查看结果", keys, index=idx, format_func=lambda p: labels[p])
 
 with st.sidebar.expander("新建规划", expanded=not labels):
-    st.caption("规则默认取自答疑文档，可按需修改。")
-    d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 10, 1))
+    st.caption("规则默认取自答疑文档，规划期默认为企业老师 2026-10-21 确认的 8 月 1–7 日（UTC），可按需修改。")
+    d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 8, 1))
     days = st.number_input("规划天数", 1.0, 7.0, 6.0, 1.0)
     c1, c2 = st.columns(2)
     elev_min = c1.number_input("最低仰角 °", 0.0, 30.0, 10.0, 1.0)
@@ -93,7 +93,7 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
-                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
+                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 4 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -119,7 +119,7 @@ if go_btn:
 
 if choice is None:
     st.title("空间目标观测规划")
-    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标约 2 分钟；演示模式几秒钟。")
+    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 1 分钟、高质量模式约 2 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
     st.stop()
 
 run = Run.load(choice)
@@ -239,7 +239,7 @@ with tabs[3]:
                                    colorbar=dict(title="相对价格"), hovertemplate="%{y} %{x|%H:%M} UTC<br>价格 %{z:.2f}<extra></extra>"))
         fig.update_layout(height=480, yaxis=dict(autorange="reversed"), xaxis_title="UTC")
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown("价格越高，说明这一时段被越多目标争抢。高纬度站通常黄昏、黎明最贵（低轨目标扎堆），"
+        st.markdown("价格越高，说明这一时段被越多目标争抢。以默认的 8 月规划期为例：高纬度站夜短，整夜都接近最贵；"
                     "低纬度站午夜前后更贵。规划时每个任务优先放进它窗口内最便宜的时段。")
 
 # ------------------------------------------------------------------ 任务解释
@@ -320,7 +320,7 @@ with tabs[5]:
         c1, c2 = st.columns(2)
         wdf = pd.DataFrame({"站点": [f"{i + 1}号" for i in range(len(sc))], "晴空概率": sc,
                             "平均云量%": np.nanmean(cloud, axis=(0, 2))})
-        fig = px.bar(wdf, x="站点", y="晴空概率", color_discrete_sequence=[BLUE], title="各站 10 月上旬晴空概率（全天统计，过去 10 年）",
+        fig = px.bar(wdf, x="站点", y="晴空概率", color_discrete_sequence=[BLUE], title=f"各站 {cfg.start_dt:%m 月 %d 日}起 {cfg.days:g} 天同期的晴空概率（全天统计，过去 10 年）",
                      hover_data={"平均云量%": ":.0f", "晴空概率": ":.2f"})
         fig.update_layout(yaxis_tickformat=".0%", height=380)
         c1.plotly_chart(fig, use_container_width=True)
@@ -337,7 +337,7 @@ with tabs[5]:
         k[1].caption(f"计划 {m['score']:.0f}")
         k[2].metric("月光规避", f"{cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "未考虑")
         k[2].caption("可在左侧新建规划时设置")
-        st.info("结论：只靠气候统计能改进的空间有限（实验中样本外约 +0.5%）；要绕开云，需要按实际执行结果动态重规划（见下方）。")
+        st.info("结论：只靠历史统计做期望价值规划，改进空间有限（见 README 的样本外实验）；要绕开云，需要按实际执行结果动态重规划（见下方）。")
 
     st.divider()
     st.subheader("动态重规划：每天按执行结果重排")
@@ -362,8 +362,20 @@ with tabs[5]:
         fig.update_layout(height=420, xaxis_title="", yaxis_tickformat=".2f", legend_title_text="", xaxis_tickangle=0,
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
         st.plotly_chart(fig, use_container_width=True)
-        st.caption("全量 10000 目标的实验结果（`scripts/dynamic_experiment.py`）：每天重排比一次排完高 7.8%–9.9%，"
-                   "补上了与“天气全知”之间约一半的差距；真实存档预报在这两年没有带来额外收益，完美预报还能再 +4.8%。")
+        gains, fc_gain, oracle_gain = [], [], []
+        for v in dj["years"].values():
+            p_ = v["policies"]
+            if {"static", "dynamic_clim"} <= set(p_):
+                gains.append(p_["dynamic_clim"]["combined"] / p_["static"]["combined"] - 1)
+            if {"dynamic_clim", "dynamic_forecast"} <= set(p_):
+                fc_gain.append(p_["dynamic_forecast"]["combined"] / p_["dynamic_clim"]["combined"] - 1)
+            if {"dynamic_clim", "dynamic_oracle"} <= set(p_):
+                oracle_gain.append(p_["dynamic_oracle"]["combined"] / p_["dynamic_clim"]["combined"] - 1)
+        if gains:
+            rng = lambda xs: f"{min(xs):+.1%}" if len(xs) == 1 or abs(max(xs) - min(xs)) < 5e-4 else f"{min(xs):+.1%} 至 {max(xs):+.1%}"  # noqa: E731
+            st.caption(f"全量 10000 目标的实验结果（`scripts/dynamic_experiment.py`，规划期同期的真实天气）：每天重排比一次排完"
+                       f" {rng(gains)}" + (f"；再用真实存档预报 {rng(fc_gain)}" if fc_gain else "")
+                       + (f"；完美预报（参照）{rng(oracle_gain)}" if oracle_gain else "") + "。")
     c = st.columns([1, 1, 2])
     year = c[0].selectbox("用哪一年的真实天气", list(range(2016, 2026)), index=8, key="dyn_year")
     c[1].markdown("&nbsp;")
@@ -453,7 +465,7 @@ with tabs[8]:
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
-| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 答疑 #26、#42 |
+| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 企业老师 2026-10-21 确认为 8 月 1–7 日；时间制见答疑 #42 |
 | 仰角 | {cfg.elev_min:g}°–{cfg.elev_max:g}°（规划时各留 {cfg.elev_margin:g}° 余量） | 站址文件、答疑 #26 |
 | 站点太阳高度角 | < {cfg.sun_max:g}°（留 {cfg.sun_margin:g}° 余量） | 答疑 #26 |
 | 目标受照 | {'须被太阳照亮（地影边界留 %g km 余量）' % cfg.sunlit_margin_km if cfg.use_sunlit else '不考虑'} | 答疑 #26、#36、#44 |

@@ -9,6 +9,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib import font_manager  # noqa: E402
 from matplotlib.colors import LinearSegmentedColormap  # noqa: E402
@@ -44,7 +45,7 @@ def save(fig, name):
 
 def fig_windows():
     stats = json.loads((DATA / "window_stats.json").read_text(encoding="utf-8"))
-    names = [s["name"].replace("−", "-") for s in stats]
+    names = ["只看仰角 10 至 85 度", "+ 站点黑夜（太阳角低于 -6 度）", "+ 目标受照（答疑口径）"][:len(stats)]
     leo = np.array([s["leo_window_h"] for s in stats]) / 1000
     oth = np.array([s["other_window_h"] for s in stats]) / 1000
     x = np.arange(len(names))
@@ -124,7 +125,7 @@ def fig_price(z):
                    extent=[day0 * 24, (day0 + days) * 24, S + 0.5, 0.5])
     ax.set_yticks(range(1, S + 1), [f"{i}号站" for i in range(1, S + 1)])
     ax.set_xticks(range(day0 * 24, (day0 + days) * 24 + 1, 6),
-                  [f"10月{1 + h // 24}日" if h % 24 == 0 else f"{h % 24:02d}时"
+                  [f"8月{1 + h // 24}日" if h % 24 == 0 else f"{h % 24:02d}时"
                    for h in range(day0 * 24, (day0 + days) * 24 + 1, 6)], fontsize=8)
     ax.grid(False)
     ax.set_title("时间格价格（UTC，颜色越深越抢手）")
@@ -181,7 +182,7 @@ def fig_compare():
     labels = {"A": ("A 随机", (8, 0), "left"), "B": ("B 优先级贪心", (8, 0), "left"),
               "C": ("C 人工多因素", (8, 0), "left"), "D": ("D AI进化权重贪心", (-8, 0), "right"),
               "E": ("E AI贪心+局部搜索", (-10, -1), "right"), "G": ("G AI筛选+CP-SAT", (-8, 0), "right"),
-              "G+": ("G+局部搜索", (10, 9), "left"), "H": ("H 价格协调（新算法）", (9, -13), "left")}
+              "G+": ("G+局部搜索", (10, -9), "left"), "H": ("H 价格协调（新算法）", (12, -26), "left")}
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     base = {}
     for r in rows:
@@ -195,7 +196,8 @@ def fig_compare():
         text, off, ha = labels[key]
         ax.annotate(text, (r["runtime_s"], r["combined"]), xytext=off, textcoords="offset points",
                     fontsize=9, color="#0b0b0b" if is_h else TEXT2, va="center", ha=ha,
-                    fontweight="bold" if is_h else "normal")
+                    fontweight="bold" if is_h else "normal",
+                    arrowprops=dict(arrowstyle="-", color=MUTED, lw=0.6, shrinkA=0, shrinkB=4) if is_h else None)
     for r in rows:                              # 按秒精修：从网格计划指向精修后的点
         if "按秒精修" not in r["algo"]:
             continue
@@ -211,17 +213,20 @@ def fig_compare():
             ax.annotate(f"H + 按秒精修 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(-10, 9),
                         textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
                         fontweight="bold")
+        elif key == "G+":
+            ax.annotate(f"G+ + 按秒精修 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(10, 9),
+                        textcoords="offset points", fontsize=9, color=TEXT2, va="center", ha="left")
     ax.set_xscale("log")
     ax.set_xlabel("求解用时（秒，对数刻度）")
     ax.set_ylabel("综合指标")
-    ub = 1.056                                  # 网络流松弛上界（obsplan/bounds.py，30 秒网格模型）
+    ub = round(d.get("flow_ub", 1.056), 3)      # 网络流松弛上界（obsplan/bounds.py，30 秒网格模型）
     ax.axhline(ub, color=MUTED, lw=1, ls="--")
     ax.text(0.3, ub + 0.007, f"网络流上界 {ub}（30 秒网格模型，偏松）", color=MUTED, fontsize=8)
     ax.scatter([], [], s=46, facecolor="#fcfcfb", edgecolor=TEXT2, linewidth=1.6, label="空心：再做按秒精修（约 +3 秒）")
     ax.legend(frameon=False, fontsize=8, loc="lower right")
-    ax.set_ylim(0.58, 1.09)
+    ax.set_ylim(0.55, ub + 0.04)
     ax.set_xlim(0.2, 2000)
-    ax.set_title("全量 10000 目标：H 综合最高，用时约 2 分钟（全部通过 Skyfield 校验）")
+    ax.set_title("8 月 1 日至 7 日全量：H 约 100 秒，G+ 质量略高但要 9 分钟（全部通过 Skyfield 校验）", fontsize=11)
     save(fig, "图5_方案对比.png")
 
 
@@ -286,25 +291,27 @@ def fig_environment():
         ax.text(b.get_x() + b.get_width() / 2, v * 100 + 1.5, f"{v:.0%}", ha="center", fontsize=8, color=TEXT2)
     ax.set_xticks(range(1, len(clear) + 1), [f"{i}号" for i in range(1, len(clear) + 1)])
     ax.set_ylabel(f"云量 ≤ {env['threshold_pct']:g}% 的时间占比（%）")
-    ax.set_title("各站 10 月上旬晴空概率（2016–2025 年同期）")
+    ax.set_title("各站 8 月 1 日至 7 日晴空概率（2016 至 2025 年同期）")
     ax.set_ylim(0, 90)
     ax.grid(axis="x", visible=False)
     rows = env["plans"]
     comb = [0.5 * r["exp_covered"] / 10000 + 0.5 * r["exp_score"] / 30062 for r in rows]
     names = [r["name"] for r in rows]
     y = np.arange(len(rows))[::-1]
-    colors = [ORANGE if n == "考虑天气" else BLUE for n in names]
-    # 差别只有千分之几：用点图放大局部（柱状图截断坐标轴会夸大差异）
-    ax2.hlines(y, 0.425, comb, color="#d9dce3", lw=1.5)
+    best = int(np.argmax(comb))
+    colors = [ORANGE if i == best else BLUE for i in range(len(rows))]
+    # 差别只有百分之几：用点图放大局部（柱状图截断坐标轴会夸大差异）
+    lo, hi = min(comb) - 0.004, max(comb) + 0.012
+    ax2.hlines(y, lo, comb, color="#d9dce3", lw=1.5)
     ax2.scatter(comb, y, s=90, color=colors, zorder=3, edgecolor="#fcfcfb", linewidth=1.5)
     for yy, c, r in zip(y, comb, rows):
         ax2.text(c + 0.0006, yy, f"{c:.4f}（期望覆盖 {r['exp_covered']:.0f}）", va="center", fontsize=8, color=TEXT2)
     ax2.set_yticks(y, names)
-    ax2.set_xlim(0.425, 0.4425)
-    ax2.set_xticks([0.426, 0.430, 0.434, 0.438, 0.442])
+    ax2.set_xlim(lo, hi)
+    ax2.xaxis.set_major_locator(matplotlib.ticker.MaxNLocator(5))
     ax2.set_ylim(-0.6, len(rows) - 0.4)
-    ax2.set_xlabel("2021–2025 真实天气下的期望综合指标")
-    ax2.set_title("用 2016–2020 年规划，2021–2025 年检验")
+    ax2.set_xlabel("2021 至 2025 年真实天气下的期望综合指标")
+    ax2.set_title("用 2016 至 2020 年规划，2021 至 2025 年检验")
     ax2.grid(axis="y", visible=False)
     fig.tight_layout()
     save(fig, "图8_天气与月光加分项.png")
@@ -340,7 +347,7 @@ def fig_dynamic():
     ax.set_xticks(x, names, fontsize=8.5)
     ax.set_ylim(0, top)
     ax.set_ylabel("真实天气下实现的综合指标")
-    ax.set_title("每天按执行结果重排，补上了“不看天气”与“天气全知”之间约一半的差距", pad=10)
+    ax.set_title("每天按执行结果重排、再用真实预报，补上了“不看天气”与“天气全知”之间约一半的差距", pad=10, fontsize=11)
     ax.grid(axis="x", visible=False)
     ax.legend(frameon=False, fontsize=9, loc="upper left", bbox_to_anchor=(0.0, 0.92))
     fig.tight_layout()
@@ -374,7 +381,10 @@ def fig_pass():
             continue
         pf = pass_profile(pb, run, int(i), pad_s=240)
         k = int(np.searchsorted(pf["sec"], pf["start"]))
-        if k >= 20 and not pf["lit"][k - 20:k - 5].all() and pf["summary"]["el_max"] > 30:
+        ke = int(np.searchsorted(pf["sec"], pf["end"]))
+        shadow_start = k >= 20 and not pf["lit"][k - 20:k - 5].all()
+        low_end = pf["el"][min(ke, len(pf["el"]) - 1)] <= cfg.elev_min + 0.6
+        if shadow_start and low_end and pf["summary"]["el_max"] > 30:
             pick = pf
             break
     if pick is None:

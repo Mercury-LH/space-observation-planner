@@ -17,9 +17,9 @@ class Config:
     data_dir: str = str(REPO_ROOT / "data")
 
     # ---- 规划范围 ----
-    start_utc: str = "2026-10-01T00:00:00"
+    start_utc: str = "2026-08-01T00:00:00"     # 企业老师 2026-10-21 在群里确认：8 月 1 日 0:00 至 8 月 7 日 0:00（UTC）
     days: float = 6.0
-    cell_s: int = 30                      # 时间网格，所有任务起止都落在网格上
+    cell_s: int = 30                      # 规划用的时间网格；按秒精修后任务起止精确到秒
 
     # ---- 可观测条件 ----
     elev_min: float = 10.0

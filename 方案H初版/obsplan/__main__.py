@@ -1,7 +1,7 @@
 """命令行入口。
 
-    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-10-01] [--moon 30] [--weather] [--validate] [--no-refine]
-    uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-10-01] [--seconds-from-start]
+    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine]
+    uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
     uv run python -m obsplan windows [--refresh]
 
 validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
@@ -179,7 +179,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("plan", "validate", "windows"):
         p = sub.add_parser(name)
-        p.add_argument("--start", help="规划开始 UTC，如 2026-10-01")
+        p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
         p.add_argument("--days", type=float)
         p.add_argument("--moon", type=float, help="月光规避角（度），0 为不考虑")
         if name == "plan":

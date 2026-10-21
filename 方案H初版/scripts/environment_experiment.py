@@ -5,7 +5,7 @@
   试过的其他做法（样本外都不如站点平均）：按"站点×每个小时"估计（每格只有 5 个样本，过拟合）、
   按"站点×一天中的小时"估计、给重复观测加"备份覆盖"价值（挤占晴空站点时间，覆盖反而下降）。
 - 月光：月亮在地平线以上时目标与月亮角距 ≥ 30°。
-输出 outputs/materials/environment.json。
+计划都做按秒精修（与最终流水线一致）。输出 outputs/materials/environment.json 与 results/environment.json。
 """
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.environment import evaluate_under_weather, fetch_cloud_history  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
+from obsplan.refine import finish  # noqa: E402
 from obsplan.schedule import evaluate  # noqa: E402
 from obsplan.visibility import get_windows  # noqa: E402
 
@@ -65,23 +66,28 @@ def main():
     no_backup = np.zeros(pb.n_targets)
     t = time.time()
     sch, _ = lagrange.solve(pb, iters=300, verbose=False)
+    sch, _ = finish(pb, sch)
     record("标准计划", cfg, sch, time.time() - t)
 
     t = time.time()
     sch_w, _ = lagrange.solve(pb, iters=300, verbose=False, cell_weight=q, backup=no_backup)
+    sch_w, _ = finish(pb, sch_w)
     record("考虑天气", cfg, sch_w, time.time() - t)
 
     cm = cfg.with_(moon_sep_deg=30.0)
     pbm = Problem.build(cm, ds, get_windows(cm, ds))
     t = time.time()
     sch_m, _ = lagrange.solve(pbm, iters=300, verbose=False)
+    sch_m, _ = finish(pbm, sch_m)
     record("考虑月光", cm, sch_m, time.time() - t)
     t = time.time()
     sch_mw, _ = lagrange.solve(pbm, iters=300, verbose=False, cell_weight=q, backup=no_backup)
+    sch_mw, _ = finish(pbm, sch_mw)
     record("考虑天气与月光", cm, sch_mw, time.time() - t)
 
     OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / "environment.json").write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
+    for path in (OUT / "environment.json", OUT.parents[1] / "results" / "environment.json"):
+        path.write_text(json.dumps(res, ensure_ascii=False, indent=2), encoding="utf-8")
     np.savez_compressed(OUT / "environment_plans.npz", **{
         f"{k}_{f}": getattr(s, f) for k, s in (("std", sch), ("wx", sch_w), ("moon", sch_m), ("moonwx", sch_mw))
         for f in ("station", "target", "start_s", "dur_s")})
