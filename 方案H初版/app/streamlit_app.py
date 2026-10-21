@@ -20,8 +20,9 @@ import streamlit as st
 SCHEME_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCHEME_DIR))
 
-from obsplan.app_backend import (ALGOS, Run, csv_bytes, explain_target, list_runs, orbit_class,  # noqa: E402
-                                 run_planning, station_nights, subset_problem, summary_json, task_rows, validate_run)
+from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
+                                 orbit_class, replay_weather, run_planning, station_nights, subset_problem,
+                                 summary_json, task_rows, validate_run, weather_stats)
 from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
@@ -81,9 +82,11 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     elev_max = c2.number_input("最高仰角 °", 60.0, 90.0, 85.0, 1.0)
     sun_max = st.number_input("站点太阳高度角上限 °", -18.0, 0.0, -6.0, 1.0)
     use_sunlit = st.checkbox("目标须被太阳照亮", value=True)
+    moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
     w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
     algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
     iters = st.slider("价格迭代次数", 50, 500, 300, 50, disabled=algo != "H")
+    weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -91,14 +94,15 @@ with st.sidebar.expander("新建规划", expanded=not labels):
 
 if go_btn:
     cfg = Config(start_utc=f"{d0:%Y-%m-%d}T00:00:00", days=float(days), elev_min=elev_min, elev_max=elev_max,
-                 sun_max=sun_max, use_sunlit=use_sunlit, w_cov=w_cov, w_score=1 - w_cov)
+                 sun_max=sun_max, use_sunlit=use_sunlit, w_cov=w_cov, w_score=1 - w_cov, moon_sep_deg=float(moon))
     cfg_, ds, pb, orbit = base(cfg_key(cfg))
     subset = {}
     if frac < 1 or len(stations) < 10:
         subset = {"target_frac": float(frac), "stations": [s - 1 for s in stations], "seed": 0}
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
     bar = st.sidebar.progress(0.0, text="开始规划……")
-    run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t))
+    run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
+                       weather=weather and algo == "H")
     run.subset = subset
     bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)
@@ -118,10 +122,12 @@ df = pd.DataFrame(rows)
 
 st.title("空间目标观测规划")
 scope = "全量" if not run.subset else f"演示：{run.subset['target_frac']:.0%} 目标 × {len(run.subset['stations'])} 站"
+extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "") + \
+    (" · 按历史天气期望规划" if run.notes.get("weather_aware") else "")
 st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC）· {scope} · "
-           f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}")
+           f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}{extra}")
 
-tabs = st.tabs(["概览", "站点地图", "甘特图", "时间价格", "任务解释", "校验与导出", "规则说明"])
+tabs = st.tabs(["概览", "站点地图", "甘特图", "时间价格", "任务解释", "天气与月光", "校验与导出", "规则说明"])
 
 # ------------------------------------------------------------------ 概览
 with tabs[0]:
@@ -260,8 +266,40 @@ with tabs[4]:
                          column_config={"相对价格": st.column_config.ProgressColumn("相对价格", min_value=0, max_value=1),
                                         "占用率": st.column_config.ProgressColumn("占用率", min_value=0, max_value=1)})
 
-# ------------------------------------------------------------------ 校验与导出
+# ------------------------------------------------------------------ 天气与月光（加分项）
 with tabs[5]:
+    st.markdown("赛题基础部分不考虑天气；这里作为加分项：用 Open-Meteo 历史再分析数据取各站**过去 10 年同期**的逐小时总云量，"
+                f"云量 ≤ {CLOUD_THRESHOLD:g}% 视为可观测。首次使用需要联网（只发送四舍五入到 0.5° 的站点坐标），之后读缓存。")
+    if st.button("读取历史云量并回放本计划", type="primary"):
+        st.session_state["wx_run"] = run.run_id
+    if st.session_state.get("wx_run") == run.run_id:
+        with st.spinner("读取历史云量……"):
+            cloud, sc = weather_stats(pb)
+            rep = replay_weather(pb, run)
+        c1, c2 = st.columns(2)
+        wdf = pd.DataFrame({"站点": [f"{i + 1}号" for i in range(len(sc))], "晴空概率": sc,
+                            "平均云量%": np.nanmean(cloud, axis=(0, 2))})
+        fig = px.bar(wdf, x="站点", y="晴空概率", color_discrete_sequence=[BLUE], title="各站 10 月上旬晴空概率（全天统计，过去 10 年）",
+                     hover_data={"平均云量%": ":.0f", "晴空概率": ":.2f"})
+        fig.update_layout(yaxis_tickformat=".0%", height=380)
+        c1.plotly_chart(fig, use_container_width=True)
+        years = list(range(2016, 2016 + len(rep["coverage_by_year"])))
+        ydf = pd.DataFrame({"年份": [str(y) for y in years], "覆盖目标": rep["coverage_by_year"]})
+        fig = px.bar(ydf, x="年份", y="覆盖目标", color_discrete_sequence=[ORANGE], title="把本计划放到过去每一年的真实天气里")
+        fig.add_hline(y=m["covered"], line_dash="dash", line_color="#8A93A3", annotation_text=f"计划覆盖 {m['covered']}")
+        fig.update_layout(height=380)
+        c2.plotly_chart(fig, use_container_width=True)
+        k = st.columns(3)
+        k[0].metric("期望实际覆盖", f"{rep['coverage_mean']:.0f}")
+        k[0].caption(f"计划 {m['covered']}，约 {rep['coverage_mean'] / max(m['covered'], 1):.0%}")
+        k[1].metric("期望实际得分", f"{rep['score_mean']:.0f}")
+        k[1].caption(f"计划 {m['score']:.0f}")
+        k[2].metric("月光规避", f"{cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "未考虑")
+        k[2].caption("可在左侧新建规划时设置")
+        st.info("结论：只靠气候统计能改进的空间有限（实验中样本外约 +0.5%）；云量变化需要结合短期天气预报做动态重规划。")
+
+# ------------------------------------------------------------------ 校验与导出
+with tabs[6]:
     if run.validation is None:
         st.write("用 Skyfield（评审参考标准）对每个任务逐秒重算仰角、站点太阳角和目标受照，并复算得分。")
         if st.button("开始校验（全量约 2 分钟）", type="primary"):
@@ -284,7 +322,7 @@ with tabs[5]:
                        mime="application/json", use_container_width=True)
 
 # ------------------------------------------------------------------ 规则说明
-with tabs[6]:
+with tabs[7]:
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
@@ -295,5 +333,6 @@ with tabs[6]:
 | 观测时长与计分 | 120–240 秒，60%→100% 线性 | 答疑 #30 |
 | 切换 | {cfg.switch_s} 秒；每站同一时刻一个目标 | 说明.docx |
 | 重复观测 | 上次结束 {cfg.repeat_gap_h:g} 小时后可再计分 | 答疑 #30、#32 |
+| 月光规避（加分项） | {'月亮在地平线以上时，目标与月亮角距 ≥ %g°' % cfg.moon_sep_deg if cfg.moon_sep_deg > 0 else '不考虑'} | 说明.docx 加分项 |
 | 综合指标 | {cfg.w_cov:g} × 覆盖数/10000 + {cfg.w_score:g} × 得分/30062（内部比较口径） | 答疑 #36 |
 """)

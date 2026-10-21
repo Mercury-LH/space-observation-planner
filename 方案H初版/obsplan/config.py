@@ -31,6 +31,9 @@ class Config:
     elev_margin: float = 0.02
     sun_margin: float = 0.05
     sunlit_margin_km: float = 10.0        # 地影判定：日-星连线离地心距离须超过地球半径 + 余量
+    # 加分项：月光规避。月亮在地平线以上时，目标与月亮的角距须 ≥ moon_sep_deg（0 = 不考虑）
+    moon_sep_deg: float = 0.0
+    moon_margin_deg: float = 0.5
 
     # ---- 观测与资源 ----
     obs_min_s: int = 120
@@ -77,7 +80,8 @@ class Config:
     def scenario_key(self) -> str:
         sun = f"sun{self.sun_max:g}" if self.use_sun else "nosun"
         lit = "_lit" if self.use_sunlit else ""
-        return f"{self.start_utc[:10]}_{self.days:g}d_{sun}{lit}_el{self.elev_min:g}-{self.elev_max:g}_c{self.cell_s}"
+        moon = f"_moon{self.moon_sep_deg:g}" if self.moon_sep_deg > 0 else ""
+        return f"{self.start_utc[:10]}_{self.days:g}d_{sun}{lit}{moon}_el{self.elev_min:g}-{self.elev_max:g}_c{self.cell_s}"
 
     def with_(self, **kw) -> "Config":
         return replace(self, **kw)

@@ -84,15 +84,38 @@ def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: i
     return Problem.build(pb.cfg, pb.ds, w2)
 
 
-def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None) -> Run:
+CLOUD_THRESHOLD = 30.0
+
+
+def weather_stats(pb: Problem, threshold: float = CLOUD_THRESHOLD):
+    """过去 10 年同期逐小时云量（首次需联网，之后用缓存）与各站晴空比例。"""
+    from .environment import fetch_cloud_history
+    cloud = fetch_cloud_history(pb.cfg, pb.ds, verbose=False)
+    return cloud, np.nanmean(cloud <= threshold, axis=(0, 2))
+
+
+def replay_weather(pb: Problem, run: Run, threshold: float = CLOUD_THRESHOLD) -> dict:
+    from .environment import evaluate_under_weather
+    cloud, _ = weather_stats(pb, threshold)
+    return evaluate_under_weather(pb.cfg, pb.ds, run.schedule(), cloud, threshold)
+
+
+def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False) -> Run:
     cfg = pb.cfg
     t0 = time.time()
     mu = None
     notes = {}
     if algo == "H":
-        sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress)
+        kw = {}
+        if weather:
+            if progress:
+                progress(0.0, "读取历史云量……")
+            _, sc = weather_stats(pb)
+            kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
+            notes["weather_aware"] = True
+        sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, **kw)
         mu = info["mu"].astype(np.float32)
-        notes = {"ub_relaxed": float(info["ub_relaxed"])}
+        notes["ub_relaxed"] = float(info["ub_relaxed"])
     elif algo == "E":
         if progress:
             progress(0.1, "遗传算法学习打分权重……")

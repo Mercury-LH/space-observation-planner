@@ -245,6 +245,49 @@ def fig_convergence(z):
     save(fig, "图7_价格迭代收敛.png")
 
 
+def fig_environment():
+    p = DATA / "environment.json"
+    if not p.exists():
+        print("environment.json 不存在，跳过加分项图")
+        return
+    env = json.loads(p.read_text(encoding="utf-8"))
+    sys.path.insert(0, str(ROOT))
+    from obsplan.config import Config
+    from obsplan.data import load
+    from obsplan.environment import fetch_cloud_history
+    cfg = Config()
+    cloud = fetch_cloud_history(cfg, load(cfg), verbose=False)
+    clear = np.nanmean(cloud <= env["threshold_pct"], axis=(0, 2))
+    fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1.15, 1]})
+    bars = ax.bar(range(1, len(clear) + 1), clear * 100, color=BLUE, width=0.62)
+    for b, v in zip(bars, clear):
+        ax.text(b.get_x() + b.get_width() / 2, v * 100 + 1.5, f"{v:.0%}", ha="center", fontsize=8, color=TEXT2)
+    ax.set_xticks(range(1, len(clear) + 1), [f"{i}号" for i in range(1, len(clear) + 1)])
+    ax.set_ylabel(f"云量 ≤ {env['threshold_pct']:g}% 的时间占比（%）")
+    ax.set_title("各站 10 月上旬晴空概率（2016–2025 年同期）")
+    ax.set_ylim(0, 90)
+    ax.grid(axis="x", visible=False)
+    rows = env["plans"]
+    comb = [0.5 * r["exp_covered"] / 10000 + 0.5 * r["exp_score"] / 30062 for r in rows]
+    names = [r["name"] for r in rows]
+    y = np.arange(len(rows))[::-1]
+    colors = [ORANGE if n == "考虑天气" else BLUE for n in names]
+    # 差别只有千分之几：用点图放大局部（柱状图截断坐标轴会夸大差异）
+    ax2.hlines(y, 0.425, comb, color="#d9dce3", lw=1.5)
+    ax2.scatter(comb, y, s=90, color=colors, zorder=3, edgecolor="#fcfcfb", linewidth=1.5)
+    for yy, c, r in zip(y, comb, rows):
+        ax2.text(c + 0.0006, yy, f"{c:.4f}（期望覆盖 {r['exp_covered']:.0f}）", va="center", fontsize=8, color=TEXT2)
+    ax2.set_yticks(y, names)
+    ax2.set_xlim(0.425, 0.4425)
+    ax2.set_xticks([0.426, 0.430, 0.434, 0.438, 0.442])
+    ax2.set_ylim(-0.6, len(rows) - 0.4)
+    ax2.set_xlabel("2021–2025 真实天气下的期望综合指标")
+    ax2.set_title("用 2016–2020 年规划，2021–2025 年检验")
+    ax2.grid(axis="y", visible=False)
+    fig.tight_layout()
+    save(fig, "图8_天气与月光加分项.png")
+
+
 if __name__ == "__main__":
     z = np.load(DATA / "h_run.npz")
     fig_windows()
@@ -254,4 +297,5 @@ if __name__ == "__main__":
     fig_compare()
     fig_convergence(z)
     fig_sweep()
+    fig_environment()
     print("done", file=sys.stderr)

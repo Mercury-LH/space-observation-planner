@@ -114,8 +114,20 @@ def _runs(edge_ok: np.ndarray, min_len: int):
     return rs[keep], cs[keep], ce[keep]
 
 
+def moon_ecef(cfg: Config, seconds: np.ndarray) -> np.ndarray:
+    """(T, 3) 月亮在地固系（ITRS）中的地心位置，km。"""
+    from skyfield.api import Loader
+    from skyfield.framelib import itrs
+    load = Loader(cfg.cache_dir, verbose=False)
+    ts = load.timescale(builtin=True)
+    eph = load("de421.bsp")
+    s = cfg.start_dt
+    t = ts.utc(s.year, s.month, s.day, s.hour, s.minute, s.second + seconds)
+    return eph["earth"].at(t).observe(eph["moon"]).frame_xyz(itrs).km.T
+
+
 def _chunk_job(args):
-    (cfg, lines, idx0, st_pos, st_up, dark) = args
+    (cfg, lines, idx0, st_pos, st_up, dark, moon) = args
     sats = [Satrec.twoline2rv(a, b) for a, b in lines]
     T = cfg.n_cells + 1
     sec = np.arange(T, dtype=np.float64) * cfg.cell_s
@@ -141,10 +153,30 @@ def _chunk_job(args):
     recef = teme_to_ecef(r, theta[None, :])
     lo, hi = cfg.elev_min + cfg.elev_margin, cfg.elev_max - cfg.elev_margin
     edges, checks = [], []   # checks: (row, station, k) 需要 1 秒加密检查的采样对 (k, k+1)
+    moon_units = []
     for j in range(len(st_pos)):
         el = elevation_deg(recef, st_pos[j], st_up[j])
         vis = ok_t & (el >= lo) & (el <= hi) & dark[None, :, j]
+        if moon is not None:
+            mv = moon - st_pos[j]
+            mu_ = mv / np.linalg.norm(mv, axis=1, keepdims=True)
+            moon_up = mu_ @ st_up[j] > 0
+            d = recef - st_pos[j]
+            dhat = d / np.linalg.norm(d, axis=-1, keepdims=True)
+            cos_sep = np.einsum("ntk,tk->nt", dhat, mu_)
+            limit_deg = cfg.moon_sep_deg + cfg.moon_margin_deg
+            vis &= ~moon_up[None, :] | (cos_sep <= np.cos(np.radians(limit_deg)))
+            moon_units.append(mu_)
+            sep = np.degrees(np.arccos(np.clip(cos_sep, -1, 1)))
+            step = np.degrees(np.arccos(np.clip(np.einsum("ntk,ntk->nt", dhat[:, :-1], dhat[:, 1:]), -1, 1)))
+            # 两次采样之间，弧上任一点离端点不超过 step/2：只有端点离禁区不足 step/2 时才可能擦进去
+            near_moon = moon_up[None, :-1] & (np.minimum(sep[:, :-1], sep[:, 1:]) - step / 2 < limit_deg)
+        else:
+            near_moon = None
         edge = vis[:, :-1] & vis[:, 1:]
+        if near_moon is not None:                 # 可能擦进月亮禁区的采样对做 1 秒加密检查
+            for row, k in zip(*np.nonzero(edge & near_moon)):
+                checks.append((row, j, k))
         # 过境峰值：真实最高点一定在采样峰值两侧各 30 秒内，近天顶时可能越过 85°
         peak = np.zeros_like(vis)
         peak[:, 1:-1] = vis[:, 1:-1] & (el[:, 1:-1] >= el[:, :-2]) & (el[:, 1:-1] >= el[:, 2:]) & (el[:, 1:-1] > 30.0)
@@ -154,7 +186,7 @@ def _chunk_job(args):
                     checks.append((row, j, kk))
         edges.append(edge)
     if checks:
-        checks = np.array(checks)
+        checks = np.unique(np.array(checks), axis=0)
         fine = np.arange(1, cfg.cell_s, dtype=np.float64)
         for row in np.unique(checks[:, 0]):
             cr = checks[checks[:, 0] == row]
@@ -165,7 +197,14 @@ def _chunk_job(args):
             ee = ee.reshape(len(cr), len(fine))
             for n, (_, j, k) in enumerate(cr):
                 fel = elevation_deg(rec[n], st_pos[j], st_up[j])
-                if (ee[n] != 0).any() or (fel > hi).any() or (fel < lo).any():
+                bad = (ee[n] != 0).any() or (fel > hi).any() or (fel < lo).any()
+                if not bad and moon is not None:
+                    mu_ = moon_units[j][k]
+                    if mu_ @ st_up[j] > 0:
+                        d = rec[n] - st_pos[j]
+                        cs = (d @ mu_) / np.linalg.norm(d, axis=1)
+                        bad = (cs > np.cos(np.radians(cfg.moon_sep_deg + cfg.moon_margin_deg))).any()
+                if bad:
                     edges[j][row, k] = False
     out = []
     for j, edge in enumerate(edges):
@@ -191,8 +230,9 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
         _, a, b = _runs((dark[:-1, j] & dark[1:, j])[None, :], 1)
         dark_runs.append(list(zip(a.tolist(), b.tolist())))
     st_pos, st_up = station_ecef(ds.st_lon, ds.st_lat, ds.st_alt_m)
+    moon = moon_ecef(cfg, sec) if cfg.moon_sep_deg > 0 else None
     chunk = 200
-    jobs = [(cfg, list(zip(ds.line1[i:i + chunk], ds.line2[i:i + chunk])), i, st_pos, st_up, dark)
+    jobs = [(cfg, list(zip(ds.line1[i:i + chunk], ds.line2[i:i + chunk])), i, st_pos, st_up, dark, moon)
             for i in range(0, ds.n_targets, chunk)]
     workers = workers or max(1, (os.cpu_count() or 2) - 2)
     with ProcessPoolExecutor(workers) as ex:

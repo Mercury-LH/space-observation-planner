@@ -29,7 +29,7 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
     from skyfield.api import EarthSatellite, wgs84
 
     ts, eph = _sky(str(Path(cfg.cache_dir)))
-    earth, sun = eph["earth"], eph["sun"]
+    earth, sun, moon = eph["earth"], eph["sun"], eph["moon"]
     st0 = cfg.start_dt
     n = len(sch)
     horizon = cfg.days * 86400
@@ -95,6 +95,16 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
                 bad["仰角高于上限"].append(i)
             if not np.all(lit[sl]):
                 bad["目标未被太阳照亮"].append(i)
+            if cfg.moon_sep_deg > 0:
+                obs = (earth + sites[j]).at(tt[sl])
+                mpos = obs.observe(moon).apparent()
+                malt = mpos.altaz()[0].degrees
+                sv = (sat - sites[j]).at(tt[sl]).position.km
+                mv = mpos.position.km
+                cos = np.einsum("ij,ij->j", sv, mv) / (np.linalg.norm(sv, axis=0) * np.linalg.norm(mv, axis=0))
+                sep = np.degrees(np.arccos(np.clip(cos, -1, 1)))
+                if np.any((malt > 0) & (sep < cfg.moon_sep_deg)):
+                    bad["离月亮太近"].append(i)
 
     for j in range(ds.n_stations):
         idx = np.nonzero(sch.station == j)[0]
