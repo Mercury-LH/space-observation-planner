@@ -158,6 +158,31 @@ def execute(pb: Problem, status: Status, sch, truth, threshold, until_cell: int 
             status.failed += 1
 
 
+def daily(pb: Problem, status: Status, days: int) -> dict:
+    """逐日累计：成功覆盖数、得分、当天尝试与失败次数。"""
+    day_cells = DAY_H * int(3600 / pb.cfg.cell_s)
+    seen, score = set(), 0.0
+    out = {"covered": [], "score": [], "attempts": [], "failed": []}
+    tasks = sorted(status.tasks, key=lambda x: x[2])
+    k = 0
+    for d in range(days):
+        att = fail = 0
+        while k < len(tasks) and tasks[k][2] < (d + 1) * day_cells:
+            s, t, a, m, ok = tasks[k]
+            att += 1
+            if ok:
+                seen.add(t)
+                score += float(pb.P[t] * pb.frac[m])
+            else:
+                fail += 1
+            k += 1
+        out["covered"].append(len(seen))
+        out["score"].append(score)
+        out["attempts"].append(att)
+        out["failed"].append(fail)
+    return out
+
+
 def realized(pb: Problem, status: Status) -> dict:
     cov = len(status.succ)
     score = sum(pb.P[t] * pb.frac[m] for t, obs in status.succ.items() for a, m in obs)
@@ -168,13 +193,14 @@ def realized(pb: Problem, status: Status) -> dict:
 def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, threshold: float = 30.0,
              fc1: np.ndarray | None = None, fc2: np.ndarray | None = None, cal1=None, cal2=None,
              iters: int = 150, fast: bool = True, verbose: bool = False, return_status: bool = False,
-             clip_p: float | None = None, clip_days: int = 1, fill: bool = False):
+             clip_p: float | None = None, clip_days: int = 1, fill: bool = False, on_day=None):
     """policy: 'static'（不看天气，一次规划）、'static_clim'（按气候概率一次规划）、
     'dynamic_clim'（每天重排，只用气候概率）、'dynamic_forecast'（每天重排，用预报）、
     'hindsight'（事后最优参照：6 天的真实天气全部已知，一次规划；现实中不可实现）。
     clip_p：每天重排时，把未来 clip_days 天内晴空概率 < clip_p 的时段从窗口中裁掉（只在确定性高的预报下有意义）。
     fill：裁剪后再把核心计划装回未裁剪的问题，用按晴空概率加权的贪心补满其余时段（"碰运气"的观测）。
-    注意：局部搜索不看晴空概率，所以"已知天气"用裁剪窗口表达，比用权重表达更可靠。"""
+    注意：局部搜索不看晴空概率，所以"已知天气"用裁剪窗口表达，比用权重表达更可靠。
+    on_day(d, days)：每天执行完后回调（产品界面显示进度用）。"""
     t0 = time.time()
     H = truth.shape[1]
     days = int(np.ceil(H / DAY_H))
@@ -189,6 +215,8 @@ def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, thre
             p0 = clip_windows(pb, truth <= threshold)
         sch, _ = lagrange.solve(p0, iters=iters, fast=fast, verbose=False, **kw)
         execute(pb, status, sch, truth, threshold, None)
+        if on_day is not None:
+            on_day(days, days)
     else:
         for d in range(days):
             now_cell = d * DAY_H * cells_per_hour
@@ -218,6 +246,8 @@ def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, thre
             if fill and clip_p is not None:
                 sch = _fill(full, status, sch, qc, vct)
             execute(pb, status, sch, truth, threshold, (d + 1) * DAY_H * cells_per_hour)
+            if on_day is not None:
+                on_day(d + 1, days)
             if verbose:
                 r = realized(pb, status)
                 print(f"    第 {d + 1} 天后：成功覆盖 {r['covered']}，得分 {r['score']:.0f}，已执行 {r['executed']}（失败 {r['failed']}）",

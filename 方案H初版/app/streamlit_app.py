@@ -21,8 +21,8 @@ SCHEME_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCHEME_DIR))
 
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
-                                 orbit_class, replay_weather, run_planning, station_nights, subset_problem,
-                                 summary_json, task_rows, validate_run, weather_stats)
+                                 orbit_class, replay_weather, run_planning, simulate_days, station_nights,
+                                 subset_problem, summary_json, task_rows, validate_run, weather_stats)
 from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
@@ -299,7 +299,60 @@ with tabs[5]:
         k[1].caption(f"计划 {m['score']:.0f}")
         k[2].metric("月光规避", f"{cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "未考虑")
         k[2].caption("可在左侧新建规划时设置")
-        st.info("结论：只靠气候统计能改进的空间有限（实验中样本外约 +0.5%）；云量变化需要结合短期天气预报做动态重规划。")
+        st.info("结论：只靠气候统计能改进的空间有限（实验中样本外约 +0.5%）；要绕开云，需要按实际执行结果动态重规划（见下方）。")
+
+    st.divider()
+    st.subheader("动态重规划：每天按执行结果重排")
+    st.markdown("模拟真实运行：每天 0 点（UTC）根据前一天的**实际执行结果**更新状态——哪些目标已成功覆盖、还剩几次可观测、"
+                "48 小时间隔从哪次成功观测算起——然后重新规划剩余时段，只执行当天的任务。观测期间每个小时云量都 "
+                f"≤ {CLOUD_THRESHOLD:g}% 才算成功；失败的目标第二天可以再排。")
+    dyn_path = SCHEME_DIR / "results" / "dynamic.json"
+    DYN_LABELS = {"static": "静态<br>标准计划", "static_clim": "静态<br>+气候统计", "dynamic_clim": "每天重排<br>+气候统计",
+                  "dynamic_forecast": "每天重排<br>+真实预报", "dynamic_oracle": "每天重排<br>+完美预报",
+                  "hindsight": "事后最优<br>天气全知"}
+    if dyn_path.exists():
+        dj = json.loads(dyn_path.read_text(encoding="utf-8"))
+        rows = []
+        for yr, v in dj["years"].items():
+            for key, p_ in v["policies"].items():
+                rows.append({"策略": DYN_LABELS.get(key, p_["name"]), "年份": f"{yr} 年天气", "综合": p_["combined"], "成功覆盖": int(p_["covered"]),
+                             "得分": round(p_["score"]), "类型": "参照（现实中拿不到）" if key in ("dynamic_oracle", "hindsight") else "可实现"})
+        ddf = pd.DataFrame(rows)
+        fig = px.bar(ddf, x="策略", y="综合", color="年份", barmode="group", pattern_shape="类型",
+                     color_discrete_sequence=[BLUE, ORANGE], hover_data={"成功覆盖": True, "得分": True, "类型": False},
+                     title="全量实验：真实天气下实现的综合指标（2024、2025 年）")
+        fig.update_layout(height=420, xaxis_title="", yaxis_tickformat=".2f", legend_title_text="", xaxis_tickangle=0,
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0))
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("全量 10000 目标的实验结果（`scripts/dynamic_experiment.py`）：每天重排比一次排完高 7.8%–9.9%，"
+                   "补上了与“天气全知”之间约一半的差距；真实存档预报在这两年没有带来额外收益，完美预报还能再 +4.8%。")
+    c = st.columns([1, 1, 2])
+    year = c[0].selectbox("用哪一年的真实天气", list(range(2016, 2026)), index=8, key="dyn_year")
+    c[1].markdown("&nbsp;")
+    go_sim = c[1].button("逐日模拟", type="primary", key="dyn_go")
+    c[2].caption("按当前计划的场景（目标、站点、规划期、规则），把“一次排完、照单执行”和“每天按执行结果重排”各模拟一遍。演示模式几秒；全量约 3 分钟。"
+                 "气候统计用其余 9 年，不含被检验的这一年。首次使用需要联网读取历史云量。")
+    if go_sim:
+        bar = st.progress(0.0, text="准备……")
+        res = simulate_days(pb, int(year), progress=lambda f, t: bar.progress(min(f, 1.0), text=t))
+        bar.empty()
+        st.session_state["dyn_res"] = (run.run_id, int(year), res)
+    got = st.session_state.get("dyn_res")
+    if got and got[0] == run.run_id:
+        res = got[2]
+        a, b = res["static"], res["dynamic_clim"]
+        k = st.columns(3)
+        k[0].metric("成功覆盖（每天重排）", f"{b['covered']:.0f}", f"{b['covered'] - a['covered']:+.0f} 对比一次排完")
+        k[1].metric("实际得分（每天重排）", f"{b['score']:.0f}", f"{b['score'] - a['score']:+.0f}")
+        k[2].metric("综合指标提升", f"{b['combined'] / max(a['combined'], 1e-9) - 1:+.1%}")
+        days = [f"第 {d + 1} 天" for d in range(res["days"])]
+        ldf = pd.concat([pd.DataFrame({"天": days, "累计成功覆盖": x["daily"]["covered"], "当天尝试": x["daily"]["attempts"],
+                                       "当天失败": x["daily"]["failed"], "策略": x["name"]}) for x in (a, b)])
+        fig = px.line(ldf, x="天", y="累计成功覆盖", color="策略", markers=True, color_discrete_sequence=["#8A93A3", BLUE],
+                      hover_data={"当天尝试": True, "当天失败": True},
+                      title=f"{got[1]} 年真实天气下逐日累计成功覆盖的目标数")
+        fig.update_layout(height=380, xaxis_title="", legend_title_text="")
+        st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------------------------ 校验与导出
 with tabs[6]:

@@ -100,6 +100,30 @@ def replay_weather(pb: Problem, run: Run, threshold: float = CLOUD_THRESHOLD) ->
     return evaluate_under_weather(pb.cfg, pb.ds, run.schedule(), cloud, threshold)
 
 
+def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, progress=None) -> dict:
+    """把"一次排完、照单执行"和"每天按执行结果重排"放到某一年的真实天气里逐日模拟。
+    气候统计用其余年份（不含被检验的这一年）。"""
+    from .dynamic import DAY_H, daily, simulate
+    cloud, _ = weather_stats(pb, threshold)
+    years = list(range(2016, 2016 + cloud.shape[0]))
+    yi = years.index(year)
+    truth = cloud[yi]
+    clim = np.nanmean(np.delete(cloud, yi, axis=0) <= threshold, axis=(0, 2))
+    days = int(np.ceil(truth.shape[1] / DAY_H))
+    out = {"year": year, "days": days}
+    plan = (("static", "一次排完、照单执行"), ("dynamic_clim", "每天按执行结果重排"))
+    for j, (policy, name) in enumerate(plan):
+        def cb(d, n, j=j, name=name):
+            if progress is not None:
+                progress((j + d / n) / len(plan), f"{name}：第 {d}/{n} 天")
+        if progress is not None:
+            progress(j / len(plan), f"{name}：规划中……")
+        res, status = simulate(pb, truth, policy, clim, threshold, iters=150, fast=True, return_status=True,
+                               on_day=cb)
+        out[policy] = {"name": name, **{k: float(v) for k, v in res.items()}, "daily": daily(pb, status, days)}
+    return out
+
+
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
                  fast: bool = False) -> Run:
     cfg = pb.cfg
