@@ -36,3 +36,13 @@ def test_price_coordination_valid_and_bounded(sub):
 def test_cpsat_blocks_valid(sub):
     sch = cpsat.solve(sub, MANUAL_WEIGHTS, time_limit=2.0, max_blocks=3, verbose=False)
     assert structural_violations(sub, sch) == {}
+
+
+def test_lns_keeps_validity_and_never_worsens(sub):
+    from obsplan.lns import run_lns, state_from_schedule
+    sch, _ = lagrange.solve(sub, iters=30, verbose=False)
+    st = state_from_schedule(sub, sch)
+    before = objective(sub, st)
+    run_lns(sub, st, budget_s=8.0, time_limit=1.0)
+    assert objective(sub, st) >= before - 1e-12
+    assert structural_violations(sub, st.schedule(sub, "LNS", 0)) == {}

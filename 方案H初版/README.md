@@ -127,6 +127,11 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 
 只对高优目标做挤让插入会快到 1 秒以内，但综合下降约 0.5–1%，不采用。
 
+## 局部最优性检验：CP-SAT 分段精确重排（`obsplan/lns.py`）
+
+全量 CP-SAT 解不动，但单站 2 小时的子问题几秒内能求最优。`run_lns` 每次取一个站点的一段时间，拿掉段内任务、其余固定，用 CP-SAT 在段内精确重排，变好才接受。
+在方案 H 的计划上随机试 35 段（共 357 段，90 秒）：8 段有改进，累计综合指标只提高 0.0001。说明现有计划在 2 小时尺度上已接近局部最优，因此不放进默认流程；它可以作为方案 G 在全量上使用 CP-SAT 的方式（局部子问题求解器，而不是全局求解器）。
+
 ## 安全余量的取舍
 
 评审采样方式与容差未知（答疑 #36 追加提问未答），规划时在阈值上留了余量（`obsplan/config.py`）。实测两组设置：
@@ -165,6 +170,7 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 | `obsplan/cpsat.py` | G：AI 筛选 + CP-SAT 滚动时域 |
 | `obsplan/lagrange.py` | H：价格协调 |
 | `obsplan/bounds.py` | 网络流上界 |
+| `obsplan/lns.py` | CP-SAT 分段精确重排（局部最优性检验） |
 | `obsplan/environment.py` | 加分项：历史云量、天气回放 |
 | `obsplan/app_backend.py`、`app/` | 产品界面 |
 | `obsplan/checks.py` | 快速结构检查（不算几何） |
