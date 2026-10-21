@@ -418,6 +418,55 @@ def fig_pass():
     save(fig, "图10_过境详情.png")
 
 
+def fig_architecture():
+    """图 11：总体技术路线（输入 → 物理计算 → 规划 → 校验 → 输出，以及伐谋与动态重规划两个闭环）。"""
+    from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+    fig, ax = plt.subplots(figsize=(7.4, 5.1))
+    ax.set_xlim(0, 100)
+    ax.set_ylim(0, 70)
+    ax.axis("off")
+    NAVY, LIGHT, PALE = "#14213D", "#EEF2F8", "#FCE9DF"
+
+    def box(x, y, w, h, title, body, fc=LIGHT, tc="#0b0b0b"):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.4,rounding_size=1.2", fc=fc, ec="none"))
+        ax.text(x + w / 2, y + h - 2.2, title, ha="center", va="top", fontsize=9, fontweight="bold", color=tc)
+        ax.text(x + w / 2, y + h - 6.4, body, ha="center", va="top", fontsize=7.2, color=tc if fc == NAVY else TEXT2,
+                linespacing=1.35)
+
+    def arrow(x0, y0, x1, y1, color=MUTED, ls="-"):
+        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1), arrowstyle="-|>", mutation_scale=10, color=color, lw=1.2,
+                                     linestyle=ls))
+
+    # 第一行：输入与物理计算（y 50–67）
+    box(1, 50, 28, 17, "输入", "10000 颗目标 TLE\n10 站站址、优先级\n规则配置（规划期、阈值）")
+    box(36, 50, 28, 17, "轨道外推", "SGP4 外推 6 天\n外推结果合理性检查\n（近地点/远地点 ±10%）")
+    box(71, 50, 28, 17, "可见窗口", "仰角 10 至 85 度、站点黑夜\n目标受照、月光（可选）\n峰值附近 1 秒加密")
+    arrow(29.5, 58.5, 35.5, 58.5)
+    arrow(64.5, 58.5, 70.5, 58.5)
+    # 第二行：规划（y 25–42）
+    box(71, 25, 28, 17, "价格协调构造", "时间格定价、目标独立出价\n次梯度调价 300 次\n对偶上界", fc=NAVY, tc="#fcfcfb")
+    box(36, 25, 28, 17, "局部搜索", "挤让插入、碎片压紧\n分档补空、延长观测", fc=NAVY, tc="#fcfcfb")
+    box(1, 25, 28, 17, "按秒精修", "逐秒探查真实边界\n线性规划重分时长\n全量约 4 秒", fc=NAVY, tc="#fcfcfb")
+    arrow(92, 49.5, 92, 42.5)
+    arrow(70.5, 33.5, 64.5, 33.5)
+    arrow(35.5, 33.5, 29.5, 33.5)
+    # 伐谋闭环：说明文字放在第一、二行之间，箭头避开文字
+    ax.text(42, 46.9, "伐谋：在沙箱 + 本地评测把关下演化打分函数、\n局部搜索算子顺序、调价规则，采纳后进入求解器",
+            ha="center", va="center", fontsize=7.2, color=ORANGE, linespacing=1.3)
+    arrow(55, 44.4, 55, 42.6, color=ORANGE, ls="--")
+    arrow(73, 46.9, 80, 42.6, color=ORANGE, ls="--")
+    # 第三行：校验与输出（y 1–18）
+    box(1, 1, 28, 17, "Skyfield 逐秒校验", "与评审口径一致的\n独立复核：0 违规")
+    box(36, 1, 28, 17, "输出", "观测计划 CSV\n覆盖、得分、上界\n网页界面与命令行")
+    box(71, 1, 28, 17, "闭环：动态重规划", "每天按执行结果\n与云量预报更新状态\n重排剩余时段", fc=PALE)
+    arrow(15, 24.5, 15, 18.5)
+    arrow(29.5, 9.5, 35.5, 9.5)
+    arrow(64.5, 9.5, 70.5, 9.5)
+    arrow(85, 18.5, 85, 24.5, color=ORANGE)
+    ax.set_title("总体技术路线", fontsize=11)
+    save(fig, "图11_总体技术路线.png")
+
+
 if __name__ == "__main__":
     z = np.load(DATA / "h_run.npz")
     fig_windows()
@@ -430,4 +479,5 @@ if __name__ == "__main__":
     fig_environment()
     fig_dynamic()
     fig_pass()
+    fig_architecture()
     print("done", file=sys.stderr)
