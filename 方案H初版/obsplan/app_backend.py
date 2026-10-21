@@ -125,7 +125,8 @@ def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, pr
 
 
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
-                 fast: bool = False) -> Run:
+                 fast: bool = False, refine_seconds: bool = True) -> Run:
+    """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。"""
     cfg = pb.cfg
     t0 = time.time()
     mu = None
@@ -154,6 +155,12 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
         notes = {"weights": [float(x) for x in w], "mode": "快速" if fast else "高质量"}
     else:
         sch = algo_priority(pb)
+    if refine_seconds:
+        from .refine import refine
+        if progress:
+            progress(0.97, "按秒精修：探查真实可见边界、重新分配观测时长……")
+        sch, ri = refine(pb, sch)
+        notes["refine"] = ri
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"
@@ -227,7 +234,8 @@ def explain_target(pb: Problem, run: Run, t: int) -> dict:
             costs = pref[s, k0 + pb.m_min + 1:k1 + 2] - pref[s, k0:k1 - pb.m_min + 1]
             price = float(costs.min()) if len(costs) else None
         users = [i for (a, b, i) in occ.get(s, []) if a <= k1 and b >= k0]
-        used_here = [i for i in mine if int(run.station[i]) == s and k0 <= run.start_s[i] // cell <= k1]
+        # 按秒精修后任务起点可能比网格窗口早最多 cell−1 秒
+        used_here = [i for i in mine if int(run.station[i]) == s and (k0 - 1) * cell < run.start_s[i] <= k1 * cell]
         busy = sum(min(b, k1) - max(a, k0) + 1 for (a, b, i) in occ.get(s, []) if a <= k1 and b >= k0)
         windows.append({
             "站点": s + 1, "开始": utc(cfg, k0 * cell), "结束": utc(cfg, k1 * cell), "长度(秒)": (k1 - k0) * cell,

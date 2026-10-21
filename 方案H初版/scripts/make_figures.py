@@ -180,11 +180,15 @@ def fig_compare():
     rows = d["rows"]
     labels = {"A": ("A 随机", (8, 0), "left"), "B": ("B 优先级贪心", (8, 0), "left"),
               "C": ("C 人工多因素", (8, 0), "left"), "D": ("D AI进化权重贪心", (-8, 0), "right"),
-              "E": ("E AI贪心+局部搜索", (-8, -9), "right"), "G": ("G AI筛选+CP-SAT", (-8, 0), "right"),
-              "G+": ("G+局部搜索", (0, -16), "center"), "H": ("H 价格协调（新算法）", (-8, 13), "right")}
-    fig, ax = plt.subplots(figsize=(7.2, 4.0))
+              "E": ("E AI贪心+局部搜索", (-10, -1), "right"), "G": ("G AI筛选+CP-SAT", (-8, 0), "right"),
+              "G+": ("G+局部搜索", (10, 9), "left"), "H": ("H 价格协调（新算法）", (9, -13), "left")}
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    base = {}
     for r in rows:
+        if "按秒精修" in r["algo"]:
+            continue
         key = r["algo"].split()[0]
+        base[key] = r
         is_h = key == "H"
         ax.scatter(r["runtime_s"], r["combined"], s=70 if is_h else 46, color=ORANGE if is_h else BLUE,
                    edgecolor="#fcfcfb", linewidth=1.5, zorder=3)
@@ -192,11 +196,29 @@ def fig_compare():
         ax.annotate(text, (r["runtime_s"], r["combined"]), xytext=off, textcoords="offset points",
                     fontsize=9, color="#0b0b0b" if is_h else TEXT2, va="center", ha=ha,
                     fontweight="bold" if is_h else "normal")
+    for r in rows:                              # 按秒精修：从网格计划指向精修后的点
+        if "按秒精修" not in r["algo"]:
+            continue
+        key = r["algo"].split()[0]
+        b0 = base[key]
+        is_h = key == "H"
+        color = ORANGE if is_h else BLUE
+        ax.annotate("", (r["runtime_s"], r["combined"]), xytext=(b0["runtime_s"], b0["combined"]),
+                    arrowprops=dict(arrowstyle="-|>", color=color, lw=1.2, shrinkA=4, shrinkB=3), zorder=2)
+        ax.scatter(r["runtime_s"], r["combined"], s=70 if is_h else 46, facecolor="#fcfcfb", edgecolor=color,
+                   linewidth=1.6, zorder=3)
+        if is_h:
+            ax.annotate(f"H + 按秒精修 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(-10, 9),
+                        textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
+                        fontweight="bold")
     ax.set_xscale("log")
     ax.set_xlabel("求解用时（秒，对数刻度）")
     ax.set_ylabel("综合指标")
-    ax.axhline(1.056, color=MUTED, lw=1, ls="--")
-    ax.text(0.3, 1.063, "网络流上界 1.056（偏松，任何计划都不可能超过）", color=MUTED, fontsize=8)
+    ub = 1.056                                  # 网络流松弛上界（obsplan/bounds.py，30 秒网格模型）
+    ax.axhline(ub, color=MUTED, lw=1, ls="--")
+    ax.text(0.3, ub + 0.007, f"网络流上界 {ub}（30 秒网格模型，偏松）", color=MUTED, fontsize=8)
+    ax.scatter([], [], s=46, facecolor="#fcfcfb", edgecolor=TEXT2, linewidth=1.6, label="空心：再做按秒精修（约 +3 秒）")
+    ax.legend(frameon=False, fontsize=8, loc="lower right")
     ax.set_ylim(0.58, 1.09)
     ax.set_xlim(0.2, 2000)
     ax.set_title("全量 10000 目标：H 综合最高，用时约 2 分钟（全部通过 Skyfield 校验）")

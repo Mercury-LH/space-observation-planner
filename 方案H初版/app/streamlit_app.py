@@ -90,6 +90,8 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     fast = mode.startswith("快速")
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
+    refine_on = st.checkbox("按秒精修（推荐）", value=True,
+                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -105,7 +107,7 @@ if go_btn:
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
     bar = st.sidebar.progress(0.0, text="开始规划……")
     run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
-                       weather=weather and algo == "H", fast=fast)
+                       weather=weather and algo == "H", fast=fast, refine_seconds=refine_on)
     run.subset = subset
     bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)
@@ -126,7 +128,8 @@ df = pd.DataFrame(rows)
 st.title("空间目标观测规划")
 scope = "全量" if not run.subset else f"演示：{run.subset['target_frac']:.0%} 目标 × {len(run.subset['stations'])} 站"
 extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "") + \
-    (" · 按历史天气期望规划" if run.notes.get("weather_aware") else "")
+    (" · 按历史天气期望规划" if run.notes.get("weather_aware") else "") + \
+    (" · 按秒精修" if run.notes.get("refine", {}).get("refined") else "")
 st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC）· {scope} · "
            f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}{extra}")
 

@@ -1,6 +1,6 @@
 """命令行入口。
 
-    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-10-01] [--moon 30] [--weather] [--validate]
+    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-10-01] [--moon 30] [--weather] [--validate] [--no-refine]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-10-01] [--seconds-from-start]
     uv run python -m obsplan windows [--refresh]
 
@@ -138,6 +138,10 @@ def cmd_plan(args) -> int:
         kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
     fast = args.mode == "fast"
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
+    rinfo = None
+    if not args.no_refine:
+        from .refine import refine
+        sch, rinfo = refine(pb, sch)
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -149,7 +153,7 @@ def cmd_plan(args) -> int:
     export_csv(cfg, ds, sch, out / "plan.csv", check)
     summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
-               "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)},
+               "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]}}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
@@ -182,6 +186,7 @@ def main(argv=None) -> int:
             p.add_argument("--mode", choices=["fast", "quality"], default="fast")
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
+            p.add_argument("--no-refine", action="store_true", help="不做按秒精修（任务起止保持在 30 秒网格上）")
             p.add_argument("--out", default="outputs/plan")
         elif name == "validate":
             p.add_argument("plan")

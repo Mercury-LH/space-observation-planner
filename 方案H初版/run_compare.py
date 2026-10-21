@@ -15,6 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from obsplan import cpsat, ga, lagrange
+from obsplan.refine import refine
 from obsplan.config import Config
 from obsplan.data import load
 from obsplan.greedy import MANUAL_WEIGHTS, algo_priority, algo_random, algo_weighted
@@ -83,6 +84,13 @@ def run_all(cfg: Config, pb: Problem, h_iters=300, verbose=True):
     info.pop("mu", None)
     out.append((sch_h, info))
     log(sch_h)
+
+    # 按秒精修（通用后处理，对所有带局部搜索的方案都做）：网格窗口两端按 1 秒外推到真实边界，线性规划重新分配时长
+    for sch, _ in list(out):
+        if sch.algo.split()[0] in ("E", "G+", "H"):
+            ref, rinfo = refine(pb, sch)
+            out.append((ref, {"refine": rinfo, "grid_model": False}))
+            log(ref)
     return out
 
 
@@ -118,11 +126,11 @@ def main():
                "legal": None if chk is None else chk["legal"],
                "violations": None if chk is None else chk["violations"],
                "margins": None if chk is None else [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
-        for k in ("ub_relaxed", "lb_before_ls", "weights", "ls"):
+        for k in ("ub_relaxed", "lb_before_ls", "weights", "ls", "refine", "grid_model"):
             if k in info:
                 row[k] = info[k]
         rows.append(row)
-        slug = sch.algo.split()[0]
+        slug = sch.algo.split()[0] + ("_refined" if "按秒精修" in sch.algo else "")
         export_csv(cfg, ds, sch, OUT / f"plan_{slug}.csv", chk)
     best_ub = min(ub["combined_ub"], *(r.get("ub_relaxed", np.inf) for r in rows))
     summary = {"scenario": cfg.scenario_key(), "config": json.loads(cfg.to_json()), "upper_bound": ub,
@@ -132,9 +140,10 @@ def main():
 
     print(f"\n{'方案':24s} {'覆盖':>6s} {'得分':>9s} {'重复':>6s} {'综合':>7s} {'距上界':>7s} {'用时s':>7s}  合法")
     for r in rows:
-        gap = (best_ub - r["combined"]) / best_ub
+        # 上界是对 30 秒网格模型算的；按秒精修的计划超出了网格模型，不比较距上界
+        gap = "—" if r.get("grid_model") is False else f"{(best_ub - r['combined']) / best_ub:7.2%}"
         print(f"{r['algo']:24s} {r['covered']:6d} {r['score']:9.1f} {r['repeat_tasks']:6d} {r['combined']:7.4f} "
-              f"{gap:7.2%} {r['runtime_s']:7.1f}  {r['legal']} {r['violations'] or ''}")
+              f"{gap:>7s} {r['runtime_s']:7.1f}  {r['legal']} {r['violations'] or ''}")
 
     if args.sweep:
         sweep(cfg, ds, win)
