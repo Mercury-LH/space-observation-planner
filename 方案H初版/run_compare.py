@@ -15,7 +15,7 @@ from pathlib import Path
 import numpy as np
 
 from obsplan import cpsat, ga, lagrange
-from obsplan.refine import refine
+from obsplan.refine import finish
 from obsplan.config import Config
 from obsplan.data import load
 from obsplan.greedy import MANUAL_WEIGHTS, algo_priority, algo_random, algo_weighted
@@ -85,10 +85,11 @@ def run_all(cfg: Config, pb: Problem, h_iters=300, verbose=True):
     out.append((sch_h, info))
     log(sch_h)
 
-    # 按秒精修（通用后处理，对所有带局部搜索的方案都做）：网格窗口两端按 1 秒外推到真实边界，线性规划重新分配时长
+    # 按秒精修（通用后处理，对所有带局部搜索的方案都做）：网格窗口两端按 1 秒外推到真实边界，
+    # 插入"按秒才可见"的目标，再用线性规划重新分配时长
     for sch, _ in list(out):
         if sch.algo.split()[0] in ("E", "G+", "H"):
-            ref, rinfo = refine(pb, sch)
+            ref, rinfo = finish(pb, sch)
             out.append((ref, {"refine": rinfo, "grid_model": False}))
             log(ref)
     return out

@@ -140,8 +140,8 @@ def cmd_plan(args) -> int:
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
     rinfo = None
     if not args.no_refine:
-        from .refine import refine
-        sch, rinfo = refine(pb, sch)
+        from .refine import finish
+        sch, rinfo = finish(pb, sch)
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -186,7 +186,7 @@ def main(argv=None) -> int:
             p.add_argument("--mode", choices=["fast", "quality"], default="fast")
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
-            p.add_argument("--no-refine", action="store_true", help="不做按秒精修（任务起止保持在 30 秒网格上）")
+            p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
             p.add_argument("--out", default="outputs/plan")
         elif name == "validate":
             p.add_argument("plan")

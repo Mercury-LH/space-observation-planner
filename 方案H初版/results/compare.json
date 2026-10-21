@@ -41,7 +41,7 @@
   "rows": [
     {
       "algo": "A 随机可行调度",
-      "runtime_s": 1.5,
+      "runtime_s": 1.2,
       "tasks": 9206,
       "covered": 5254,
       "coverage_rate": 0.5254,
@@ -149,7 +149,7 @@
     },
     {
       "algo": "D AI进化权重贪心",
-      "runtime_s": 33.4,
+      "runtime_s": 32.3,
       "tasks": 12834,
       "covered": 9454,
       "coverage_rate": 0.9454,
@@ -195,7 +195,7 @@
     },
     {
       "algo": "E AI贪心+局部搜索",
-      "runtime_s": 72.4,
+      "runtime_s": 69.4,
       "tasks": 13335,
       "covered": 9486,
       "coverage_rate": 0.9486,
@@ -237,7 +237,7 @@
         "time": {
           "覆盖修复": 0.0,
           "压紧与补空": 0.1,
-          "重复观测插入": 38.8,
+          "重复观测插入": 36.9,
           "分档补空": 0.1,
           "换延长与延长": 0.0
         },
@@ -247,95 +247,95 @@
     },
     {
       "algo": "G AI筛选+CP-SAT",
-      "runtime_s": 519.8,
-      "tasks": 11218,
-      "covered": 7864,
-      "coverage_rate": 0.7864,
-      "score": 22949.4,
-      "combined": 0.7749011509546937,
-      "repeat_tasks": 3354,
-      "mean_dur_s": 133.28579069352827,
-      "covered_高": 1574,
+      "runtime_s": 517.8,
+      "tasks": 11230,
+      "covered": 7675,
+      "coverage_rate": 0.7675,
+      "score": 23013.2,
+      "combined": 0.7665122912647195,
+      "repeat_tasks": 3555,
+      "mean_dur_s": 133.89136242208372,
+      "covered_高": 1525,
       "total_高": 2024,
-      "covered_中": 3450,
+      "covered_中": 3302,
       "total_中": 3990,
-      "covered_低": 2840,
+      "covered_低": 2848,
       "total_低": 3986,
       "station_busy_h": [
-        63.6,
-        50.2,
-        40.7,
-        64.2,
-        47.6,
-        29.5,
-        44.1,
-        52.8,
-        62.0,
-        54.0
+        65.3,
+        50.3,
+        41.3,
+        64.9,
+        47.2,
+        29.4,
+        43.8,
+        53.2,
+        61.6,
+        54.2
       ],
       "legal": true,
       "violations": {},
       "margins": [
-        0.019622692193664193,
-        0.030797815234592463,
+        0.020028148023346404,
+        0.032816597309548,
         0.05109427663091548
       ]
     },
     {
       "algo": "G+ CP-SAT+局部搜索",
-      "runtime_s": 552.2,
-      "tasks": 13767,
-      "covered": 9451,
-      "coverage_rate": 0.9451,
-      "score": 30932.5,
-      "combined": 0.9870284112833477,
-      "repeat_tasks": 4316,
-      "mean_dur_s": 140.91741120069733,
-      "covered_高": 1911,
+      "runtime_s": 548.5,
+      "tasks": 13764,
+      "covered": 9440,
+      "coverage_rate": 0.944,
+      "score": 31068.6,
+      "combined": 0.9887420663961146,
+      "repeat_tasks": 4324,
+      "mean_dur_s": 141.43853530950304,
+      "covered_高": 1909,
       "total_高": 2024,
-      "covered_中": 3787,
+      "covered_中": 3785,
       "total_中": 3990,
-      "covered_低": 3753,
+      "covered_低": 3746,
       "total_低": 3986,
       "station_busy_h": [
         67.7,
-        64.9,
-        63.8,
-        66.2,
-        66.8,
-        67.3,
         65.8,
-        56.7,
-        67.2,
-        67.1
+        64.0,
+        66.6,
+        67.0,
+        67.1,
+        65.8,
+        57.0,
+        67.5,
+        67.0
       ],
       "legal": true,
       "violations": {},
       "margins": [
-        0.019622692193664193,
-        0.025019104285576077,
+        0.020121287324148085,
+        0.032816597309548,
         0.05109427663091548
       ],
       "ls": {
-        "inserted": 1606,
-        "repeats": 3011,
-        "moved": 26833,
-        "swaps": 651,
-        "extended_cells": 0,
+        "inserted": 1779,
+        "repeats": 2943,
+        "moved": 26982,
+        "swaps": 649,
+        "extended_cells": 2,
         "time": {
-          "覆盖修复": 5.1,
+          "覆盖修复": 6.1,
           "压紧与补空": 0.1,
-          "重复观测插入": 27.1,
+          "重复观测插入": 24.5,
           "分档补空": 0.1,
           "换延长与延长": 0.0
         },
-        "tier_added": 18,
-        "tier_ext": 2154
+        "tier_added": 12,
+        "tier_ext": 2185
       }
     },
     {
       "algo": "H 价格协调（新算法）",
-      "runtime_s": 104.3,
+      "runtime_s": 99.5,
       "tasks": 13264,
       "covered": 9466,
       "coverage_rate": 0.9466,
@@ -379,7 +379,7 @@
         "time": {
           "覆盖修复": 0.0,
           "压紧与补空": 0.1,
-          "重复观测插入": 41.8,
+          "重复观测插入": 39.0,
           "分档补空": 0.1,
           "换延长与延长": 0.0
         },
@@ -389,7 +389,7 @@
     },
     {
       "algo": "E AI贪心+局部搜索 + 按秒精修",
-      "runtime_s": 75.5,
+      "runtime_s": 69.9,
       "tasks": 13335,
       "covered": 9486,
       "coverage_rate": 0.9486,
@@ -423,75 +423,92 @@
         0.04988477003965741
       ],
       "refine": {
-        "refined": true,
-        "seconds_bounds": 2.6,
-        "seconds_lp": 0.5,
-        "dur_before": 143.3363329583802,
-        "dur_after": 147.13033370828646,
-        "tasks_longer": 3831
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.5,
+          "dur_before": 143.3363329583802,
+          "dur_after": 147.13033370828646,
+          "tasks_longer": 3831
+        },
+        "insert": {
+          "near_candidates": 78,
+          "tried": 72,
+          "added": 0,
+          "deleted_repeats": 13,
+          "worse": true
+        }
       },
       "grid_model": false
     },
     {
       "algo": "G+ CP-SAT+局部搜索 + 按秒精修",
-      "runtime_s": 555.4,
-      "tasks": 13767,
-      "covered": 9451,
-      "coverage_rate": 0.9451,
-      "score": 31514.396666666667,
-      "combined": 0.9967066872907103,
-      "repeat_tasks": 4316,
-      "mean_dur_s": 142.91893658749183,
+      "runtime_s": 549.0,
+      "tasks": 13763,
+      "covered": 9445,
+      "coverage_rate": 0.9445,
+      "score": 31598.656666666666,
+      "combined": 0.9978081243208481,
+      "repeat_tasks": 4318,
+      "mean_dur_s": 143.21485141320932,
       "covered_高": 1911,
       "total_高": 2024,
       "covered_中": 3787,
       "total_中": 3990,
-      "covered_低": 3753,
+      "covered_低": 3747,
       "total_低": 3986,
       "station_busy_h": [
-        68.1,
-        65.9,
-        64.6,
-        67.2,
-        67.8,
-        68.0,
+        68.2,
         66.4,
-        57.5,
+        64.6,
+        67.4,
+        67.8,
         67.9,
-        67.8
+        66.5,
+        57.6,
+        68.1,
+        67.7
       ],
       "legal": true,
       "violations": {},
       "margins": [
-        0.01951877987514017,
-        0.020643301955843185,
+        0.01969623998095571,
+        0.02129197077056233,
         0.049826351005254566
       ],
       "refine": {
-        "refined": true,
-        "seconds_bounds": 2.7,
-        "seconds_lp": 0.5,
-        "dur_before": 140.91741120069733,
-        "dur_after": 142.91893658749183,
-        "tasks_longer": 2678
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.5,
+          "dur_before": 141.43791324565865,
+          "dur_after": 143.21485141320932,
+          "tasks_longer": 2607
+        },
+        "insert": {
+          "near_candidates": 78,
+          "tried": 73,
+          "added": 5,
+          "deleted_repeats": 6
+        }
       },
       "grid_model": false
     },
     {
       "algo": "H 价格协调（新算法） + 按秒精修",
-      "runtime_s": 107.4,
-      "tasks": 13264,
-      "covered": 9466,
-      "coverage_rate": 0.9466,
-      "score": 31805.783333333333,
-      "combined": 1.0023031157829374,
-      "repeat_tasks": 3798,
-      "mean_dur_s": 149.73288600723762,
-      "covered_高": 1915,
+      "runtime_s": 100.0,
+      "tasks": 13265,
+      "covered": 9475,
+      "coverage_rate": 0.9475,
+      "score": 31792.770000000004,
+      "combined": 1.0025366742066397,
+      "repeat_tasks": 3790,
+      "mean_dur_s": 149.71089332830758,
+      "covered_高": 1917,
       "total_高": 2024,
-      "covered_中": 3793,
+      "covered_中": 3796,
       "total_中": 3990,
-      "covered_低": 3758,
+      "covered_低": 3762,
       "total_低": 3986,
       "station_busy_h": [
         68.0,
@@ -501,7 +518,7 @@
         67.7,
         68.0,
         66.7,
-        57.4,
+        57.3,
         67.7,
         67.7
       ],
@@ -513,12 +530,20 @@
         0.04988477003965741
       ],
       "refine": {
-        "refined": true,
-        "seconds_bounds": 2.6,
-        "seconds_lp": 0.5,
-        "dur_before": 147.70205066344994,
-        "dur_after": 149.73288600723762,
-        "tasks_longer": 3316
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.5,
+          "dur_before": 147.69317753486618,
+          "dur_after": 149.71089332830758,
+          "tasks_longer": 3307
+        },
+        "insert": {
+          "near_candidates": 78,
+          "tried": 74,
+          "added": 9,
+          "deleted_repeats": 8
+        }
       },
       "grid_model": false
     }

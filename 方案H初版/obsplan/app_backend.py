@@ -125,8 +125,9 @@ def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, pr
 
 
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
-                 fast: bool = False, refine_seconds: bool = True) -> Run:
-    """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。"""
+                 fast: bool = False, refine_seconds: bool = True, full_problem: bool = True) -> Run:
+    """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。
+    full_problem：pb 是否为完整问题；演示子集上不做"按秒补覆盖"。"""
     cfg = pb.cfg
     t0 = time.time()
     mu = None
@@ -156,11 +157,11 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
     else:
         sch = algo_priority(pb)
     if refine_seconds:
-        from .refine import refine
+        from .refine import finish
         if progress:
-            progress(0.97, "按秒精修：探查真实可见边界、重新分配观测时长……")
-        sch, ri = refine(pb, sch)
-        notes["refine"] = ri
+            progress(0.97, "按秒精修：探查真实可见边界、插入按秒才可见的目标、重新分配观测时长……")
+        sch, fi = finish(pb, sch, near=full_problem)
+        notes["refine"], notes["insert"] = fi["refine"], fi["insert"]
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"
@@ -289,6 +290,35 @@ def explain_target(pb: Problem, run: Run, t: int) -> dict:
     for w in windows:
         w.pop("_users", None)
     return {"name": name, "lines": lines, "windows": windows}
+
+
+def pass_profile(pb: Problem, run: Run, i: int, pad_s: int = 300) -> dict:
+    """第 i 个任务前后各 pad_s 秒内按秒计算的几何量：目标仰角、站点太阳高度角、目标是否受照（与窗口计算同一模型）。"""
+    from sgp4.api import Satrec
+    from .visibility import (WGS84_A, elevation_deg, gmst82, julian, station_ecef, sun_elevation, sun_unit_teme,
+                             teme_to_ecef)
+    cfg, ds = pb.cfg, pb.ds
+    s, t = int(run.station[i]), int(run.target[i])
+    a0, e0 = float(run.start_s[i]), float(run.start_s[i] + run.dur_s[i])
+    horizon = cfg.n_cells * cfg.cell_s
+    sec = np.arange(max(0.0, a0 - pad_s), min(horizon, e0 + pad_s) + 1, 1.0)
+    jd, fr = julian(cfg, sec)
+    sat = Satrec.twoline2rv(ds.line1[t], ds.line2[t])
+    err, r, _ = sat.sgp4_array(jd, fr)
+    pos, up = station_ecef(ds.st_lon, ds.st_lat, ds.st_alt_m)
+    el = elevation_deg(teme_to_ecef(r, gmst82(jd, fr)), pos[s], up[s])
+    sun_el = sun_elevation(cfg, ds, sec)[:, s]
+    sun = sun_unit_teme(jd, fr)
+    proj = np.einsum("nk,nk->n", r, sun)
+    perp2 = np.einsum("nk,nk->n", r, r) - proj ** 2
+    lit = (proj > 0) | (perp2 > WGS84_A ** 2)
+    el[err != 0] = np.nan
+    obs = (sec >= a0) & (sec <= e0)
+    return {"sec": sec, "el": el, "sun_el": sun_el, "lit": lit, "obs": obs, "start": a0, "end": e0,
+            "station": s, "target": t,
+            "summary": {"el_min": float(np.nanmin(el[obs])), "el_max": float(np.nanmax(el[obs])),
+                        "sun_max": float(sun_el[obs].max()), "lit_all": bool(lit[obs].all()),
+                        "dur": int(round(e0 - a0))}}
 
 
 def validate_run(pb: Problem, run: Run) -> Run:

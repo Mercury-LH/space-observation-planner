@@ -347,6 +347,67 @@ def fig_dynamic():
     save(fig, "图9_动态重规划.png")
 
 
+def fig_pass():
+    """图 10：最终计划中一次低轨观测的逐秒过境详情（仰角、站点太阳高度角、目标是否在地影）。"""
+    sys.path.insert(0, str(ROOT))
+    from datetime import timedelta
+    from obsplan.app_backend import Run, orbit_class, pass_profile
+    from obsplan.config import Config
+    from obsplan.data import load
+    from obsplan.problem import Problem
+    from obsplan.visibility import get_windows
+    runs = [Run.load(p) for p in sorted((ROOT / "outputs" / "app_runs").glob("*.npz"))]
+    runs = [r for r in runs if r.notes.get("label", "").startswith("H 高质量")]
+    if not runs:
+        print("没有 H 高质量 结果，跳过过境详情图")
+        return
+    run = runs[-1]
+    cfg = Config()
+    ds = load(cfg)
+    pb = Problem.build(cfg, ds, get_windows(cfg, ds))
+    orbit = orbit_class(ds)
+    # 挑一次高优先级低轨观测：开始前 5 秒内目标还在地影里（观测正好从出地影开始），展示按秒定时
+    pick = None
+    for i in np.argsort(run.start_s):
+        t = int(run.target[i])
+        if ds.priority[t] < 5 or orbit[t] != "低轨":
+            continue
+        pf = pass_profile(pb, run, int(i), pad_s=240)
+        k = int(np.searchsorted(pf["sec"], pf["start"]))
+        if k >= 20 and not pf["lit"][k - 20:k - 5].all() and pf["summary"]["el_max"] > 30:
+            pick = pf
+            break
+    if pick is None:
+        print("没有合适的示例，跳过过境详情图")
+        return
+    pf = pick
+    x = (pf["sec"] - pf["start"]) / 60.0
+    fig, axes = plt.subplots(2, 1, figsize=(7.2, 4.6), sharex=True, gridspec_kw={"height_ratios": [1.6, 1]})
+    for ax in axes:
+        ax.axvspan(0, (pf["end"] - pf["start"]) / 60.0, color=ORANGE, alpha=0.15, lw=0)
+        dark = np.diff(np.concatenate([[0], (~pf["lit"]).astype(int), [0]]))
+        for a_, b_ in zip(np.nonzero(dark == 1)[0], np.nonzero(dark == -1)[0]):
+            ax.axvspan(x[a_], x[b_ - 1], color="#14213D", alpha=0.10, lw=0)
+    axes[0].plot(x, pf["el"], color=BLUE, lw=2)
+    for y in (cfg.elev_min, cfg.elev_max):
+        axes[0].axhline(y, color=MUTED, lw=1, ls="--")
+    axes[0].set_ylabel("目标仰角（度）")
+    axes[0].set_ylim(-5, 90)
+    axes[1].plot(x, pf["sun_el"], color=ORANGE, lw=2)
+    axes[1].axhline(cfg.sun_max, color=MUTED, lw=1, ls="--")
+    axes[1].set_ylabel("站点太阳高度角（度）")
+    axes[1].set_xlabel("相对观测开始的时间（分钟）")
+    sm = pf["summary"]
+    t0 = cfg.start_dt + timedelta(seconds=pf["start"])
+    axes[0].text(0.01, 0.86, "深色：目标在地球阴影中", transform=axes[0].transAxes, fontsize=8, color=TEXT2, va="top")
+    axes[0].text((pf["end"] - pf["start"]) / 120.0, 80, f"观测 {sm['dur']} 秒", ha="center", va="top", fontsize=9,
+                 color="#0b0b0b")
+    axes[0].set_title(f"{pf['station'] + 1} 号站 {t0:%m-%d %H:%M:%S} UTC：目标一出地影即开始观测，"
+                      f"仰角降到 {cfg.elev_min:g} 度时结束", fontsize=11)
+    fig.tight_layout()
+    save(fig, "图10_过境详情.png")
+
+
 if __name__ == "__main__":
     z = np.load(DATA / "h_run.npz")
     fig_windows()
@@ -358,4 +419,5 @@ if __name__ == "__main__":
     fig_sweep()
     fig_environment()
     fig_dynamic()
+    fig_pass()
     print("done", file=sys.stderr)

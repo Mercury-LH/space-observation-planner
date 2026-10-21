@@ -15,13 +15,15 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import streamlit as st
 
 SCHEME_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCHEME_DIR))
 
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
-                                 orbit_class, replay_weather, run_planning, simulate_days, station_nights,
+                                 orbit_class, pass_profile, replay_weather, run_planning, simulate_days,
+                                 station_nights,
                                  subset_problem, summary_json, task_rows, validate_run, weather_stats)
 from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
@@ -107,7 +109,8 @@ if go_btn:
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
     bar = st.sidebar.progress(0.0, text="开始规划……")
     run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
-                       weather=weather and algo == "H", fast=fast, refine_seconds=refine_on)
+                       weather=weather and algo == "H", fast=fast, refine_seconds=refine_on,
+                       full_problem=not subset)
     run.subset = subset
     bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)
@@ -245,6 +248,7 @@ with tabs[4]:
     covered = set(run.target.tolist())
     examples = {"自己输入编号": None}
     hi_cov = [t for t in np.nonzero(ds.priority == 5.0)[0] if t in covered]
+    hi_cov.sort(key=lambda t: orbit[t] != "低轨")          # 低轨目标的过境曲线更能说明约束
     unc = [t for t in np.nonzero(pb.max_obs > 0)[0] if t not in covered]
     if hi_cov:
         examples["示例：一颗已覆盖的高优目标"] = int(hi_cov[0])
@@ -271,6 +275,37 @@ with tabs[4]:
             st.dataframe(wdf, hide_index=True, use_container_width=True,
                          column_config={"相对价格": st.column_config.ProgressColumn("相对价格", min_value=0, max_value=1),
                                         "占用率": st.column_config.ProgressColumn("占用率", min_value=0, max_value=1)})
+        mine = sorted(np.nonzero(run.target == t)[0].tolist(), key=lambda i: run.start_s[i])
+        if mine:
+            st.markdown("**过境详情：逐秒复核这次观测满足的条件**")
+            pick = st.selectbox("选择一次观测", mine, key="pass_pick",
+                                format_func=lambda i: f"{run.station[i] + 1}号站 · "
+                                                      f"{cfg.start_dt + timedelta(seconds=float(run.start_s[i])):%m-%d %H:%M:%S} UTC 起 · "
+                                                      f"{int(run.dur_s[i])} 秒")
+            pf = pass_profile(pb, run, int(pick))
+            ts = [cfg.start_dt + timedelta(seconds=float(x)) for x in pf["sec"]]
+            fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.62, 0.38], vertical_spacing=0.1,
+                                subplot_titles=("目标仰角（°）", "站点太阳高度角（°）"))
+            fig.add_trace(go.Scatter(x=ts, y=pf["el"], mode="lines", line=dict(color=BLUE, width=2), name="目标仰角",
+                                     hovertemplate="%{x|%H:%M:%S}<br>仰角 %{y:.2f}°<extra></extra>"), 1, 1)
+            for y in (cfg.elev_min, cfg.elev_max):
+                fig.add_hline(y=y, line_dash="dash", line_color="#8A93A3", line_width=1, row=1, col=1)
+            fig.add_trace(go.Scatter(x=ts, y=pf["sun_el"], mode="lines", line=dict(color=ORANGE, width=2), name="太阳高度角",
+                                     hovertemplate="%{x|%H:%M:%S}<br>太阳高度角 %{y:.2f}°<extra></extra>"), 2, 1)
+            fig.add_hline(y=cfg.sun_max, line_dash="dash", line_color="#8A93A3", line_width=1, row=2, col=1)
+            t0 = cfg.start_dt + timedelta(seconds=pf["start"])
+            t1 = cfg.start_dt + timedelta(seconds=pf["end"])
+            fig.add_vrect(x0=t0, x1=t1, fillcolor=ORANGE, opacity=0.15, line_width=0, row="all", col=1)
+            dark = np.diff(np.concatenate([[0], (~pf["lit"]).astype(int), [0]]))
+            for a_, b_ in zip(np.nonzero(dark == 1)[0], np.nonzero(dark == -1)[0]):
+                fig.add_vrect(x0=ts[a_], x1=ts[b_ - 1], fillcolor=NAVY, opacity=0.12, line_width=0, row="all", col=1)
+            fig.update_layout(height=460, showlegend=False, margin=dict(t=40, b=20, l=10, r=10))
+            st.plotly_chart(fig, use_container_width=True)
+            sm = pf["summary"]
+            st.caption(f"观测 {t0:%H:%M:%S}–{t1:%H:%M:%S} UTC（{sm['dur']} 秒）：仰角 {sm['el_min']:.1f}°–{sm['el_max']:.1f}°"
+                       f"（要求 {cfg.elev_min:g}°–{cfg.elev_max:g}°），站点太阳高度角最高 {sm['sun_max']:.1f}°"
+                       f"（要求低于 {cfg.sun_max:g}°），目标{'全程受照' if sm['lit_all'] else '有时段处于地影'}。"
+                       "橙色带为观测时段，深色带为目标处于地球阴影；虚线为规则界限。前后各显示 5 分钟。")
 
 # ------------------------------------------------------------------ 天气与月光（加分项）
 with tabs[5]:

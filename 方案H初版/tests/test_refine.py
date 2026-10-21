@@ -51,3 +51,24 @@ def test_refined_plan_passes_skyfield(cfg, ds, plans):
     idx = np.random.default_rng(1).choice(len(ref), min(60, len(ref)), replace=False)
     part = Schedule(ref.station[idx], ref.target[idx], ref.start_s[idx], ref.dur_s[idx])
     assert validate(cfg, ds, part)["legal"]
+
+
+@pytest.mark.slow
+def test_finish_inserts_second_level_targets_legally(cfg, ds, pb):
+    from obsplan.greedy import algo_priority
+    from obsplan.refine import finish
+    sch = algo_priority(pb)
+    out, info = finish(pb, sch)
+    assert info["refine"]["refined"]
+    end = out.start_s + out.dur_s
+    assert ((out.dur_s >= cfg.obs_min_s) & (out.dur_s <= cfg.obs_max_s)).all()
+    for key, need in ((out.station, cfg.switch_s), (out.target, cfg.repeat_gap_h * 3600)):
+        o = np.lexsort((out.start_s, key))
+        same = key[o[1:]] == key[o[:-1]]
+        assert (out.start_s[o[1:]][same] - end[o[:-1]][same] >= need).all()
+    new = np.nonzero(pb.max_obs[out.target] == 0)[0]            # 网格上不可见、按秒插入的目标
+    assert len(new) == info["insert"]["added"]
+    if len(new):
+        part = Schedule(out.station[new], out.target[new], out.start_s[new], out.dur_s[new])
+        assert validate(cfg, ds, part)["legal"]
+    assert evaluate(cfg, ds, out)["combined"] >= evaluate(cfg, ds, sch)["combined"]

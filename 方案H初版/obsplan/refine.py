@@ -70,7 +70,8 @@ def point_ok(cfg: Config, ds: Dataset, target: np.ndarray, station: np.ndarray, 
                 mu_ = mv / np.linalg.norm(mv, axis=1, keepdims=True)
                 d = recef[sel] - st_pos[s]
                 cs = np.einsum("nk,nk->n", d, mu_) / np.linalg.norm(d, axis=1)
-                g &= (mu_ @ st_up[s] <= 0) | (cs <= np.cos(np.radians(cfg.moon_sep_deg + cfg.moon_margin_deg)))
+                moon_up = mu_ @ st_up[s] > -np.sin(np.radians(cfg.moon_margin_deg))   # 与窗口计算相同的余量
+                g &= ~moon_up | (cs <= np.cos(np.radians(cfg.moon_sep_deg + cfg.moon_margin_deg)))
             ok[k] &= g
     return ok
 
@@ -158,3 +159,175 @@ def refine(pb: Problem, sch: Schedule, verbose: bool = False, bounds=None) -> tu
               f"平均时长 {info['dur_before']:.1f} → {info['dur_after']:.1f} 秒")
     return out, info
 
+
+
+def near_windows(pb: Problem) -> dict:
+    """网格上没有 ≥120 秒窗口、但按秒探查后有的目标窗口（网格长度 m_min−1 格，两端各外推最多 cell−1 秒）。结果缓存。"""
+    from dataclasses import replace
+    from pathlib import Path
+    from .visibility import compute_windows
+    cfg, ds = pb.cfg, pb.ds
+    path = Path(cfg.cache_dir) / f"near_{cfg.scenario_key()}.npz"
+    if path.exists():
+        z = np.load(path)
+        return {k: z[k] for k in z.files}
+    raw = Path(cfg.cache_dir) / f"short_{cfg.scenario_key()}.npz"     # get_windows 顺带算好的短窗口
+    if raw.exists():
+        z = np.load(raw)
+        w_st, w_tg, w_k0, w_k1 = z["station"], z["target"], z["k0"], z["k1"]
+    else:
+        nw = compute_windows(replace(cfg, obs_min_s=(pb.m_min - 1) * cfg.cell_s), ds, verbose=False)
+        w_st, w_tg, w_k0, w_k1 = nw.station, nw.target, nw.k0, nw.k1
+    sel = np.nonzero((pb.max_obs[w_tg] == 0) & (w_k1 - w_k0 == pb.m_min - 1))[0]
+    st, tg = w_st[sel].astype(np.int64), w_tg[sel].astype(np.int64)
+    L, R = probe_bounds(cfg, ds, st, tg, w_k0[sel].astype(np.int64), w_k1[sel].astype(np.int64))
+    ok = R - L >= cfg.obs_min_s
+    out = {"station": st[ok], "target": tg[ok], "L": L[ok], "R": R[ok]}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(path, **out)
+    return out
+
+
+def _passes(idx, lo, hi, dmin, sw):
+    """同站任务链（按时间排序的下标 idx）：全部压到最短时长时，各任务最早结束 EF 与最晚开始 LS。不可行时返回 None。"""
+    n = len(idx)
+    EF = np.empty(n)
+    LS = np.empty(n)
+    prev = -1e18
+    for j, i in enumerate(idx):
+        s = max(lo[i], prev + sw)
+        EF[j] = s + dmin
+        if EF[j] > hi[i]:
+            return None
+        prev = EF[j]
+    nxt = 1e18
+    for j in range(n - 1, -1, -1):
+        i = idx[j]
+        e = min(hi[i], nxt - sw)
+        LS[j] = e - dmin
+        if LS[j] < lo[i]:
+            return None
+        nxt = LS[j]
+    return EF, LS
+
+
+def insert_near(pb: Problem, sch: Schedule, L: np.ndarray, R: np.ndarray, verbose: bool = False):
+    """把"按秒才可见"的目标插进站点时间线：同站任务可压到 120 秒、在各自真实窗口内移动；
+    腾不出位置时，可删掉一个价值更低的重复观测。返回新计划、对应的真实可见区间和统计。"""
+    import bisect
+    cfg, ds = pb.cfg, pb.ds
+    sw, dmin = cfg.switch_s, cfg.obs_min_s
+    gap = int(round(cfg.repeat_gap_h * 3600))
+    near = near_windows(pb)
+    st, tg = list(sch.station.astype(int)), list(sch.target.astype(int))
+    s0 = list(sch.start_s.astype(float))
+    lo, hi = list(L.astype(float)), list(R.astype(float))
+    alive = [True] * len(st)
+    # 同一目标的相邻观测：按当前位置保持 48 小时（保守）
+    order = np.lexsort((sch.start_s, sch.target))
+    e0 = sch.start_s + sch.dur_s
+    for p, q in zip(order[:-1], order[1:]):
+        if sch.target[p] == sch.target[q]:
+            hi[p] = min(hi[p], float(sch.start_s[q] - gap))
+            lo[q] = max(lo[q], float(e0[p] + gap))
+    cnt = np.bincount(sch.target, minlength=pb.n_targets)
+    by_st = {s: sorted((i for i in range(len(st)) if st[i] == s), key=lambda i: s0[i]) for s in range(pb.n_stations)}
+    P = ds.priority.astype(float)
+    val_new = pb.vc + pb.vs * P[near["target"]] * pb.frac[pb.m_min]
+    added, deleted, tried = [], 0, 0
+    for c in np.argsort(-val_new, kind="stable"):
+        t, s = int(near["target"][c]), int(near["station"][c])
+        if cnt[t] > 0:
+            continue
+        Lc, Rc = float(near["L"][c]), float(near["R"][c])
+        tried += 1
+        idx = by_st[s]
+        starts = [s0[i] for i in idx]
+        k0 = bisect.bisect_left(starts, Lc)
+
+        def try_insert(idx_):
+            ps = _passes(idx_, lo, hi, dmin, sw)
+            if ps is None:
+                return None
+            EF, LS = ps
+            st_ = [s0[i] for i in idx_]
+            k = bisect.bisect_left(st_, Lc)
+            for kk in range(max(0, k - 1), min(len(idx_), k + 1) + 1):
+                x_lo = max(Lc, (EF[kk - 1] + sw) if kk > 0 else 0.0)
+                x_hi = min(Rc, (LS[kk] - sw) if kk < len(idx_) else 1e18) - dmin
+                if x_lo <= x_hi:
+                    return kk, x_lo
+            return None
+        res = try_insert(idx)
+        drop = None
+        if res is None:
+            # 删掉一个或两个相邻的、价值更低的重复观测再试
+            def rep_val(b):
+                return pb.vs * P[tg[b]] * pb.frac[min(pb.m_max, int(round((e0[b] if b < len(e0) else s0[b] + dmin) - s0[b])) // cfg.cell_s)] \
+                    if b < len(sch) else 1e9
+            near_j = [j for j in range(max(0, k0 - 3), min(len(idx), k0 + 3)) if cnt[tg[idx[j]]] >= 2]
+            best = None
+            combos = [(j,) for j in near_j] + [(j, j2) for j in near_j for j2 in near_j if j2 > j and tg[idx[j]] != tg[idx[j2]]]
+            for cb in combos:
+                vb = sum(rep_val(idx[j]) for j in cb)
+                if vb >= val_new[c] or (best is not None and vb >= best[0]):
+                    continue
+                r2 = try_insert([i for jj, i in enumerate(idx) if jj not in cb])
+                if r2 is not None:
+                    best = (vb, cb, r2)
+            if best is not None:
+                _, cb, res = best
+                drop = [idx[j] for j in cb]
+        if res is None:
+            continue
+        if drop is not None:
+            for d_ in drop:
+                alive[d_] = False
+                cnt[tg[d_]] -= 1
+                deleted += 1
+            idx = [i for i in idx if i not in drop]
+        kk, x = res
+        st.append(s); tg.append(t); s0.append(x); lo.append(Lc); hi.append(Rc); alive.append(True)
+        L = np.append(L, int(Lc)); R = np.append(R, int(Rc))
+        new = len(st) - 1
+        idx.insert(kk, new)
+        by_st[s] = idx
+        cnt[t] += 1
+        added.append(new)
+    keep = np.nonzero(alive)[0]
+    out = Schedule(np.array(st, np.int64)[keep], np.array(tg, np.int64)[keep],
+                   np.round(np.array(s0)[keep]).astype(np.int64), np.full(len(keep), dmin, np.int64),
+                   algo=sch.algo, runtime_s=sch.runtime_s, info=dict(sch.info))
+    # 原有任务保留原来的时长（线性规划会重新分配），新插入的先给 120 秒
+    dur = np.concatenate([sch.dur_s.astype(np.int64), np.full(len(st) - len(sch), dmin, np.int64)])[keep]
+    out.dur_s = dur
+    info = {"near_candidates": int(len(near["target"])), "tried": tried, "added": len(added), "deleted_repeats": deleted}
+    if verbose:
+        print(f"  [按秒补覆盖] 候选 {len(near['target'])} 个窗口，新增覆盖 {len(added)} 颗，删去重复观测 {deleted} 次")
+    return out, (L[keep], R[keep]), info, np.array([k for k, i in enumerate(keep) if i >= len(sch)], np.int64)
+
+
+def finish(pb: Problem, sch: Schedule, verbose: bool = False, near: bool = True) -> tuple[Schedule, dict]:
+    """网格计划的按秒收尾：插入"按秒才可见"的目标，再用线性规划统一定时；不可行时逐个撤回插入。
+    near=False 时只做精修（演示用的子问题必须关掉：被抽掉的目标同样"没有窗口"，会被误当成候选）。"""
+    from .schedule import evaluate
+    L, R = true_bounds(pb, sch)
+    base, bi = refine(pb, sch, bounds=(L, R))
+    if not near or not bi.get("refined"):
+        return base, {"refine": bi, "insert": {"added": 0, "skipped": True}}
+    cand, (L2, R2), ii, new_idx = insert_near(pb, sch, L, R, verbose=verbose)
+    out, ri = refine(pb, cand, bounds=(L2, R2))
+    while not ri.get("refined") and len(new_idx):
+        keep = np.ones(len(cand), bool)
+        keep[new_idx[-1]] = False
+        new_idx = np.array([k - (k > new_idx[-1]) for k in new_idx[:-1]], np.int64)
+        cand = Schedule(cand.station[keep], cand.target[keep], cand.start_s[keep], cand.dur_s[keep], algo=cand.algo,
+                        runtime_s=cand.runtime_s, info=cand.info)
+        L2, R2 = L2[keep], R2[keep]
+        ii["added"] -= 1
+        out, ri = refine(pb, cand, bounds=(L2, R2))
+    if not ri.get("refined"):
+        return base, {"refine": bi, "insert": {**ii, "added": 0, "fallback": True}}
+    if evaluate(pb.cfg, pb.ds, out)["combined"] < evaluate(pb.cfg, pb.ds, base)["combined"]:
+        return base, {"refine": bi, "insert": {**ii, "added": 0, "worse": True}}
+    return out, {"refine": ri, "insert": ii}

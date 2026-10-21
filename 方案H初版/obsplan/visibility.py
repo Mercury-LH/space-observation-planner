@@ -160,7 +160,8 @@ def _chunk_job(args):
         if moon is not None:
             mv = moon - st_pos[j]
             mu_ = mv / np.linalg.norm(mv, axis=1, keepdims=True)
-            moon_up = mu_ @ st_up[j] > 0
+            # 月亮"在地平线以上"也留余量：月出/月落前后 moon_margin_deg 内按已升起处理（与 Skyfield 视高度有约 0.002° 差异）
+            moon_up = mu_ @ st_up[j] > -np.sin(np.radians(cfg.moon_margin_deg))
             d = recef - st_pos[j]
             dhat = d / np.linalg.norm(d, axis=-1, keepdims=True)
             cos_sep = np.einsum("ntk,tk->nt", dhat, mu_)
@@ -170,7 +171,8 @@ def _chunk_job(args):
             sep = np.degrees(np.arccos(np.clip(cos_sep, -1, 1)))
             step = np.degrees(np.arccos(np.clip(np.einsum("ntk,ntk->nt", dhat[:, :-1], dhat[:, 1:]), -1, 1)))
             # 两次采样之间，弧上任一点离端点不超过 step/2：只有端点离禁区不足 step/2 时才可能擦进去
-            near_moon = moon_up[None, :-1] & (np.minimum(sep[:, :-1], sep[:, 1:]) - step / 2 < limit_deg)
+            # 两个采样点之间月亮可能升起，任一端月亮在地平线以上都要检查
+            near_moon = (moon_up[:-1] | moon_up[1:])[None, :] & (np.minimum(sep[:, :-1], sep[:, 1:]) - step / 2 < limit_deg)
         else:
             near_moon = None
         edge = vis[:, :-1] & vis[:, 1:]
@@ -200,7 +202,7 @@ def _chunk_job(args):
                 bad = (ee[n] != 0).any() or (fel > hi).any() or (fel < lo).any()
                 if not bad and moon is not None:
                     mu_ = moon_units[j][k]
-                    if mu_ @ st_up[j] > 0:
+                    if (moon_units[j][k:k + 2] @ st_up[j] > -np.sin(np.radians(cfg.moon_margin_deg))).any():
                         d = rec[n] - st_pos[j]
                         cs = (d @ mu_) / np.linalg.norm(d, axis=1)
                         bad = (cs > np.cos(np.radians(cfg.moon_sep_deg + cfg.moon_margin_deg))).any()
@@ -217,8 +219,14 @@ def _chunk_job(args):
     return st, tg, a, b, failed
 
 
-def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbose=True) -> Windows:
+def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbose=True,
+                    keep_short: bool = False) -> Windows:
+    """keep_short：同一遍计算里顺带保留比最短观测少一格的窗口（按秒精修的"按秒才可见"候选），
+    放在返回值的 short 属性里 (station, target, k0, k1)。"""
     t0 = time.time()
+    if keep_short:
+        from dataclasses import replace
+        full_cfg, cfg = cfg, replace(cfg, obs_min_s=cfg.obs_min_s - cfg.cell_s)
     T = cfg.n_cells + 1
     sec = np.arange(T, dtype=np.float64) * cfg.cell_s
     if cfg.use_sun:
@@ -242,8 +250,14 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
     k0 = np.concatenate([r[2] for r in res])
     k1 = np.concatenate([r[3] for r in res])
     failed = np.concatenate([r[4] for r in res])
+    short = None
+    if keep_short:
+        is_short = k1 - k0 < full_cfg.min_cells
+        short = (st[is_short], tg[is_short], k0[is_short], k1[is_short])
+        st, tg, k0, k1 = st[~is_short], tg[~is_short], k0[~is_short], k1[~is_short]
     order = np.lexsort((k0, st))
     w = Windows(st[order], tg[order], k0[order], k1[order], dark_runs, T, failed)
+    w.short = short
     if verbose:
         print(f"[windows] {len(w.k0)} 个窗口, {np.unique(w.target).size} 颗目标可观测, "
               f"SGP4 报错 {failed.sum()} 颗, 用时 {time.time() - t0:.1f}s")
@@ -255,6 +269,8 @@ def get_windows(cfg: Config, ds: Dataset, refresh=False) -> Windows:
     if path.exists() and not refresh:
         return Windows.load(path, ds.n_stations)
     path.parent.mkdir(parents=True, exist_ok=True)
-    w = compute_windows(cfg, ds)
+    w = compute_windows(cfg, ds, keep_short=True)
     w.save(path)
+    st, tg, k0, k1 = w.short
+    np.savez_compressed(path.with_name(f"short_{cfg.scenario_key()}.npz"), station=st, target=tg, k0=k0, k1=k1)
     return w
