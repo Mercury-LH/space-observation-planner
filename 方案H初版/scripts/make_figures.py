@@ -182,7 +182,7 @@ def fig_compare():
     labels = {"A": ("A 随机", (8, 0), "left"), "B": ("B 优先级贪心", (8, 0), "left"),
               "C": ("C 人工多因素", (8, 0), "left"), "D": ("D AI进化权重贪心", (-8, 0), "right"),
               "E": ("E AI贪心+局部搜索", (-10, -1), "right"), "G": ("G AI筛选+CP-SAT", (-8, 0), "right"),
-              "G+": ("G+局部搜索", (10, -9), "left"), "H": ("H 价格协调（新算法）", (12, -26), "left")}
+              "G+": ("", (0, 0), "left"), "H": ("H 价格协调（新算法）", (12, -26), "left")}
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     base = {}
     for r in rows:
@@ -194,6 +194,8 @@ def fig_compare():
         ax.scatter(r["runtime_s"], r["combined"], s=70 if is_h else 46, color=ORANGE if is_h else BLUE,
                    edgecolor="#fcfcfb", linewidth=1.5, zorder=3)
         text, off, ha = labels[key]
+        if not text:                            # G+ 只标精修后的空心点（箭头连着实心点）
+            continue
         ax.annotate(text, (r["runtime_s"], r["combined"]), xytext=off, textcoords="offset points",
                     fontsize=9, color="#0b0b0b" if is_h else TEXT2, va="center", ha=ha,
                     fontweight="bold" if is_h else "normal",
@@ -214,8 +216,17 @@ def fig_compare():
                         textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
                         fontweight="bold")
         elif key == "G+":
-            ax.annotate(f"G+ + 按秒精修 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(10, 9),
+            ax.annotate(f"G+ 精修后 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(10, -6),
                         textcoords="offset points", fontsize=9, color=TEXT2, va="center", ha="left")
+    fz = ROOT / "results" / "fusion_merge.json"
+    if fz.exists():                             # 三方案解合并：横轴为端到端用时（先跑 H、G+、E，再合并）
+        f = json.loads(fz.read_text(encoding="utf-8"))
+        t = sum(base[k]["runtime_s"] for k in ("H", "G+", "E")) + f["runtime_s"]
+        ax.scatter(t, f["refined"]["combined"], s=80, marker="D", color=ORANGE, edgecolor="#fcfcfb", linewidth=1.5,
+                   zorder=4)
+        ax.annotate(f"三方案解合并 {f['refined']['combined']:.3f}", (t, f["refined"]["combined"]), xytext=(-10, 8),
+                    textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
+                    fontweight="bold")
     ax.set_xscale("log")
     ax.set_xlabel("求解用时（秒，对数刻度）")
     ax.set_ylabel("综合指标")
@@ -225,8 +236,8 @@ def fig_compare():
     ax.scatter([], [], s=46, facecolor="#fcfcfb", edgecolor=TEXT2, linewidth=1.6, label="空心：再做按秒精修（约 +3 秒）")
     ax.legend(frameon=False, fontsize=8, loc="lower right")
     ax.set_ylim(0.55, ub + 0.04)
-    ax.set_xlim(0.2, 2000)
-    ax.set_title("8 月 1 日至 7 日全量：H 约 100 秒，G+ 质量略高但要 9 分钟（全部通过 Skyfield 校验）", fontsize=11)
+    ax.set_xlim(0.2, 4000)
+    ax.set_title("8 月 1 日至 7 日全量：H 约 100 秒；三方案解合并最高，约 21 分钟（全部通过 Skyfield 校验）", fontsize=11)
     save(fig, "图5_方案对比.png")
 
 
@@ -460,6 +471,8 @@ def fig_architecture():
     box(36, 1, 28, 17, "输出", "观测计划 CSV\n覆盖、得分、上界\n网页界面与命令行")
     box(71, 1, 28, 17, "闭环：动态重规划", "每天按执行结果\n与云量预报更新状态\n重排剩余时段", fc=PALE)
     arrow(15, 24.5, 15, 18.5)
+    ax.text(57, 21.4, "融合模式（时间充裕时）：H、G+、E 三份计划合并为候选池，CP-SAT 重新求解，再局部搜索、精修",
+            ha="center", va="center", fontsize=7.2, color=NAVY)
     arrow(29.5, 9.5, 35.5, 9.5)
     arrow(64.5, 9.5, 70.5, 9.5)
     arrow(85, 18.5, 85, 24.5, color=ORANGE)
