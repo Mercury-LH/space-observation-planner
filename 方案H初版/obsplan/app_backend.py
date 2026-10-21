@@ -127,7 +127,7 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
         sch, st = algo_weighted(pb, w, "E", return_state=True)
         improve(pb, st, repeat_min_priority=3.0 if fast else None)
         sch = st.schedule(pb, "E", 0)
-        notes = {"weights": [float(x) for x in w]}
+        notes = {"weights": [float(x) for x in w], "mode": "快速" if fast else "高质量"}
     else:
         sch = algo_priority(pb)
     rt = time.time() - t0

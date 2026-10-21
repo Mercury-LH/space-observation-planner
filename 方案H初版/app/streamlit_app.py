@@ -63,7 +63,8 @@ for p in runs:
     try:
         r = Run.load(p)
         m = r.metrics
-        labels[p] = f"{r.run_id[:15]} · {r.algo} · 覆盖 {m['covered']} · 得分 {m['score']:.0f}" + (" · 演示" if r.subset else "")
+        name = r.notes.get("label", f"{r.run_id[:15]} · {r.algo}")
+        labels[p] = f"{name} · 覆盖 {m['covered']} · 得分 {m['score']:.0f}" + (" · 演示" if r.subset else "")
     except Exception:  # 损坏的结果文件不影响界面
         continue
 choice = None
@@ -129,7 +130,7 @@ extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else
 st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC）· {scope} · "
            f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}{extra}")
 
-tabs = st.tabs(["概览", "站点地图", "甘特图", "时间价格", "任务解释", "天气与月光", "校验与导出", "规则说明"])
+tabs = st.tabs(["概览", "站点地图", "甘特图", "时间价格", "任务解释", "天气与月光", "校验与导出", "结果对比", "规则说明"])
 
 # ------------------------------------------------------------------ 概览
 with tabs[0]:
@@ -323,8 +324,41 @@ with tabs[6]:
     c2.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
                        mime="application/json", use_container_width=True)
 
-# ------------------------------------------------------------------ 规则说明
+# ------------------------------------------------------------------ 结果对比
 with tabs[7]:
+    recs = []
+    for p in runs:
+        try:
+            r = Run.load(p)
+        except Exception:
+            continue
+        rc = r.cfg
+        recs.append({
+            "名称": r.notes.get("label", r.run_id), "算法": r.algo, "模式": r.notes.get("mode", ""),
+            "范围": "全量" if not r.subset else f"演示 {r.subset['target_frac']:.0%}×{len(r.subset['stations'])}站",
+            "规划期": rc["start_utc"][:10], "月光规避": f"{rc.get('moon_sep_deg', 0):g}°" if rc.get("moon_sep_deg") else "—",
+            "按天气规划": "是" if r.notes.get("weather_aware") else "—",
+            "覆盖": r.metrics["covered"], "得分": round(r.metrics["score"], 1), "综合": round(r.metrics["combined"], 4),
+            "用时(秒)": round(r.runtime_s), "校验": "—" if r.validation is None else ("合法" if r.validation["legal"] else "有违规"),
+        })
+    if not recs:
+        st.info("还没有保存的结果。")
+    else:
+        cdf = pd.DataFrame(recs)
+        st.dataframe(cdf, hide_index=True, use_container_width=True)
+        full = cdf[cdf["范围"] == "全量"]
+        if len(full) > 1:
+            c1, c2 = st.columns(2)
+            fig = px.bar(full, x="名称", y="覆盖", color_discrete_sequence=[BLUE], title="覆盖目标数（全量）")
+            fig.update_layout(height=360, xaxis_title="")
+            c1.plotly_chart(fig, use_container_width=True)
+            fig = px.bar(full, x="名称", y="得分", color_discrete_sequence=[ORANGE], title="累计得分（全量）")
+            fig.update_layout(height=360, xaxis_title="")
+            c2.plotly_chart(fig, use_container_width=True)
+        st.caption("综合 = w × 覆盖/10000 + (1 − w) × 得分/30062（内部比较口径），不同覆盖权重的运行之间不宜直接比较综合值。")
+
+# ------------------------------------------------------------------ 规则说明
+with tabs[8]:
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
