@@ -1,0 +1,39 @@
+{
+  "start_utc": "2026-07-31T00:00:00",
+  "windows": 519207,
+  "observable": 9999,
+  "sgp4_failed": 1,
+  "window_s": 19.6,
+  "dark_hours": 586.7,
+  "dark_hours_by_station": [
+    59.3,
+    67.5,
+    73.1,
+    36.4,
+    52.6,
+    58.8,
+    68.1,
+    84.0,
+    42.5,
+    44.4
+  ],
+  "快速": {
+    "covered": 9977,
+    "score": 27289.3,
+    "combined": 0.9527336404763489,
+    "repeat_tasks": 2318,
+    "runtime_s": 45.0
+  },
+  "高质量": {
+    "covered": 9984,
+    "score": 27269.100000000002,
+    "combined": 0.9527476681524849,
+    "repeat_tasks": 2329,
+    "runtime_s": 105.3
+  },
+  "flow_ub": 1.0022497114,
+  "validation": {
+    "legal": true,
+    "violations": {}
+  }
+}
