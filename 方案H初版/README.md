@@ -102,7 +102,9 @@ uv run python run_compare.py                              # A–H 全部方案�
 | 只用 G+ | 9992 | 28355 | 0.9712 | 200 秒 | 约 13 分钟 |
 | **H、G+、E** | **9997** | **28588** | **0.9753** | 533 秒 | 约 21 分钟 |
 
-只对单份计划做"变体 + CP-SAT 重解"能提高 0.2%–0.3%；把不同方案的计划放在一起再提高约 0.4%，提升主要来自方案之间的互补。只用 H 重解约 6 分钟就达到 G+ 精修后的水平（0.968）。也试过整池一次求解（13 万候选、300 秒，网格 0.9645，界 0.9933）再分块，精修后 0.9736（`results/fusion_merge_both.json`），不如多轮分块。
+只对单份计划做"变体 + CP-SAT 重解"能提高 0.2%–0.3%；把不同方案的计划放在一起再提高约 0.4%，提升主要来自方案之间的互补。只用 H 重解约 6 分钟就达到 G+ 精修后的水平（0.968）。
+
+另一种融合思路是价格引导的 CP-SAT 分块（`obsplan/fusion_pricecp.py`、`scripts/fusion_pricecp.py`，结果 `results/fusion_pricecp.json`）：用 H 收敛后的时间格价格代替 G 的 GA 权重来筛选 CP-SAT 候选，每颗目标每块只保留"价值 − 价格"最高的 1 个窗口。CP-SAT 阶段 293 秒（G 为 522 秒），网格 0.819（G 为 0.814）；局部搜索加精修后为 9982 / 28230 / 0.9686，Skyfield 校验合法，端到端约 7 分钟。它与 G+ 相当、不需要训练权重，但不如解合并。每块保留 2 个窗口时候选太多，多数块在时限内找不到可行解（网格 0.045，局部搜索加精修后 0.962）。也试过整池一次求解（13 万候选、300 秒，网格 0.9645，界 0.9933）再分块，精修后 0.9736（`results/fusion_merge_both.json`），不如多轮分块。
 
 ## 产品界面
 
@@ -250,6 +252,7 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 | `obsplan/lns.py` | CP-SAT 分段精确重排（局部最优性检验） |
 | `obsplan/refine.py` | 按秒精修：真实可见边界探查 + 线性规划重新分配时长 |
 | `obsplan/fusion_merge.py` | 多方案解合并：候选池 + 区间团 CP-SAT（全局或滚动分块） |
+| `obsplan/fusion_pricecp.py` | 价格引导的 CP-SAT 分块（H 的价格筛选 G 的候选；对照实验） |
 | `obsplan/environment.py` | 加分项：历史云量、历史预报、天气回放 |
 | `obsplan/dynamic.py` | 加分项：动态重规划模拟（状态更新、每天重排、窗口按晴空裁剪） |
 | `obsplan/app_backend.py`、`app/` | 产品界面 |
