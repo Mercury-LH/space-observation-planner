@@ -288,6 +288,43 @@ def fig_environment():
     save(fig, "图8_天气与月光加分项.png")
 
 
+def fig_dynamic():
+    p = DATA / "dynamic.json"
+    if not p.exists():
+        print("dynamic.json 不存在，跳过动态重规划图")
+        return
+    d = json.loads(p.read_text(encoding="utf-8"))
+    years = sorted(d["years"])
+    keys = ["static", "static_clim", "dynamic_clim", "dynamic_forecast", "dynamic_oracle", "hindsight"]
+    names = ["静态\n标准计划", "静态\n+气候统计", "每天重排\n+气候统计", "每天重排\n+真实预报",
+             "每天重排\n+完美预报", "事后最优\n天气全知"]
+    n_real = 4
+    fig, ax = plt.subplots(figsize=(10.4, 4.2))
+    x = np.arange(len(keys), dtype=float)
+    x[n_real:] += 0.5
+    w = 0.36
+    for j, (yr, color) in enumerate(zip(years, (BLUE, ORANGE))):
+        vals = [d["years"][yr]["policies"][k]["combined"] for k in keys]
+        pos = x + (j - 0.5) * (w + 0.02)
+        ax.bar(pos[:n_real], vals[:n_real], w, color=color, label=f"{yr} 年天气")
+        ax.bar(pos[n_real:], vals[n_real:], w, color=color, alpha=0.35, hatch="///", edgecolor=color, linewidth=0)
+        for xx, v in zip(pos, vals):
+            ax.text(xx, v + 0.006, f"{v:.3f}", ha="center", va="bottom", fontsize=7.5, color=TEXT2)
+    sep = (x[n_real - 1] + x[n_real]) / 2
+    ax.axvline(sep, color=TEXT2, linestyle="--", linewidth=0.8)
+    top = max(d["years"][yr]["policies"][k]["combined"] for yr in years for k in keys) * 1.18
+    ax.text(sep - 0.1, top * 0.97, "可实现的策略", ha="right", va="top", fontsize=9, color=TEXT2)
+    ax.text(sep + 0.1, top * 0.97, "参照（现实中拿不到）", ha="left", va="top", fontsize=9, color=TEXT2)
+    ax.set_xticks(x, names, fontsize=8.5)
+    ax.set_ylim(0, top)
+    ax.set_ylabel("真实天气下实现的综合指标")
+    ax.set_title("每天按执行结果重排，补上了“不看天气”与“天气全知”之间约一半的差距", pad=10)
+    ax.grid(axis="x", visible=False)
+    ax.legend(frameon=False, fontsize=9, loc="upper left", bbox_to_anchor=(0.0, 0.92))
+    fig.tight_layout()
+    save(fig, "图9_动态重规划.png")
+
+
 if __name__ == "__main__":
     z = np.load(DATA / "h_run.npz")
     fig_windows()
@@ -298,4 +335,5 @@ if __name__ == "__main__":
     fig_convergence(z)
     fig_sweep()
     fig_environment()
+    fig_dynamic()
     print("done", file=sys.stderr)

@@ -22,8 +22,8 @@ from .schedule import Schedule
 
 
 @njit(parallel=True, cache=True)
-def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc, gap, m_min, m_max,
-                out_total, out_task, out_cnt, qpref, use_q, beta):
+def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
+                out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
     """每颗目标独立求解：窗口内最优 (开始, 时长)，再在窗口间做 ≤3 次、间隔 ≥48h 的链式 DP。
     窗口间隔用放松的判定（前一窗口最早结束 + 48h <= 后一窗口最晚开始），保证对偶值是合法上界。
     首次观测价值 = (覆盖奖励 + 得分) × q，重复观测价值 = (得分 + 覆盖奖励 × beta) × q；
@@ -34,8 +34,9 @@ def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc, gap, m_min, 
         nw = p1 - p0
         out_cnt[i] = 0
         out_total[i] = 0.0
-        if nw == 0:
+        if nw == 0 or max_k[i] <= 0:
             continue
+        vc = vct[i]
         pi1 = np.empty(nw)
         pi2 = np.empty(nw)
         ba1 = np.empty(nw, np.int64)
@@ -109,9 +110,9 @@ def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc, gap, m_min, 
         for q in range(nw):
             if f1[q] > best:
                 best, bq, bk = f1[q], q, 1
-            if f2[q] > best:
+            if max_k[i] >= 2 and f2[q] > best:
                 best, bq, bk = f2[q], q, 2
-            if rq[q] > 0 and pm2[rq[q]] > -1e17 and pi2[q] + pm2[rq[q]] > best:
+            if max_k[i] >= 3 and rq[q] > 0 and pm2[rq[q]] > -1e17 and pi2[q] + pm2[rq[q]] > best:
                 best, bq, bk = pi2[q] + pm2[rq[q]], q, 3
         total = best if use_q else best + vc
         if total <= 0:
@@ -165,7 +166,7 @@ def objective(pb: Problem, st: State) -> float:
     return float(pb.vc * np.unique(tg).size + pb.vs * (pb.P[tg] * pb.frac[m]).sum())
 
 
-def objective_weighted(pb: Problem, st: State, q: np.ndarray, beta: np.ndarray) -> float:
+def objective_weighted(pb: Problem, st: State, q: np.ndarray, beta: np.ndarray, vct: np.ndarray | None = None) -> float:
     """期望价值（考虑天气时用）：每次观测按所占时段的平均晴空概率加权，首次观测含覆盖奖励，重复观测含备份覆盖价值。"""
     alive = np.nonzero(st.alive[:st.n])[0]
     if len(alive) == 0:
@@ -177,15 +178,19 @@ def objective_weighted(pb: Problem, st: State, q: np.ndarray, beta: np.ndarray) 
     first = np.ones(len(alive), bool)
     first[order[1:]] = tg[order[1:]] != tg[order[:-1]]
     v = pb.vs * pb.P[tg] * pb.frac[m]
-    val = np.where(first, pb.vc + v, v + pb.vc * beta[tg]) * qb
+    vc = np.full(pb.n_targets, pb.vc) if vct is None else vct
+    first &= st.t_cnt[tg] == np.bincount(tg, minlength=pb.n_targets)[tg]   # 之前没有成功观测过
+    val = np.where(first, vc[tg] + v, v + vc[tg] * beta[tg]) * qb
     return float(val.sum())
 
 
-def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta: np.ndarray | None = None) -> State:
+def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta: np.ndarray | None = None,
+            vct: np.ndarray | None = None, init_state=None) -> State:
     """价格引导贪心：先按约减收益（价值 - 价格）放置收益为正的候选，再按真实价值补空。
     q（站点×格的晴空概率）与 beta（重复观测的备份覆盖系数）给定时，按期望价值排序，并避开多云时段放置。"""
     cw, cm = cand
     v = pb.vs * pb.P[pb.w_tg[cw]] * pb.frac[cm]
+    vc = pb.vc if vct is None else vct[pb.w_tg[cw]]
     if q is None:
         qbar = np.ones(len(cw))
         rep = v
@@ -194,22 +199,26 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
         qp = np.concatenate([np.zeros((q.shape[0], 1)), np.cumsum(q, axis=1)], axis=1)
         w = cw
         qbar = (qp[pb.w_st[w], pb.w_k1[w] + 1] - qp[pb.w_st[w], pb.w_k0[w]]) / (pb.w_k1[w] - pb.w_k0[w] + 1)
-        rep = v + pb.vc * beta[pb.w_tg[cw]]
+        rep = v + vc * beta[pb.w_tg[cw]]
         kappa = pb.vs * pb.P.mean() * pb.frac[pb.m_min] / (pb.m_min + 1)   # 一格时间的平均价值
         price = mu + kappa * (1.0 - q[:, :mu.shape[1]])
     pref = np.concatenate([np.zeros((price.shape[0], 1)), np.cumsum(price, axis=1)], axis=1)
     cost = _candidate_cost(pref, cw, cm, pb.w_st, pb.w_k0, pb.w_k1)
-    st = run_greedy(pb, cw, cm, (v + pb.vc) * qbar - cost, rep * qbar - cost, best_fit=True, cutoff=0.0, price=price)
-    run_greedy(pb, cw, cm, (v + pb.vc) * qbar, rep * qbar, best_fit=True, state=st, price=price)
+    st = init_state() if init_state is not None else None
+    st = run_greedy(pb, cw, cm, (v + vc) * qbar - cost, rep * qbar - cost, best_fit=True, cutoff=0.0, price=price,
+                    state=st)
+    run_greedy(pb, cw, cm, (v + vc) * qbar, rep * qbar, best_fit=True, state=st, price=price)
     return st
 
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
-          fast: bool = False) -> tuple[Schedule, dict]:
+          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None) -> tuple[Schedule, dict]:
     """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
     progress(fraction, text)：可选的进度回调（产品界面用）。
-    cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。"""
+    cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。
+    vc_target / max_obs_left / init_state：动态重规划用——每颗目标的覆盖奖励（已成功覆盖的为 0）、剩余可观测次数、
+    返回预置了历史成功观测与过去时段占用的 State 的函数。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -221,6 +230,8 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     out_task = np.zeros((N, 3, 3), np.int64)
     out_cnt = np.zeros(N, np.int64)
     Pv = pb.vs * pb.P
+    vct = np.full(N, pb.vc) if vc_target is None else np.asarray(vc_target, float)
+    maxk = np.full(N, 3, np.int64) if max_obs_left is None else np.asarray(max_obs_left, np.int64)
     use_q = cell_weight is not None
     if use_q:
         qw = np.asarray(cell_weight, float)
@@ -235,13 +246,13 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     theta, stall, hist = 1.0, 0, []
     for it in range(iters):
         if it in recover_at:
-            st = recover(pb, mu, cand, qw, beta if use_q else None)
-            lb = objective_weighted(pb, st, qw, beta) if use_q else objective(pb, st)
+            st = recover(pb, mu, cand, qw, beta if use_q else None, vct if vc_target is not None else None, init_state)
+            lb = objective_weighted(pb, st, qw, beta, vct) if use_q else objective(pb, st)
             if lb > best_lb:
                 best_lb, best_state, best_mu = lb, st, mu.copy()
         pref = np.concatenate([np.zeros((S, 1)), np.cumsum(mu, axis=1)], axis=1)
-        _subproblem(pref, pb.t_ptr, pb.t_win, pb.w_st, pb.w_k0, pb.w_k1, Pv, pb.frac, pb.vc, pb.gap,
-                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta)
+        _subproblem(pref, pb.t_ptr, pb.t_win, pb.w_st, pb.w_k0, pb.w_k1, Pv, pb.frac, vct, pb.gap,
+                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta, maxk)
         L = mu.sum() + out_total.sum()
         if L < best_ub - 1e-9:
             best_ub, stall = L, 0

@@ -22,6 +22,7 @@ from .data import Dataset
 from .schedule import Schedule, task_score
 
 ARCHIVE = "https://archive-api.open-meteo.com/v1/archive"
+PREVIOUS_RUNS = "https://previous-runs-api.open-meteo.com/v1/forecast"
 
 
 def _round_half(x: float) -> float:
@@ -93,3 +94,44 @@ def evaluate_under_weather(cfg: Config, ds: Dataset, sch: Schedule, cloud: np.nd
     return {"coverage_mean": float(np.mean(cov)), "score_mean": float(np.mean(score)),
             "coverage_by_year": cov, "score_by_year": score,
             "success_rate": float(np.mean([c for c in cov]) / max(np.unique(sch.target).size, 1))}
+
+
+def fetch_forecast_history(cfg: Config, ds: Dataset, years=(2023, 2024, 2025), verbose=True) -> dict:
+    """历史上"提前 1 天 / 2 天发布"的逐小时云量预报（Open-Meteo Previous Runs API）。
+    返回 {"day1": (Y, S, H), "day2": (Y, S, H), "years": [...]}，缺失为 NaN。"""
+    hours = int(round(cfg.days * 24))
+    path = Path(cfg.cache_dir) / f"forecast_{cfg.start_utc[5:10]}_{hours}h_{min(years)}-{max(years)}.npz"
+    if path.exists():
+        z = np.load(path)
+        return {"day1": z["day1"], "day2": z["day2"], "years": z["years"].tolist()}
+    start = cfg.start_dt
+    out = {k: np.full((len(years), ds.n_stations, hours), np.nan) for k in ("day1", "day2")}
+    for j in range(ds.n_stations):
+        lat, lon = _round_half(float(ds.st_lat[j])), _round_half(float(ds.st_lon[j]))
+        for y, year in enumerate(years):
+            a = start.replace(year=year)
+            b = a + timedelta(hours=hours)
+            url = (f"{PREVIOUS_RUNS}?latitude={lat}&longitude={lon}&hourly=cloud_cover_previous_day1,"
+                   f"cloud_cover_previous_day2&start_date={a:%Y-%m-%d}&end_date={b:%Y-%m-%d}&timezone=GMT")
+            for attempt in range(4):
+                try:
+                    with urllib.request.urlopen(url, timeout=60) as r:
+                        d = json.loads(r.read())
+                    break
+                except Exception:
+                    if attempt == 3:
+                        raise
+                    time.sleep(3 * (attempt + 1))
+            times = [datetime.fromisoformat(t).replace(tzinfo=timezone.utc) for t in d["hourly"]["time"]]
+            idx = {t: k for k, t in enumerate(times)}
+            for key, var in (("day1", "cloud_cover_previous_day1"), ("day2", "cloud_cover_previous_day2")):
+                vals = d["hourly"][var]
+                for h in range(hours):
+                    k = idx.get(a + timedelta(hours=h))
+                    if k is not None and vals[k] is not None:
+                        out[key][y, j, h] = vals[k]
+        if verbose:
+            print(f"  [预报] {j + 1}号站 day1 缺失 {np.isnan(out['day1'][:, j]).mean():.0%}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(path, day1=out["day1"], day2=out["day2"], years=np.array(list(years)))
+    return {"day1": out["day1"], "day2": out["day2"], "years": list(years)}

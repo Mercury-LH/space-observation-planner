@@ -19,9 +19,9 @@ from .problem import Problem
 SCALE = 1e8
 
 
-def state_from_schedule(pb: Problem, sch) -> State:
-    """把 Schedule 装回 State（找回每个任务所在的窗口）。"""
-    st = State(pb)
+def state_from_schedule(pb: Problem, sch, state: State | None = None) -> State:
+    """把 Schedule 装回 State（找回每个任务所在的窗口）；给定 state 时在其基础上追加。"""
+    st = state if state is not None else State(pb)
     cell = pb.cfg.cell_s
     for s, t, a0, d in zip(sch.station, sch.target, sch.start_s, sch.dur_s):
         a, m = int(a0 // cell), int(d // cell)
