@@ -25,8 +25,13 @@
 
 ```bash
 uv sync
-uv run python run_compare.py
+uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 outputs/plan/plan.csv 与 summary.json
+uv run python -m obsplan validate 某个计划.csv             # 复核任何人的计划（含目标受照、48 小时、切换时间）
+uv run python run_compare.py                              # A–H 全部方案统一对比
 ```
+
+`plan` 的选项：`--mode fast|quality`、`--start 2026-07-31`（换规划期）、`--moon 30`（月光规避）、`--weather`（按历史晴空概率规划）。
+`validate` 能读本方案导出的 CSV、方案G初版的 `schedule.csv`（列 station_id、target_id、start、end），以及观测列表 JSON（方案E初版的格式；时间是相对规划开始的秒数时加 `--seconds-from-start`）。
 
 数据放在仓库根目录 `data/`（已被 Git 忽略）：直接放 `数据.zip`、`优先级.zip`，或放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 均可。
 测试：`uv run pytest -q`（约 30 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
