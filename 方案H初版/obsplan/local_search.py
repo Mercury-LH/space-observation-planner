@@ -353,10 +353,15 @@ def swap_repeat_for_extension(st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, 
 
 
 def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbose=False,
-            repeat_min_priority: float | None = None) -> dict:
+            repeat_min_priority: float | None = None, repair_key=None, repeat_key=None, extend_key=None) -> dict:
     """局部搜索主流程：
     每轮：覆盖修复（可挤让） -> 左压紧 + 补空 -> 重复观测插入（可挤让） -> 右压紧 + 补空；
-    最后：重复观测换延长 -> 延长到 240 秒。"""
+    最后：重复观测换延长 -> 延长到 240 秒。
+    repair_key / repeat_key / extend_key：每颗目标一个数，覆盖修复、重复观测插入、最后延长按它从大到小处理
+    （默认按优先级；伐谋演化的局部搜索策略通过这三个参数接入）。"""
+    rk = pb.P if repair_key is None else np.asarray(repair_key, float)
+    pk = pb.P if repeat_key is None else np.asarray(repeat_key, float)
+    ek = pb.P if extend_key is None else np.asarray(extend_key, float)
     import time as _time
     from .greedy import candidates, run_greedy
     stats = {"inserted": 0, "repeats": 0, "moved": 0, "swaps": 0, "extended_cells": 0, "time": {}}
@@ -408,7 +413,7 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
 
     for r in range(rounds):
         unc = np.nonzero((state.t_cnt == 0) & has_win)[0]
-        unc = unc[np.argsort(-pb.P[unc], kind="stable")]
+        unc = unc[np.argsort(-rk[unc], kind="stable")]
         state.n, ins = repair_coverage(unc, state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                        state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                        pb.w_st, pb.w_k0, pb.w_k1, pb.t_ptr, pb.t_win, pb.P, pb.frac,
@@ -421,7 +426,7 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
         rep = np.nonzero((state.t_cnt > 0) & (state.t_cnt < 3))[0]
         if repeat_min_priority is not None:     # 只对高价值目标做"挤让插入重复观测"，其余交给分档补空
             rep = rep[pb.P[rep] >= repeat_min_priority]
-        rep = rep[np.argsort(-pb.P[rep], kind="stable")]
+        rep = rep[np.argsort(-pk[rep], kind="stable")]
         state.n, ins2 = repair_coverage(rep, state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                         state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                         pb.w_st, pb.w_k0, pb.w_k1, pb.t_ptr, pb.t_win, pb.P, pb.frac,
@@ -443,7 +448,7 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
     stats["swaps"] = swap_repeat_for_extension(state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                                state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                                pb.w_k0, pb.w_k1, pb.P, pb.frac, pb.vs, pb.gap, pb.m_max)
-    order = np.argsort(-pb.P[state.tg[:state.n]], kind="stable")
+    order = np.argsort(-ek[state.tg[:state.n]], kind="stable")
     stats["extended_cells"] = extend_all(order, state.st, state.tg, state.a, state.m, state.w, state.alive, state.n,
                                          state.owner, state.t_cnt, state.t_obs_a, state.t_obs_m, state.t_task,
                                          pb.w_k0, pb.w_k1, pb.gap, pb.m_max)

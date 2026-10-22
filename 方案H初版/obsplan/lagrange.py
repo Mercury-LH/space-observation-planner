@@ -185,9 +185,10 @@ def objective_weighted(pb: Problem, st: State, q: np.ndarray, beta: np.ndarray, 
 
 
 def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta: np.ndarray | None = None,
-            vct: np.ndarray | None = None, init_state=None) -> State:
+            vct: np.ndarray | None = None, init_state=None, rule=None) -> State:
     """价格引导贪心：先按约减收益（价值 - 价格）放置收益为正的候选，再按真实价值补空。
-    q（站点×格的晴空概率）与 beta（重复观测的备份覆盖系数）给定时，按期望价值排序，并避开多云时段放置。"""
+    q（站点×格的晴空概率）与 beta（重复观测的备份覆盖系数）给定时，按期望价值排序，并避开多云时段放置。
+    rule：伐谋演化的放置规则（obsplan/evolved/），给定且不考虑天气时代替第一遍的"价值 − 价格"排序。"""
     cw, cm = cand
     v = pb.vs * pb.P[pb.w_tg[cw]] * pb.frac[cm]
     vc = pb.vc if vct is None else vct[pb.w_tg[cw]]
@@ -205,20 +206,27 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
     pref = np.concatenate([np.zeros((price.shape[0], 1)), np.cumsum(price, axis=1)], axis=1)
     cost = _candidate_cost(pref, cw, cm, pb.w_st, pb.w_k0, pb.w_k1)
     st = init_state() if init_state is not None else None
-    st = run_greedy(pb, cw, cm, (v + vc) * qbar - cost, rep * qbar - cost, best_fit=True, cutoff=0.0, price=price,
-                    state=st)
+    if rule is not None and q is None and vct is None:
+        from .famou_h_eval import feature_rows
+        u, c = rule(feature_rows(pb, price, cw, cm))
+        st = run_greedy(pb, cw, cm, u, np.minimum(u, c), best_fit=True, cutoff=0.0, price=price, state=st)
+    else:
+        st = run_greedy(pb, cw, cm, (v + vc) * qbar - cost, rep * qbar - cost, best_fit=True, cutoff=0.0,
+                        price=price, state=st)
     run_greedy(pb, cw, cm, (v + vc) * qbar, rep * qbar, best_fit=True, state=st, price=price)
     return st
 
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
-          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None) -> tuple[Schedule, dict]:
+          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None) -> tuple[Schedule, dict]:
     """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
     progress(fraction, text)：可选的进度回调（产品界面用）。
     cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。
     vc_target / max_obs_left / init_state：动态重规划用——每颗目标的覆盖奖励（已成功覆盖的为 0）、剩余可观测次数、
-    返回预置了历史成功观测与过去时段占用的 State 的函数。"""
+    返回预置了历史成功观测与过去时段占用的 State 的函数。
+    rule：伐谋演化的放置规则（见 recover）：价格迭代照旧（用人工规则选最好一次），结束后用该价格按 rule 再恢复一次，
+    与伐谋评测的做法相同；None 时只用人工规则。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -271,11 +279,17 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
         if norm == 0:
             break
         mu = np.maximum(0.0, mu + theta * (L - best_lb) / norm * g)
+    lb_manual = best_lb
+    if rule is not None and not use_q and vc_target is None:
+        # 与伐谋评测一致：用最好一次可行解对应的价格，按演化出的放置规则重新恢复一次，再做局部搜索
+        best_state = recover(pb, best_mu, cand, init_state=init_state, rule=rule)
+        best_lb = objective(pb, best_state)
     ls_stats = {}
     if progress is not None:
         progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
     if local_search:
         ls_stats = improve(pb, best_state, repeat_min_priority=3.0 if fast else None)
     sch = best_state.schedule(pb, name, time.time() - t0)
-    info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "history": hist, "ls": ls_stats, "mu": best_mu}
+    info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "lb_manual_rule": lb_manual, "history": hist,
+            "ls": ls_stats, "mu": best_mu}
     return sch, info

@@ -164,6 +164,7 @@ def main(argv=None):
     parser.add_argument("--evaluator-path", type=Path, default=ROOT / "integrations/famou/evaluator.py")
     parser.add_argument("--poll-interval", type=float, default=5.0)
     parser.add_argument("--status-interval", type=float, default=30.0)
+    parser.add_argument("--max-concurrent", type=int, default=1)
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[A-Za-z0-9_-]{1,128}", args.experiment_id):
         parser.error("experiment-id must contain only letters, numbers, underscore or hyphen")
@@ -200,7 +201,7 @@ def main(argv=None):
             client = get_client_from_env()
             config = ProxyConfig(
                 experiment_id=args.experiment_id,
-                max_concurrent=1,
+                max_concurrent=args.max_concurrent,
                 poll_interval=args.poll_interval,
             )
             proxy = SafeEvaluatorProxy(

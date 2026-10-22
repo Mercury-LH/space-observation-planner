@@ -109,6 +109,7 @@ class CandidateFailure(Exception):
     pass
 
 
+
 def _sandbox_command(workdir: Path, candidate: Path, timeout_s: float, fsize: int = 64 << 20) -> list[str]:
     sandbox = Path("/usr/bin/sandbox-exec")
     if sys.platform != "darwin" or not sandbox.is_file():
@@ -134,14 +135,16 @@ def _sandbox_command(workdir: Path, candidate: Path, timeout_s: float, fsize: in
             str(candidate), str(timeout_s), str(fsize)]
 
 
-def run_candidate(source: bytes, cases: list[Case], timeout_s: float = TIMEOUT_S, fsize: int = 64 << 20):
+def run_candidate(source: bytes, cases: list, timeout_s: float = TIMEOUT_S, fsize: int = 64 << 20,
+                  names: list[str] | None = None, payload: bytes | None = None):
     with tempfile.TemporaryDirectory(prefix="obsplan-famou-") as tmp:
         wd = Path(tmp).resolve()
         cand = wd / "candidate.py"
         cand.write_bytes(source)
         cmd = _sandbox_command(wd, cand, timeout_s, fsize)
         env = {"PATH": "/usr/bin:/bin", "HOME": str(wd), "TMPDIR": str(wd), "LANG": "C.UTF-8"}
-        payload = json.dumps({"names": FEATURES, "cases": [c.rows for c in cases]}).encode()
+        if payload is None:
+            payload = json.dumps({"names": names or FEATURES, "cases": [c.rows for c in cases]}).encode()
         with (wd / "stdout.json").open("w+b") as out, (wd / "stderr.txt").open("w+b") as err:
             p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=out, stderr=err, cwd=wd, env=env,
                                  start_new_session=True)
