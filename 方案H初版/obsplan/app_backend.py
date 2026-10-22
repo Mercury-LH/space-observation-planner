@@ -125,9 +125,11 @@ def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, pr
 
 
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
-                 fast: bool = False, refine_seconds: bool = True, full_problem: bool = True) -> Run:
+                 fast: bool = False, refine_seconds: bool = True, full_problem: bool = True,
+                 evolved_rule: bool = True) -> Run:
     """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。
-    full_problem：pb 是否为完整问题；演示子集上不做"按秒补覆盖"。"""
+    full_problem：pb 是否为完整问题；演示子集上不做"按秒补覆盖"。
+    evolved_rule：H 的放置规则用伐谋演化并已采纳的版本（obsplan/evolved/），否则用人工的"价值 − 价格"。"""
     cfg = pb.cfg
     t0 = time.time()
     mu = None
@@ -140,6 +142,10 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             _, sc = weather_stats(pb)
             kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
             notes["weather_aware"] = True
+        elif evolved_rule:
+            from .evolved import load_rule
+            kw["rule"] = load_rule()
+            notes["famou_rule"] = kw["rule"] is not None
         sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, fast=fast, **kw)
         notes["mode"] = "快速" if fast else "高质量"
         mu = info["mu"].astype(np.float32)

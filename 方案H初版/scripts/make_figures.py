@@ -182,7 +182,7 @@ def fig_compare():
     labels = {"A": ("A 随机", (8, 0), "left"), "B": ("B 优先级贪心", (8, 0), "left"),
               "C": ("C 人工多因素", (8, 0), "left"), "D": ("D AI进化权重贪心", (-8, 0), "right"),
               "E": ("E AI贪心+局部搜索", (-10, -1), "right"), "G": ("G AI筛选+CP-SAT", (-8, 0), "right"),
-              "G+": ("", (0, 0), "left"), "H": ("H 价格协调（新算法）", (12, -26), "left")}
+              "G+": ("", (0, 0), "left"), "H": ("H 价格协调（人工放置规则）", (12, -26), "left")}
     fig, ax = plt.subplots(figsize=(7.2, 4.2))
     base = {}
     for r in rows:
@@ -190,6 +190,8 @@ def fig_compare():
             continue
         key = r["algo"].split()[0]
         base[key] = r
+        if key == "H+":                         # H+ 只画精修后的点（网格计划与 H 精修后几乎重合）
+            continue
         is_h = key == "H"
         ax.scatter(r["runtime_s"], r["combined"], s=70 if is_h else 46, color=ORANGE if is_h else BLUE,
                    edgecolor="#fcfcfb", linewidth=1.5, zorder=3)
@@ -205,6 +207,8 @@ def fig_compare():
             continue
         key = r["algo"].split()[0]
         b0 = base[key]
+        if key == "H+":
+            continue
         is_h = key == "H"
         color = ORANGE if is_h else BLUE
         ax.annotate("", (r["runtime_s"], r["combined"]), xytext=(b0["runtime_s"], b0["combined"]),
@@ -212,16 +216,27 @@ def fig_compare():
         ax.scatter(r["runtime_s"], r["combined"], s=70 if is_h else 46, facecolor="#fcfcfb", edgecolor=color,
                    linewidth=1.6, zorder=3)
         if is_h:
-            ax.annotate(f"H + 按秒精修 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(-10, 9),
-                        textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
-                        fontweight="bold")
+            ax.annotate(f"H 精修后 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(-10, 0),
+                        textcoords="offset points", fontsize=9, color=TEXT2, va="center", ha="right")
         elif key == "G+":
             ax.annotate(f"G+ 精修后 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(10, -6),
                         textcoords="offset points", fontsize=9, color=TEXT2, va="center", ha="left")
+    hp = [r for r in rows if r["algo"].startswith("H+") and "按秒精修" in r["algo"]]
+    href = [r for r in rows if r["algo"].split()[0] == "H" and "按秒精修" in r["algo"]]
+    if hp and href:                             # 伐谋放置规则：从 H 精修后指向 H+ 精修后
+        r, r0 = hp[0], href[0]
+        ax.annotate("", (r["runtime_s"], r["combined"]), xytext=(r0["runtime_s"], r0["combined"]),
+                    arrowprops=dict(arrowstyle="-|>", color=ORANGE, lw=1.4, shrinkA=5, shrinkB=5), zorder=2)
+        ax.scatter(r["runtime_s"], r["combined"], s=150, marker="*", color=ORANGE, edgecolor="#fcfcfb",
+                   linewidth=1.0, zorder=4)
+        ax.annotate(f"H+ 伐谋放置规则 {r['combined']:.3f}", (r["runtime_s"], r["combined"]), xytext=(-10, 9),
+                    textcoords="offset points", fontsize=9, color="#0b0b0b", va="center", ha="right",
+                    fontweight="bold")
     fz = ROOT / "results" / "fusion_merge.json"
     if fz.exists():                             # 三方案解合并：横轴为端到端用时（先跑 H、G+、E，再合并）
         f = json.loads(fz.read_text(encoding="utf-8"))
-        t = sum(base[k]["runtime_s"] for k in ("H", "G+", "E")) + f["runtime_s"]
+        srcs = [n for n in f["args"].get("sources", "G+,H,E").split(",") if n]
+        t = sum(base[k]["runtime_s"] for k in srcs) + f["runtime_s"]
         ax.scatter(t, f["refined"]["combined"], s=80, marker="D", color=ORANGE, edgecolor="#fcfcfb", linewidth=1.5,
                    zorder=4)
         ax.annotate(f"三方案解合并 {f['refined']['combined']:.3f}", (t, f["refined"]["combined"]), xytext=(-10, 8),
@@ -237,7 +252,7 @@ def fig_compare():
     ax.legend(frameon=False, fontsize=8, loc="lower right")
     ax.set_ylim(0.55, ub + 0.04)
     ax.set_xlim(0.2, 4000)
-    ax.set_title("8 月 1 日至 7 日全量：H 约 100 秒；三方案解合并最高，约 21 分钟（全部通过 Skyfield 校验）", fontsize=11)
+    ax.set_title("8 月 1 日至 7 日全量：伐谋放置规则让 H 约 2 分钟达到 0.974，解合并 0.978（均通过 Skyfield 校验）", fontsize=10.5)
     save(fig, "图5_方案对比.png")
 
 

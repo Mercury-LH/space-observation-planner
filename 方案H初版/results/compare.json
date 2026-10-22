@@ -545,6 +545,114 @@
         }
       },
       "grid_model": false
+    },
+    {
+      "algo": "H+ 价格协调+伐谋放置规则",
+      "runtime_s": 115.3,
+      "tasks": 12368,
+      "covered": 9994,
+      "coverage_rate": 0.9994,
+      "score": 28013.300000000003,
+      "combined": 0.9656254207970195,
+      "repeat_tasks": 2374,
+      "mean_dur_s": 138.78395860284604,
+      "covered_高": 2023,
+      "total_高": 2024,
+      "covered_中": 3990,
+      "total_中": 3990,
+      "covered_低": 3981,
+      "total_低": 3986,
+      "station_busy_h": [
+        58.1,
+        66.9,
+        72.2,
+        36.6,
+        51.6,
+        57.5,
+        67.4,
+        82.8,
+        42.6,
+        44.3
+      ],
+      "legal": true,
+      "violations": {},
+      "margins": [
+        0.02038064313382293,
+        0.04137385572629171,
+        0.051292081351694385
+      ],
+      "ub_relaxed": 1.0739471575023023,
+      "lb_before_ls": 0.831392618588251,
+      "lb_manual_rule": 0.8749488590246823,
+      "ls": {
+        "inserted": 2615,
+        "repeats": 615,
+        "moved": 32169,
+        "swaps": 108,
+        "extended_cells": 0,
+        "time": {
+          "覆盖修复": 6.8,
+          "压紧与补空": 0.1,
+          "重复观测插入": 48.0,
+          "分档补空": 0.1,
+          "换延长与延长": 0.0
+        },
+        "tier_added": 23,
+        "tier_ext": 2113
+      }
+    },
+    {
+      "algo": "H+ 价格协调+伐谋放置规则 + 按秒精修",
+      "runtime_s": 115.7,
+      "tasks": 12368,
+      "covered": 9994,
+      "coverage_rate": 0.9994,
+      "score": 28538.393333333333,
+      "combined": 0.9743589271062028,
+      "repeat_tasks": 2374,
+      "mean_dur_s": 140.33699870633893,
+      "covered_高": 2023,
+      "total_高": 2024,
+      "covered_中": 3990,
+      "total_中": 3990,
+      "covered_低": 3981,
+      "total_低": 3986,
+      "station_busy_h": [
+        58.8,
+        67.4,
+        72.7,
+        36.8,
+        52.3,
+        58.4,
+        67.8,
+        83.4,
+        42.9,
+        44.6
+      ],
+      "legal": true,
+      "violations": {},
+      "margins": [
+        0.019684475459291306,
+        0.01980854324162351,
+        0.05053116228865662
+      ],
+      "refine": {
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.4,
+          "dur_before": 138.78395860284604,
+          "dur_after": 140.33699870633893,
+          "tasks_longer": 2730
+        },
+        "insert": {
+          "near_candidates": 0,
+          "tried": 0,
+          "added": 0,
+          "deleted_repeats": 0
+        }
+      },
+      "grid_model": false
     }
   ],
   "flow_ub": 1.0040493376

@@ -84,20 +84,68 @@ def run_all(cfg: Config, pb: Problem, h_iters=300, verbose=True):
     info.pop("mu", None)
     out.append((sch_h, info))
     log(sch_h)
+    out += run_evolved(pb, h_iters)
+    log(out[-1][0])
 
     # 按秒精修（通用后处理，对所有带局部搜索的方案都做）：网格窗口两端按 1 秒外推到真实边界，
     # 插入"按秒才可见"的目标，再用线性规划重新分配时长
     for sch, _ in list(out):
-        if sch.algo.split()[0] in ("E", "G+", "H"):
+        if sch.algo.split()[0] in ("E", "G+", "H", "H+"):
             ref, rinfo = finish(pb, sch)
             out.append((ref, {"refine": rinfo, "grid_model": False}))
             log(ref)
     return out
 
 
+def run_evolved(pb: Problem, h_iters=300):
+    """H+：价格协调 + 伐谋演化并已采纳的放置规则（obsplan/evolved/recover_rule.py）。"""
+    from obsplan.evolved import load_rule
+    sch, info = lagrange.solve(pb, iters=h_iters, recover_at=tuple(range(0, h_iters, 50)) + (h_iters - 1,),
+                               verbose=False, rule=load_rule(), name="H+ 价格协调+伐谋放置规则")
+    info.pop("mu", None)
+    return [(sch, info)]
+
+
+def make_rows(cfg, ds, results, checks):
+    rows = []
+    for (sch, info), chk in zip(results, checks):
+        valid = None if chk is None else ~chk["invalid_mask"]
+        ev = evaluate(cfg, ds, sch, valid)
+        row = {"algo": sch.algo, "runtime_s": round(sch.runtime_s, 1), **ev,
+               "legal": None if chk is None else chk["legal"],
+               "violations": None if chk is None else chk["violations"],
+               "margins": None if chk is None else [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
+        for k in ("ub_relaxed", "lb_before_ls", "lb_manual_rule", "weights", "ls", "refine", "grid_model"):
+            if k in info:
+                row[k] = info[k]
+        rows.append(row)
+        slug = sch.algo.split()[0] + ("_refined" if "按秒精修" in sch.algo else "")
+        export_csv(cfg, ds, sch, OUT / f"plan_{slug}.csv", chk)
+    return rows
+
+
+def add_evolved(cfg, ds, pb, h_iters, validate_plans=True):
+    """只补 H+ 两行（网格计划与按秒精修），合并进已有的 results/compare.json，其余方案不重跑。"""
+    results = run_evolved(pb, h_iters)
+    ref, rinfo = finish(pb, results[0][0])
+    results.append((ref, {"refine": rinfo, "grid_model": False}))
+    checks = [None] * len(results)
+    if validate_plans:
+        with ProcessPoolExecutor(len(results)) as ex:
+            checks = list(ex.map(_validate_job, [(cfg, s) for s, _ in results]))
+    new = make_rows(cfg, ds, results, checks)
+    d = json.loads((OUT / "compare.json").read_text(encoding="utf-8"))
+    d["rows"] = [r for r in d["rows"] if not r["algo"].startswith("H+")] + new
+    (OUT / "compare.json").write_text(json.dumps(d, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+    for r in new:
+        print(f"{r['algo']:28s} {r['covered']:6d} {r['score']:9.1f} {r['repeat_tasks']:6d} {r['combined']:7.4f} "
+              f"{r['runtime_s']:7.1f}  {r['legal']} {r['violations'] or ''}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-validate", action="store_true")
+    ap.add_argument("--add-evolved", action="store_true", help="只补 H+（伐谋放置规则）两行，合并进已有 compare.json")
     ap.add_argument("--sweep", action="store_true")
     ap.add_argument("--h-iters", type=int, default=300)
     args = ap.parse_args()
@@ -106,6 +154,9 @@ def main():
     ds = load(cfg)
     win = get_windows(cfg, ds)
     pb = Problem.build(cfg, ds, win)
+    if args.add_evolved:
+        add_evolved(cfg, ds, pb, args.h_iters, not args.no_validate)
+        return
     ub = upper_bound(cfg, ds, win, pb.max_obs)
     OUT.mkdir(exist_ok=True)
     print(f"场景 {cfg.scenario_key()}  窗口 {len(pb.w_k0)}  可观测目标 {(pb.max_obs > 0).sum()}  "
@@ -119,20 +170,7 @@ def main():
             checks = list(ex.map(_validate_job, [(cfg, s) for s, _ in results]))
         print(f"Skyfield 校验完成 {time.time() - t:.0f}s")
 
-    rows = []
-    for (sch, info), chk in zip(results, checks):
-        valid = None if chk is None else ~chk["invalid_mask"]
-        ev = evaluate(cfg, ds, sch, valid)
-        row = {"algo": sch.algo, "runtime_s": round(sch.runtime_s, 1), **ev,
-               "legal": None if chk is None else chk["legal"],
-               "violations": None if chk is None else chk["violations"],
-               "margins": None if chk is None else [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
-        for k in ("ub_relaxed", "lb_before_ls", "weights", "ls", "refine", "grid_model"):
-            if k in info:
-                row[k] = info[k]
-        rows.append(row)
-        slug = sch.algo.split()[0] + ("_refined" if "按秒精修" in sch.algo else "")
-        export_csv(cfg, ds, sch, OUT / f"plan_{slug}.csv", chk)
+    rows = make_rows(cfg, ds, results, checks)
     best_ub = min(ub["combined_ub"], *(r.get("ub_relaxed", np.inf) for r in rows))
     summary = {"scenario": cfg.scenario_key(), "config": json.loads(cfg.to_json()), "upper_bound": ub,
                "lagrange_ub": min(r.get("ub_relaxed", np.inf) for r in rows), "best_ub": best_ub,

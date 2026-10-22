@@ -63,14 +63,15 @@ if __name__ == "__main__":
     ap.add_argument("--rounds", type=int, default=3, help=">1 时：局部搜索结果加入池再合并（迭代解合并）")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--log", action="store_true")
-    ap.add_argument("--sources", default="G+,H,E", help="参与合并的计划；其中综合指标最高的一份作提示")
+    ap.add_argument("--sources", default="G+,H+,E", help="参与合并的计划；其中综合指标最高的一份作提示")
     ap.add_argument("--tag", default="")
     args = ap.parse_args()
     T0 = time.time()
     cfg = Config()
     ds = load(cfg)
     pb = Problem.build(cfg, ds, get_windows(cfg, ds))
-    names = ["G+", "H", "E"]
+    names = ["G+", "H", "E", "H+"]          # H+ = H + 伐谋放置规则（run_compare.py --add-evolved 生成）
+    names = [n for n in names if (ROOT / "results" / f"plan_{n}.csv").exists()]
     plans = {n: grid_schedule(cfg, ds, ROOT / "results" / f"plan_{n}.csv") for n in names}
     out = {"inputs": {}, "args": vars(args)}
     for n, s in plans.items():

@@ -92,6 +92,9 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     fast = mode.startswith("快速")
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
+    evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
+                          help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
+                               "关闭则用人工的「价值 − 价格」。全量约多 15 秒，综合指标高约 0.8%")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
                             help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 4 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
@@ -110,7 +113,7 @@ if go_btn:
     bar = st.sidebar.progress(0.0, text="开始规划……")
     run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
                        weather=weather and algo == "H", fast=fast, refine_seconds=refine_on,
-                       full_problem=not subset)
+                       full_problem=not subset, evolved_rule=evolved)
     run.subset = subset
     bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)

@@ -1,6 +1,6 @@
 """命令行入口。
 
-    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine]
+    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
     uv run python -m obsplan windows [--refresh]
 
@@ -137,6 +137,9 @@ def cmd_plan(args) -> int:
         sc = np.nanmean(cloud <= 30.0, axis=(0, 2))
         kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
     fast = args.mode == "fast"
+    if not args.manual_rule and not args.weather:           # 默认用伐谋演化并已采纳的放置规则（obsplan/evolved/）
+        from .evolved import load_rule
+        kw["rule"] = load_rule()
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
     rinfo = None
     if not args.no_refine:
@@ -187,6 +190,7 @@ def main(argv=None) -> int:
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
             p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
+            p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
             p.add_argument("--out", default="outputs/plan")
         elif name == "validate":
             p.add_argument("plan")
