@@ -1,0 +1,11 @@
+# 方案H：让伐谋演化候选任务打分函数（小规模试验，不是正式成绩）
+project_name: "space-observation-planner"
+cloud_type: "hybrid"
+initial_program: "init.py"
+evaluator: "evaluator.py"
+system_message: "prompt.md"
+evolve_config:
+  max_iterations: 10
+timeouts:
+  heartbeat_wait_hours: 1
+  evaluation_wait_hours: 1
