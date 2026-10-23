@@ -24,7 +24,9 @@ sys.path.insert(0, str(SCHEME_DIR))
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
                                  orbit_class, pass_profile, replay_weather, run_planning, simulate_days,
                                  station_nights,
-                                 subset_problem, summary_json, task_rows, validate_run, weather_stats)
+                                 subset_problem, summary_json, task_rows, validate_run, weather_stats,
+                                 status_csv_bytes, status_rows)
+from obsplan.target_status import STATUS, describe, summarize  # noqa: E402
 from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
@@ -178,6 +180,31 @@ with tabs[0]:
                  title="各站时间利用（小时）")
     fig.update_layout(legend_title_text="", yaxis_title="小时", height=360)
     c3.plotly_chart(fig, use_container_width=True)
+
+    st.subheader("目标状态分析")
+    st.caption("按观测任务状态理解（答疑 #26）：每颗目标观测了几次（只计满足 48 小时间隔的观测，与计分口径相同）、"
+               "总观测时长、首次与最近一次观测时间，以及没有覆盖或没有观测满的原因。")
+    srows = status_rows(pb, run)
+    ssum = summarize(srows)
+    st.write(describe(ssum))
+    cnt = pd.DataFrame(ssum["by_priority"]).T
+    cnt = cnt.loc[:, (cnt != 0).any(axis=0)]
+    cnt.index = [f"{p}优先级" for p in cnt.index]
+    st.dataframe(cnt, use_container_width=True)
+    pick = st.selectbox("查看明细", ["未覆盖与未观测满"] + list(STATUS.values()), key="status_pick")
+    sdf = pd.DataFrame(srows)
+    if pick == "未覆盖与未观测满":
+        sdf = sdf[(sdf["status"] == "UNCOVERED") | ((sdf["n_obs"] > 0) & (sdf["n_obs"] < sdf["max_obs"])
+                                                    & (sdf["priority"] == "高"))]
+        st.caption("未覆盖的目标，以及还能再观测、但没有观测满的高优先级目标。")
+    else:
+        sdf = sdf[sdf["status_cn"] == pick]
+    show = sdf.rename(columns={"target_id": "目标编号", "target_name": "名称", "priority": "优先级", "orbit_class": "轨道",
+                               "status_cn": "状态", "n_obs": "观测次数", "max_obs": "理论最多", "observed_seconds": "观测秒数",
+                               "task_score": "得分", "first_obs_utc": "首次观测", "last_obs_utc": "最近观测",
+                               "stations": "站点", "n_windows": "窗口数", "note": "说明"})
+    st.dataframe(show.drop(columns=["status", "window_seconds", "n_stations_visible"]).head(500),
+                 use_container_width=True, hide_index=True)
 
 # ------------------------------------------------------------------ 站点地图
 with tabs[1]:
@@ -424,10 +451,12 @@ with tabs[6]:
             st.error(f"发现违规：{v['violations']}")
         mg = v["margins"]
         st.write(f"最小余量：仰角下限 {mg[0]:.3f}°，仰角上限 {mg[1]:.3f}°，太阳角 {mg[2]:.3f}°")
-    c1, c2 = st.columns(2)
+    c1, c2, c3 = st.columns(3)
     c1.download_button("下载观测计划（CSV）", csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv", mime="text/csv",
                        use_container_width=True)
-    c2.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
+    c2.download_button("下载目标状态表（CSV）", status_csv_bytes(status_rows(pb, run)),
+                       file_name=f"target_status_{run.run_id}.csv", mime="text/csv", use_container_width=True)
+    c3.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
                        mime="application/json", use_container_width=True)
 
 # ------------------------------------------------------------------ 结果对比

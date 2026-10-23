@@ -5,3 +5,5 @@ results/plan_*.csv
 results/*.log
 outputs/
 .env.famou
+# 目标状态表含目标编号，只提交汇总 JSON
+results/target_status_*.csv

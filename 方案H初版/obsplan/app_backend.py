@@ -17,6 +17,7 @@ from .greedy import MANUAL_WEIGHTS, algo_priority, algo_weighted
 from .local_search import improve
 from .problem import Problem
 from .schedule import Schedule, evaluate, export_csv
+from .target_status import orbit_class  # noqa: F401（界面沿用 app_backend.orbit_class）
 from .visibility import Windows
 
 ALGOS = {
@@ -180,9 +181,6 @@ def utc(cfg: Config, seconds: float):
     return cfg.start_dt + timedelta(seconds=float(seconds))
 
 
-def orbit_class(ds: Dataset) -> np.ndarray:
-    mm = np.array([float(l[52:63]) for l in ds.line2])
-    return np.where(mm > 11.25, "低轨", np.where((mm > 0.9) & (mm < 1.1), "地球同步", "中高轨"))
 
 
 def station_nights(pb: Problem) -> list[tuple[int, int, int, int]]:
@@ -343,6 +341,22 @@ def csv_bytes(pb: Problem, run: Run) -> bytes:
     data = tmp.read_bytes()
     tmp.unlink(missing_ok=True)
     return data
+
+
+def status_rows(pb: Problem, run: Run) -> list[dict]:
+    """目标状态分析（obsplan/target_status.py）：每颗目标的观测完成情况、时长与覆盖情况。"""
+    from .target_status import target_status
+    return target_status(pb, run.schedule())
+
+
+def status_csv_bytes(rows: list[dict]) -> bytes:
+    import csv
+    from .target_status import COLUMNS
+    buf = io.StringIO()
+    w = csv.DictWriter(buf, fieldnames=COLUMNS)
+    w.writeheader()
+    w.writerows(rows)
+    return ("\ufeff" + buf.getvalue()).encode("utf-8")
 
 
 def summary_json(run: Run) -> bytes:

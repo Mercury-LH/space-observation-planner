@@ -2,6 +2,7 @@
 
     uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
+    uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
     uv run python -m obsplan windows [--refresh]
 
 validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
@@ -154,16 +155,45 @@ def cmd_plan(args) -> int:
         from .validator import validate
         check = validate(cfg, ds, sch)
     export_csv(cfg, ds, sch, out / "plan.csv", check)
+    from .target_status import describe, summarize, target_status
+    from .target_status import export as export_status
+    status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
+    export_status(status_rows, out / "target_status.csv")
     summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
-               "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]}}
+               "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
+               "target_status": summarize(status_rows)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
     if check is not None:
         print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
-    print("已写出", out / "plan.csv", "和", out / "summary.json")
+    print("目标状态：" + describe(summary["target_status"]))
+    print("已写出", out / "plan.csv", "、", out / "target_status.csv", "和", out / "summary.json")
+    return 0
+
+
+def cmd_status(args) -> int:
+    """目标状态分析：对任意一份计划逐目标给出观测完成情况、观测时长与覆盖情况。"""
+    from .data import load
+    from .problem import Problem
+    from .target_status import describe, export, summarize, target_status
+    from .visibility import get_windows
+    cfg = _cfg(args)
+    ds = load(cfg)
+    pb = Problem.build(cfg, ds, get_windows(cfg, ds))
+    sch, skipped = read_plan(cfg, ds, Path(args.plan), args.seconds_from_start)
+    rows = target_status(pb, sch)
+    sm = summarize(rows)
+    print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）")
+    print("目标状态：" + describe(sm))
+    for p, cnt in sm["by_priority"].items():
+        print(f"  {p}优先级：" + "，".join(f"{k} {v}" for k, v in cnt.items() if v))
+    out = Path(args.out)
+    export(rows, out)
+    out.with_suffix(".json").write_text(json.dumps(sm, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("已写出", out, "和", out.with_suffix(".json"))
     return 0
 
 
@@ -180,7 +210,7 @@ def cmd_windows(args) -> int:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="obsplan", description="空间目标观测规划（方案 H）")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    for name in ("plan", "validate", "windows"):
+    for name in ("plan", "validate", "windows", "status"):
         p = sub.add_parser(name)
         p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
         p.add_argument("--days", type=float)
@@ -196,10 +226,14 @@ def main(argv=None) -> int:
             p.add_argument("plan")
             p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
             p.add_argument("--out", help="把校验报告写成 JSON")
+        elif name == "status":
+            p.add_argument("plan")
+            p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
+            p.add_argument("--out", default="outputs/target_status.csv", help="目标状态表 CSV（同名 .json 为汇总）")
         else:
             p.add_argument("--refresh", action="store_true")
     args = ap.parse_args(argv)
-    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows}[args.cmd](args)
+    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status}[args.cmd](args)
 
 
 if __name__ == "__main__":

@@ -25,16 +25,19 @@
 
 ```bash
 uv sync
-uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 outputs/plan/plan.csv 与 summary.json
+uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 plan.csv、target_status.csv 与 summary.json
 uv run python -m obsplan validate 某个计划.csv             # 复核任何人的计划（含目标受照、48 小时、切换时间）
-uv run python run_compare.py                              # A–H 全部方案统一对比
+uv run python -m obsplan status 某个计划.csv               # 目标状态分析：每颗目标观测几次、时长、未覆盖原因
+uv run python run_compare.py                              # A–H 全部方案统一对比（--add-evolved 只补 H+ 两行）
 ```
 
-`plan` 的选项：`--mode fast|quality`、`--start 2026-10-01`（换规划期）、`--moon 30`（月光规避）、`--weather`（按历史晴空概率规划）。
+`plan` 的选项：`--mode fast|quality`、`--start 2026-10-01`（换规划期）、`--moon 30`（月光规避）、`--weather`（按历史晴空概率规划）、`--manual-rule`（放置规则用人工的"价值 − 价格"，默认用伐谋演化的规则）。
+
+**目标状态分析**（`obsplan/target_status.py`；答疑 #26：赛题中的"目标状态分析"按观测任务状态理解）：`target_status.csv` 每颗目标一行——状态（外推异常 / 无可见窗口 / 未覆盖 / 已观测 1–3 次）、观测次数与理论最多次数、总观测秒数、得分、首次与最近一次观测时间、所用站点、可见窗口数，以及未覆盖或未观测满的原因；只计满足 48 小时间隔的观测，与计分口径相同。`summary.json` 里有按优先级、轨道类别的汇总，界面"概览"页可按状态查看明细并下载。默认流水线（H+）的结果：可观测 9999 颗中覆盖 9994 颗，高优先级 2023/2024（另 1 颗外推异常），观测 2 次以上的目标 1684 颗；未覆盖的 5 颗都是低优先级低轨目标，可见窗口的站点时间都已被占满。融合模式 9999 颗全部覆盖（汇总见 `results/target_status_*.json`）。
 `validate` 能读本方案导出的 CSV、方案G初版的 `schedule.csv`（列 station_id、target_id、start、end），以及观测列表 JSON（方案E初版的格式；时间是相对规划开始的秒数时加 `--seconds-from-start`）。
 
 数据放在仓库根目录 `data/`（已被 Git 忽略）：直接放 `数据.zip`、`优先级.zip`，或放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 均可。
-测试：`uv run pytest -q`（约 30 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
+测试：`uv run pytest -q`（40 个，约 35 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
 
 首次运行会计算可见窗口（M1 Pro 约 30 秒）并缓存，Skyfield 校验会自动下载 DE421 星历（约 17MB）到 `cache/`。
 完整对比（含 CP-SAT 约 9 分钟、11 份计划约 12.7 万个任务的 Skyfield 逐秒校验约 17 分钟）约 30 分钟。

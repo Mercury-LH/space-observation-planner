@@ -41,8 +41,8 @@ def score_ref(cfg: Config, ds: Dataset) -> float:
     return float(ds.priority.sum()) if cfg.score_ref == "sumP" else float(cfg.score_ref)
 
 
-def evaluate(cfg: Config, ds: Dataset, sch: Schedule, valid_mask: np.ndarray | None = None) -> dict:
-    """按规则计分：只有满足 48 小时间隔的观测才计分（按时间顺序贪心认定）。"""
+def counted_mask(cfg: Config, sch: Schedule, valid_mask: np.ndarray | None = None) -> np.ndarray:
+    """哪些任务计分：合法，且与同一目标上一次计分观测的结束相隔 48 小时以上（按时间顺序贪心认定）。"""
     keep = np.ones(len(sch), bool) if valid_mask is None else valid_mask.copy()
     order = np.lexsort((sch.start_s, sch.target))
     last_end = {}
@@ -56,6 +56,12 @@ def evaluate(cfg: Config, ds: Dataset, sch: Schedule, valid_mask: np.ndarray | N
             continue
         counted[i] = True
         last_end[t] = sch.start_s[i] + sch.dur_s[i]
+    return counted
+
+
+def evaluate(cfg: Config, ds: Dataset, sch: Schedule, valid_mask: np.ndarray | None = None) -> dict:
+    """按规则计分：只有满足 48 小时间隔的观测才计分（按时间顺序贪心认定）。"""
+    counted = counted_mask(cfg, sch, valid_mask)
     sc = task_score(cfg, ds.priority[sch.target], sch.dur_s) * counted
     covered = np.unique(sch.target[counted])
     n = ds.n_targets
