@@ -38,6 +38,7 @@ def test_time_weight_is_fixed_scale_and_quality_not_clipped():
 @pytest.mark.parametrize("overrides", [
     {"status": "invalid"}, {"status": "timeout"}, {"status": "error"},
     {"status": "unvalidated"}, {"rankable": False}, {"fresh_solve": False},
+    {"worker_exit": "worker_error"},
     {"validation": {"legal": False, "step_s": 1.0}},
     {"validation": {"legal": True, "step_s": 30.0}},
     {"validation": {"legal": True, "step_s": 1.0, "geometry_checked": False}},
@@ -59,6 +60,15 @@ def test_one_failed_repeat_excludes_method_and_mixed_evidence_rejected():
         b.aggregate([result(solver_spec_hash="a"), result(run_id="new", solver_spec_hash="b")])
 
 
+def test_same_preset_cannot_merge_distinct_plugin_entrypoints():
+    rows = [result(entrypoint="team_a:solve", solver_spec_hash="same",
+                   provenance={"plugin_source_hash": "a"}),
+            result(run_id="rerun", suite_id="another-suite", entrypoint="team_b:solve",
+                   solver_spec_hash="same", provenance={"plugin_source_hash": "b"})]
+    with pytest.raises(ValueError, match="entry points"):
+        b.aggregate(rows)
+
+
 def test_sensitivity_pareto_and_median_of_per_run_scores():
     rows = [result("quality", .7, 1000), result("fast", .65, 10), result("dominated", .6, 200)]
     report = b.aggregate(rows)
@@ -67,7 +77,7 @@ def test_sensitivity_pareto_and_median_of_per_run_scores():
     assert {m["preset"] for m in report["methods"] if m["pareto"]} == {"quality", "fast"}
     rows = [result(seconds=t, run_id=str(t)) for t in (0, 120, 1200, 12000)]
     r = b.aggregate(rows)["methods"][0]
-    expected = np.median([b.utility(.6, t) for t in (0, 120, 1200, 12000)])
+    expected = np.median([b.utility(.6, t, weight=.2) for t in (0, 120, 1200, 12000)])
     assert r["utility_by_weight"]["0.2"] == expected
 
 
@@ -144,6 +154,28 @@ def test_timeout_persists_unrankable_record_and_refuses_overwrite(tmp_path, monk
     assert (directory / "result.json").exists()
     with pytest.raises(FileExistsError):
         b.execute_run(request, directory, .01)
+
+
+@pytest.mark.parametrize("saved_status", ["valid", "unvalidated", "invalid", "error", "environment_changed"])
+def test_nonzero_exit_cannot_rank_a_saved_valid_checkpoint(tmp_path, monkeypatch, saved_status):
+    directory = tmp_path / "run"
+
+    class FailedAfterSave:
+        def wait(self, timeout=None):
+            b.write_json(directory / "result.json", result(
+                "p", suite_id="s", run_id="r", status=saved_status,
+                rankable=saved_status == "valid"))
+            return 1
+
+    monkeypatch.setattr(b.subprocess, "Popen", lambda *args, **kwargs: FailedAfterSave())
+    request = {"suite_id": "s", "run_id": "r", "preset": "p", "repeat": 0, "seed": 1, "workers": 1}
+    got = b.execute_run(request, directory, 1)
+    expected = "worker_error" if saved_status in ("valid", "unvalidated") else saved_status
+    assert got["status"] == expected
+    assert got["worker_exit"] == "worker_error"
+    assert got["rankable"] is False
+    assert json.loads((directory / "result.json").read_text())["rankable"] is False
+    assert not b.aggregate([got])["methods"][0]["rankable"]
 
 
 def test_worker_contract_and_no_validate_never_ranks(tmp_path, monkeypatch):

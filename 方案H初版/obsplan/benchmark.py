@@ -26,6 +26,7 @@ import uuid
 
 SCHEMA_VERSION = 1
 ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_TIME_WEIGHT = 3 / 7
 WEIGHTS = (0.0, 0.1, 0.2, 0.4)
 
 
@@ -63,6 +64,51 @@ def source_identity(plugin: str | None = None) -> dict:
             "source_hash": digest(files), "source_files": files, "plugin_source_hash": plugin_hash}
 
 
+def _parse_power_profile(battery: str, custom: str) -> dict:
+    """Read only the active source and its setting; ignore charge and time left."""
+    profile = {"source": "unknown", "low_power_mode": "unknown"}
+    match = re.search(r"^Now drawing from '(AC Power|Battery Power)'\s*$", battery, re.MULTILINE)
+    if not match:
+        return profile
+    active = match.group(1)
+    profile["source"] = "AC" if active == "AC Power" else "Battery"
+    selected = False
+    for line in custom.splitlines():
+        if line and not line[0].isspace() and line.rstrip().endswith(":"):
+            selected = line.strip() == active + ":"
+        elif selected:
+            setting = re.fullmatch(r"\s*lowpowermode\s+(\d+)\s*", line)
+            if setting:
+                profile["low_power_mode"] = int(setting.group(1))
+                break
+    return profile
+
+
+def read_power_profile() -> dict:
+    """Sample macOS power configuration without treating unavailable as off.
+
+    Two supply readings bracket the settings read, so a source change while
+    sampling yields unknown. Boundary samples cannot detect a switch and back
+    occurring entirely between them; they do not measure thermal throttling.
+    """
+    unknown = {"source": "unknown", "low_power_mode": "unknown"}
+    if platform.system() != "Darwin":
+        return unknown
+    try:
+        outputs = []
+        for mode in ("batt", "custom", "batt"):
+            response = subprocess.run(["pmset", "-g", mode], capture_output=True,
+                                      text=True, check=False, timeout=2)
+            if response.returncode:
+                return unknown
+            outputs.append(response.stdout)
+    except (OSError, subprocess.TimeoutExpired):
+        return unknown
+    before = _parse_power_profile(outputs[0], outputs[1])
+    after = _parse_power_profile(outputs[2], outputs[1])
+    return before if before["source"] == after["source"] else unknown
+
+
 def environment_identity() -> dict:
     versions = {}
     for name in ("numpy", "sgp4", "numba", "ortools", "skyfield"):
@@ -84,7 +130,8 @@ def environment_identity() -> dict:
     return {"python": platform.python_version(), "system": platform.system(),
             "release": platform.release(), "machine": platform.machine(),
             "processor": processor, "memory_bytes": memory,
-            "logical_cpus": os.cpu_count(), "dependencies": versions}
+            "logical_cpus": os.cpu_count(), "dependencies": versions,
+            "power_profile": read_power_profile()}
 
 
 def resolve_callable(reference: str):
@@ -109,7 +156,7 @@ def check_config(cfg) -> None:
         raise ValueError("Planning horizon must be finite and positive")
 
 
-def utility(quality: float, solver_s: float, weight: float = 0.2,
+def utility(quality: float, solver_s: float, weight: float = DEFAULT_TIME_WEIGHT,
             time_scale_s: float = 120.0) -> float:
     if not all(math.isfinite(x) for x in (quality, solver_s, weight, time_scale_s)):
         raise ValueError("Utility inputs must be finite")
@@ -118,7 +165,7 @@ def utility(quality: float, solver_s: float, weight: float = 0.2,
     return 100.0 * ((1.0 - weight) * quality + weight * time_scale_s / (time_scale_s + solver_s))
 
 
-def aggregate(results: list[dict], *, weight: float = 0.2,
+def aggregate(results: list[dict], *, weight: float = DEFAULT_TIME_WEIGHT,
               time_scale_s: float = 120.0, weights=WEIGHTS) -> dict:
     """Only fully valid repeated methods with the same experiment fingerprint rank."""
     weight, time_scale_s = float(weight), float(time_scale_s)
@@ -142,10 +189,14 @@ def aggregate(results: list[dict], *, weight: float = 0.2,
         groups.setdefault(r["preset"], []).append(r)
     methods = []
     for name, runs in sorted(groups.items()):
+        entrypoints = {r["entrypoint"] for r in runs if r.get("entrypoint")}
+        if len(entrypoints) > 1:
+            raise ValueError(f"Preset {name} has different solver entry points; use distinct names")
         specs = {r["solver_spec_hash"] for r in runs if r.get("solver_spec_hash")}
         if len(specs) > 1:
             raise ValueError(f"Preset {name} has different solver parameters; use distinct names")
         eligible = all(r.get("rankable") is True and r.get("status") == "valid"
+                       and not r.get("worker_exit")
                        and r.get("comparison_key") and r.get("validation", {}).get("legal") is True
                        and r.get("validation", {}).get("step_s") == 1.0
                        and r.get("validation", {}).get("geometry_checked") is True
@@ -282,10 +333,13 @@ def execute_run(request: dict, directory: Path, timeout_s: float) -> dict:
     phase_started = result.pop("active_phase_started_monotonic", None)
     if outcome and active_phase and phase_started is not None:
         result["timing_s"][active_phase] = time.monotonic() - phase_started
-    if outcome and (outcome != "worker_error" or result["status"] in ("starting", "running")):
+    if outcome and (outcome != "worker_error" or result["status"] in ("starting", "running", "valid", "unvalidated")):
         result.update(status=outcome, rankable=False)
         result["timeout_s"] = timeout_s
     if outcome:
+        # A previously saved valid checkpoint is not a successful process exit.
+        # Keep explicit validation/input failure details, but never its rankability.
+        result["rankable"] = False
         result["worker_exit"] = outcome
     elif result["status"] in ("starting", "running"):
         result.update(status="incomplete_result", rankable=False)
@@ -316,7 +370,7 @@ def run_suite(args) -> dict:
         raise ValueError("repeats and workers must be positive integers")
     if not math.isfinite(timeout) or timeout <= 0:
         raise ValueError("timeout_s must be finite and positive")
-    weight, scale = suite.get("time_weight", 0.2), suite.get("time_scale_s", 120.0)
+    weight, scale = suite.get("time_weight", DEFAULT_TIME_WEIGHT), suite.get("time_scale_s", 120.0)
     utility(0, 0, weight, scale)
     specs = {}
     for name in presets:

@@ -10,7 +10,7 @@ import time
 import traceback
 
 from .benchmark import (ROOT, SCHEMA_VERSION, check_config, digest, environment_identity,
-                        public_config, resolve_callable, source_identity, write_json)
+                        public_config, read_power_profile, resolve_callable, source_identity, write_json)
 
 
 def dataset_hash(ds) -> str:
@@ -85,6 +85,12 @@ def work(request_path: Path) -> int:
         # Progress is local diagnostic evidence; never copied into public JSON.
         print(json.dumps(event, default=str, ensure_ascii=False), flush=True)
 
+    def check_power_profile(checkpoint):
+        profile = read_power_profile()
+        result["power_profile_checks"][checkpoint] = profile
+        if profile != result["power_profile_checks"]["start"]:
+            result["environment_changed"] = True
+
     try:
         import numpy as np
         from .config import Config
@@ -105,6 +111,8 @@ def work(request_path: Path) -> int:
         plugin = None if entrypoint == "obsplan.portfolio:solve" else entrypoint
         provenance = source_identity(plugin)
         environment = environment_identity()
+        result["power_profile_checks"] = {"start": environment["power_profile"]}
+        result["environment_changed"] = False
         config = public_config(cfg)
         fixed_config = {k: v for k, v in config.items() if k != "seed"}
         cache_key = digest({"input": input_hash, "config": fixed_config,
@@ -151,6 +159,7 @@ def work(request_path: Path) -> int:
         response = solver(problem, request["spec"], progress=progress)
         result["timing_s"][phase] = time.perf_counter() - phase_started
         phase, phase_started = "validation", time.perf_counter()
+        check_power_profile("after_solver")  # Outside the complete solver stopwatch.
         save()
         if not isinstance(response, tuple) or len(response) != 2 or not isinstance(response[1], dict):
             raise TypeError("Solver must return (Schedule, info dict)")
@@ -187,9 +196,13 @@ def work(request_path: Path) -> int:
             result["metrics"] = {key: metrics[key] for key in
                                  ("tasks", "covered", "coverage_rate", "score", "combined",
                                   "repeat_tasks", "mean_dur_s")}
+        check_power_profile("after_validation")
         after = source_identity(plugin)
         if any(after[key] != provenance[key] for key in ("source_hash", "plugin_source_hash")):
             result.update(status="source_changed", rankable=False)
+        if result["environment_changed"]:
+            result["status_before_environment_change"] = result["status"]
+            result.update(status="environment_changed", rankable=False)
         return 0 if result["status"] in ("valid", "unvalidated") else 1
     except Exception as exc:
         result.update(status="error", rankable=False, error_type=type(exc).__name__, error_phase=phase)
