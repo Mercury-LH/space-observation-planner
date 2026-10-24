@@ -27,6 +27,8 @@ def test_six_discrete_choices_update_description_without_solving(ui, monkeypatch
     assert not ui.exception
     assert ui.select_slider[0].value == 'instant'
     assert tuple(ui.select_slider[0].options) == EFFORT_ORDER
+    reference = ui.dataframe[0].value.set_index('档位')
+    assert (reference.loc[['high', 'xhigh'], '参考求解秒'] == '—').all()
     for name in EFFORT_ORDER:
         ui.select_slider[0].set_value(name).run()
         assert not ui.exception

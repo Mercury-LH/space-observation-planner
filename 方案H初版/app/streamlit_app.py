@@ -70,7 +70,7 @@ def effort_reference(selected):
     st.dataframe(pd.DataFrame([
         {"档位": p.key, "方案": p.title,
          "证据": "同条件确认" if p.evidence_status == "controlled" else "探索结果，待校准",
-         "参考求解秒": round(p.reference_solver_s, 2) if p.reference_solver_s is not None else None,
+         "参考求解秒": f"{p.reference_solver_s:.2f}" if p.reference_solver_s is not None else "—",
          "参考覆盖": p.reference_covered,
          "参考质量 Q": p.reference_quality}
         for p in profiles
