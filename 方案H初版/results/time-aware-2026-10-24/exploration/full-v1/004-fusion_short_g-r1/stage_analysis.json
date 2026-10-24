@@ -1,0 +1,23 @@
+{
+  "run_id": "004-fusion_short_g-r1",
+  "plan_sha256": "b79c647f7484a09fe9d4f361a8b4a50acc3e5fb9fc078e4b5facd4ebe441dd4f",
+  "iterations_completed": 150,
+  "fusion_rounds": [
+    {
+      "round": 1,
+      "pool_size": 379020,
+      "before_combined": 0.9607830383873328,
+      "gain": 0.005239791098396562,
+      "duration_s": 133.91639070800738,
+      "gain_per_s": 3.9127332141301916e-05
+    },
+    {
+      "round": 2,
+      "pool_size": 399333,
+      "before_combined": 0.9660228294857294,
+      "gain": 0.0010195595768744958,
+      "duration_s": 128.76258729200345,
+      "gain_per_s": 7.918135215490607e-06
+    }
+  ]
+}

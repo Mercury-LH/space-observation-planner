@@ -55,7 +55,12 @@ class Config:
 
     @property
     def start_dt(self) -> datetime:
-        return datetime.fromisoformat(self.start_utc).replace(tzinfo=timezone.utc)
+        value = datetime.fromisoformat(self.start_utc)
+        # A supplied UTC offset denotes an instant; replacing its tzinfo would
+        # silently move the planning horizon and invalidate benchmark comparisons.
+        if value.tzinfo is None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value.astimezone(timezone.utc)
 
     @property
     def n_cells(self) -> int:

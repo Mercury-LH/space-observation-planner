@@ -1,0 +1,23 @@
+{
+  "run_id": "003-hplus_e-r1",
+  "plan_sha256": "1741398e53234510cefca9edbfd84ac809be364fc57feac65cd842c9f97fb867",
+  "iterations_completed": 150,
+  "fusion_rounds": [
+    {
+      "round": 1,
+      "pool_size": 266977,
+      "before_combined": 0.9607830383873328,
+      "gain": 0.005118169117157789,
+      "duration_s": 94.3772046660306,
+      "gain_per_s": 5.4230988672204056e-05
+    },
+    {
+      "round": 2,
+      "pool_size": 289995,
+      "before_combined": 0.9659012075044906,
+      "gain": 0.001287545738806517,
+      "duration_s": 115.64741229097126,
+      "gain_per_s": 1.1133372665244126e-05
+    }
+  ]
+}

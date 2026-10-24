@@ -1,0 +1,63 @@
+name: Planner evaluation contract
+
+on:
+  pull_request:
+    paths: ['方案H初版/**', '.github/workflows/planner-evaluation.yml']
+  push:
+    paths: ['方案H初版/**', '.github/workflows/planner-evaluation.yml']
+  workflow_dispatch:
+    inputs:
+      benchmark:
+        description: 'Run a full-data benchmark after unit tests (uses runner time)'
+        type: choice
+        options: ['none', 'hplus_fast', 'all']
+        default: 'none'
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-24.04
+    # all: five workers, each capped at 60 min, plus setup/reporting allowance.
+    timeout-minutes: 320
+    defaults:
+      run:
+        working-directory: 方案H初版
+    env:
+      NUMBA_NUM_THREADS: '2'
+      OMP_NUM_THREADS: '2'
+      OPENBLAS_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install locked dependencies
+        run: |
+          python -m pip install uv==0.12.1
+          uv sync --frozen --extra app
+      - name: Check solver, benchmark, validation and UTC contracts
+        run: uv run python -m pytest -q tests/test_portfolio.py tests/test_benchmark.py tests/test_benchmark_power.py tests/test_benchmark_baselines.py tests/test_validator_contract.py tests/test_config_time.py tests/test_effort.py tests/test_app_effort.py tests/test_effort_ui.py tests/test_effort_packages.py
+      - name: Manual full-data benchmark
+        if: github.event_name == 'workflow_dispatch' && inputs.benchmark != 'none'
+        env:
+          BENCHMARK_CHOICE: ${{ inputs.benchmark }}
+        run: |
+          if [ "$BENCHMARK_CHOICE" = 'all' ]; then
+            uv run python -m obsplan.benchmark run --suite benchmarks/default.json --workers 2 --timeout-s 3600 --output outputs/benchmarks/ci
+          else
+            uv run python -m obsplan.benchmark run --suite benchmarks/default.json --workers 2 --presets hplus_fast --timeout-s 1800 --output outputs/benchmarks/ci
+          fi
+      - name: Upload summaries only
+        if: always() && github.event_name == 'workflow_dispatch' && inputs.benchmark != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-summaries
+          path: |
+            方案H初版/outputs/benchmarks/ci/summary.json
+            方案H初版/outputs/benchmarks/ci/report.md
+            方案H初版/outputs/benchmarks/ci/manifest.json
+            方案H初版/outputs/benchmarks/ci/*/result.json
+          if-no-files-found: warn

@@ -1,0 +1,96 @@
+{
+  "time_weight": 0.42857142857142855,
+  "cohort": "confirmation AC1",
+  "results": [
+    {
+      "time_scale_s": 30,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 56.72678969896198,
+        "hplus_10_fast": 66.84723117314937,
+        "hplus_1_fast": 67.46529808565208,
+        "hplus_300_full": 61.88967707796951
+      }
+    },
+    {
+      "time_scale_s": 60,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 57.527215276181074,
+        "hplus_10_fast": 73.54516418465579,
+        "hplus_1_fast": 74.32958141259465,
+        "hplus_300_full": 66.5288502083741
+      }
+    },
+    {
+      "time_scale_s": 120,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 59.03995158997485,
+        "hplus_10_fast": 80.88994192653904,
+        "hplus_1_fast": 81.63833267884327,
+        "hplus_300_full": 72.9953101284192
+      }
+    },
+    {
+      "time_scale_s": 300,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 62.97809995314424,
+        "hplus_10_fast": 88.98002092238923,
+        "hplus_1_fast": 89.4362415339906,
+        "hplus_300_full": 82.63342015630737
+      }
+    },
+    {
+      "time_scale_s": 600,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 68.0521442632838,
+        "hplus_10_fast": 92.9351176701433,
+        "hplus_1_fast": 93.15596151470541,
+        "hplus_300_full": 88.77316967236663
+      }
+    },
+    {
+      "time_scale_s": 1200,
+      "ranking": [
+        "hplus_1_fast",
+        "hplus_10_fast",
+        "hplus_300_full",
+        "fusion_baseline"
+      ],
+      "utility": {
+        "fusion_baseline": 74.8363498992234,
+        "hplus_10_fast": 95.2801586025377,
+        "hplus_1_fast": 95.33357872830301,
+        "hplus_300_full": 93.0266884237589
+      }
+    }
+  ]
+}

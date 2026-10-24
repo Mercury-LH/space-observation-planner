@@ -23,6 +23,10 @@
 
 ## 运行
 
+**最新时间加权选型**：见 [2026-10-24 实测报告](results/time-aware-2026-10-24/README.md)。快速复现使用 `uv run python -m obsplan.benchmark run --suite benchmarks/recommended.json --output outputs/benchmarks/recommended`；质量优先的 H+ 配置为 `benchmarks/quality-hplus.json`。完整基准、轻量候选、独立校验与不同功耗的结果均分别保留。
+
+**团队统一评测入口**：`uv run python -m obsplan.benchmark run --suite benchmarks/default.json --output outputs/benchmarks/full`。它从头生成各来源计划，分别记录预处理、完整求解和独立校验耗时，按可配置时间权重汇总合法结果；接口、计分边界、插件接入及队友 AI 约定见 [自动评测与协作](docs/自动评测与协作.md) 和 [AGENTS.md](AGENTS.md)。历史结果表中的 M1 Pro 耗时不直接参与新机器的排名。
+
 ```bash
 uv sync
 uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 plan.csv、target_status.csv 与 summary.json
@@ -36,8 +40,8 @@ uv run python run_compare.py                              # A–H 全部方案�
 **目标状态分析**（`obsplan/target_status.py`；答疑 #26：赛题中的"目标状态分析"按观测任务状态理解）：`target_status.csv` 每颗目标一行——状态（外推异常 / 无可见窗口 / 未覆盖 / 已观测 1–3 次）、观测次数与理论最多次数、总观测秒数、得分、首次与最近一次观测时间、所用站点、可见窗口数，以及未覆盖或未观测满的原因；只计满足 48 小时间隔的观测，与计分口径相同。`summary.json` 里有按优先级、轨道类别的汇总，界面"概览"页可按状态查看明细并下载。默认流水线（H+）的结果：可观测 9999 颗中覆盖 9994 颗，高优先级 2023/2024（另 1 颗外推异常），观测 2 次以上的目标 1684 颗；未覆盖的 5 颗都是低优先级低轨目标，可见窗口的站点时间都已被占满。融合模式 9999 颗全部覆盖（汇总见 `results/target_status_*.json`）。
 `validate` 能读本方案导出的 CSV、方案G初版的 `schedule.csv`（列 station_id、target_id、start、end），以及观测列表 JSON（方案E初版的格式；时间是相对规划开始的秒数时加 `--seconds-from-start`）。
 
-数据放在仓库根目录 `data/`（已被 Git 忽略）：直接放 `数据.zip`、`优先级.zip`，或放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 均可。
-测试：`uv run pytest -q`（40 个，约 35 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
+数据放在仓库根目录 `data/`：当前私有仓库已跟踪 `数据.zip`、`优先级.zip` 两个小型赛题包；解压后的本地数据和其他大文件仍忽略。也可在本地放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt`。
+测试：`uv run pytest -q`；`-m "not slow"` 跳过 Skyfield 逐秒校验测试。具体测试数量和耗时以当前代码的运行输出为准。
 
 首次运行会计算可见窗口（M1 Pro 约 30 秒）并缓存，Skyfield 校验会自动下载 DE421 星历（约 17MB）到 `cache/`。
 完整对比（含 CP-SAT 约 9 分钟、11 份计划约 12.7 万个任务的 Skyfield 逐秒校验约 17 分钟）约 30 分钟。
@@ -118,11 +122,25 @@ uv run python run_compare.py                              # A–H 全部方案�
 
 ## 产品界面
 
+六档也已整理为独立代码入口目录：[计算档位/](计算档位/README.md)，每档含 `run.py` 与说明，共用底层求解和校验代码。下一轮优化可从 [交接文档](docs/下一阶段优化交接.md) 开始。
+
 ```bash
-uv sync --extra app
-uv run python scripts/make_demo_run.py      # 可选：预先生成一份全量结果（约 4 分钟，含 Skyfield 校验）
+uv sync --frozen --extra app
 uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8501
 ```
+
+左侧默认使用“六档自动规划”：`instant → medium → high → xhigh → max → ultra`。**拖动只选择预设，点击“运行规划”才开始计算**；`instant` 表示最快档，仍需生成计划、按秒精修和独立校验，首次运行还需准备可见窗口，不是零等待。运行完成后保存档位、实际参数、分阶段耗时和校验结果。
+
+| 档位 | 对应方案 | 历史证据 |
+|---|---|---|
+| instant | H+ 1 轮，快速局部搜索 | 同条件确认 |
+| medium | H+ 10 轮，快速局部搜索 | 同条件确认 |
+| high | H+ 30 轮，快速局部搜索 | 探索结果，待同条件复核 |
+| xhigh | H+ 75 轮，快速局部搜索 | 探索结果，待同条件复核 |
+| max | H+ 300 轮，完整局部搜索 | 同条件确认 |
+| ultra | 从头生成 H+/G+/E，三轮融合及完整局部搜索 | 同条件确认 |
+
+六档都执行已采纳的**本地伐谋规则**、按秒精修和 **Skyfield 独立 1 秒步长校验**，不会实时调用云端 agent。当前质量—时间图只画四个同条件确认点；high/xhigh 展示探索期质量，耗时留空。这些是固定实例上已测候选的前沿，不是六个已证明的最优点，增加档位也不保证每次质量或耗时严格单调。界面中的历史秒数来自 Apple M5、8 线程、接通电源且低电量模式开启、热缓存的完整 8 月 1–7 日实例，不是新设备或本次运行的时间预测。详细证据、计时范围及队友接口见 [六档规划](docs/六档规划.md)。
 
 | 页面 | 内容 |
 |---|---|
@@ -136,7 +154,7 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 | 结果对比 | 所有保存过的运行（算法、模式、月光、是否按天气规划）的覆盖、得分、综合与校验状态 |
 | 规则说明 | 本次运行使用的全部规则及答疑出处 |
 
-左侧"新建规划"可修改规划期、仰角、太阳角、是否要求目标受照、覆盖/得分权重和算法（H / E / B）；演示模式只取部分目标和站点，几秒出结果。服务只监听本机 127.0.0.1。
+左侧“新建规划”可修改规划期、仰角、太阳角、是否要求目标受照和月光规避角；六档自动规划固定覆盖/观测分各 50% 的内部质量口径。“自定义算法”保留 H / E / B、质量权重、天气规划和精修开关，便于研究对照。演示范围可缩小目标与站点集合；缩小规模或修改规则后，历史全量参考不再直接适用。服务只监听本机 127.0.0.1。
 
 ## 规划期变更前后（2026-10-21 企业老师确认为 8 月 1–7 日）
 

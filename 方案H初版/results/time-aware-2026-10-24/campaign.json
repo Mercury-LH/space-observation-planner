@@ -1,0 +1,66 @@
+{
+  "campaign_label": "2026-10-24",
+  "primary_cohort": "confirmation",
+  "normal_power_cohort": "normal_power",
+  "power_cohorts_are_separate": true,
+  "exploration_ranking_allowed": false,
+  "exploration_reason": "Power configuration was not recorded at every boundary; a power-mode change was detected. Do not merge exploration timings with confirmation.",
+  "runs": 27,
+  "primary_runs": 5,
+  "normal_power_runs": 6,
+  "normal_power_ranked_runs": 4,
+  "normal_power_comparison_key": "1c6504013ad007d38fcaa852858a8106cca36d098205862060c20b8e426e85f7",
+  "normal_power_environment": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "release": "27.0.0",
+    "machine": "arm64",
+    "processor": "Apple M5",
+    "memory_bytes": 17179869184,
+    "logical_cpus": 10,
+    "dependencies": {
+      "numpy": "2.5.4",
+      "sgp4": "2.27",
+      "numba": "0.68.0",
+      "ortools": "9.15.6755",
+      "skyfield": "1.55"
+    },
+    "power_profile": {
+      "source": "Battery",
+      "low_power_mode": 0
+    }
+  },
+  "valid_runs": 26,
+  "unique_methods": 12,
+  "comparison_key": "fdf35891ab544c0619d2c92738dd24358961e22d3cd655bdb22048a60d292997",
+  "core_source_hash": "2431d9a2bbbf1cb29edead3eeb794c85d4465680e9de5587b14acf61c755ec8a",
+  "source_revisions": [
+    "2e419040557a61d6e0f7b0777322208f5b3ea3f2"
+  ],
+  "environment": {
+    "python": "3.12.13",
+    "system": "Darwin",
+    "release": "27.0.0",
+    "machine": "arm64",
+    "processor": "Apple M5",
+    "memory_bytes": 17179869184,
+    "logical_cpus": 10,
+    "dependencies": {
+      "numpy": "2.5.4",
+      "sgp4": "2.27",
+      "numba": "0.68.0",
+      "ortools": "9.15.6755",
+      "skyfield": "1.55"
+    },
+    "power_profile": {
+      "source": "AC",
+      "low_power_mode": 1
+    }
+  },
+  "input_hash": "859f10bbc62c1814a4817c0ecea40ed05f9d1211545a4a9df8516c53b8a21dce",
+  "time_weight": 0.42857142857142855,
+  "time_scale_s": 120,
+  "not_official_contest_score": true,
+  "runtime_cloud_calls": 0,
+  "ephemeris_sha256": "a20a7139da04cbc462454634918e9a9ca69127044e2cc9d4f9c16e238d2deedc"
+}

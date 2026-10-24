@@ -1,0 +1,8 @@
+{
+  "targets": 10000,
+  "stations": 10,
+  "window_count": 519672,
+  "excluded_propagation_targets": 1,
+  "preparation_s": 23.074944374966435,
+  "cache_namespace": "02e3e3e41cb1b7b06b30dde60f0e24f0b2ed31fabbe42230d81584cf4e5d2997"
+}

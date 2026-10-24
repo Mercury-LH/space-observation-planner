@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "presets": [
+    "hplus_1_fast"
+  ],
+  "repeats": 1,
+  "workers": 8,
+  "timeout_s": 1200,
+  "time_weight": 0.42857142857142855,
+  "time_scale_s": 120.0,
+  "weights": [
+    0,
+    0.1,
+    0.2,
+    0.4,
+    0.42857142857142855
+  ],
+  "config": {
+    "start_utc": "2026-08-01T00:00:00",
+    "days": 6.0,
+    "seed": 2027
+  },
+  "solvers": {
+    "hplus_1_fast": {
+      "entrypoint": "obsplan.portfolio:solve",
+      "spec": {
+        "preset": "hplus_fast",
+        "h_iters": 1
+      }
+    }
+  }
+}
