@@ -37,9 +37,9 @@ jobs:
       - name: Install locked dependencies
         run: |
           python -m pip install uv==0.12.1
-          uv sync --frozen
+          uv sync --frozen --extra app
       - name: Check solver, benchmark, validation and UTC contracts
-        run: uv run python -m pytest -q tests/test_portfolio.py tests/test_benchmark.py tests/test_benchmark_power.py tests/test_benchmark_baselines.py tests/test_validator_contract.py tests/test_config_time.py
+        run: uv run python -m pytest -q tests/test_portfolio.py tests/test_benchmark.py tests/test_benchmark_power.py tests/test_benchmark_baselines.py tests/test_validator_contract.py tests/test_config_time.py tests/test_effort.py tests/test_app_effort.py tests/test_effort_ui.py
       - name: Manual full-data benchmark
         if: github.event_name == 'workflow_dispatch' && inputs.benchmark != 'none'
         env:

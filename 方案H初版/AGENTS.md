@@ -4,6 +4,8 @@
 
 本轮推荐、完整基准、功耗分组及复现配置见 `results/time-aware-2026-10-24/README.md`。快速候选用 `benchmarks/recommended.json`；质量优先的 H+ 用 `benchmarks/quality-hplus.json`。不要把两个电源模式的秒数混成一个算法排行榜。
 
+六档产品入口与说明见 `docs/六档规划.md`。档位的唯一配置来源是 `obsplan/effort.py`：instant/medium/high/xhigh 为 H+ 1/10/30/75 轮快速搜索，max 为 H+ 300 轮完整搜索，ultra 为 H+/G+/E 三轮融合。四个同条件确认点与 high/xhigh 两个探索点必须区分；不要补造探索点的耗时，不要把历史参考当新机器预测，也不要声称六档质量严格单调或六点均已证明 Pareto 最优。
+
 ## 规则与证据
 
 - 标准比较期为 **2026-08-01 00:00:00 至 2026-08-07 00:00:00 UTC**，10000 个目标、10 个站。30 秒是构造候选的时间网格，不是地表网格；最终计划按整数秒精修。
@@ -16,6 +18,8 @@
 ## 统一接口与迭代
 
 - 算法适配入口是 `obsplan.portfolio.solve(pb, spec, progress=None) -> (Schedule, info)`。新算法可以做成同签名的 `module:function` 插件，用统一 benchmark 运行。
+- 产品代码通过 `spec_for_effort(name, *, seed=2026, workers=8, full_problem=True)` 复用公共预设；通过 `app_backend.run_effort(pb, effort, progress=None, full_problem=True, workers=8)` 统一求解与独立 1 秒步长校验，不复制另一套六档参数。子集运行必须传 `full_problem=False`，避免 near-window 补入范围外目标或站点。
+- 六档滑条只选配置，点击运行按钮才计算；instant 表示最快档，不是零等待。六档都保留本地伐谋规则、按秒精修和独立校验。校验错误要保留为未通过，不能用进度完成替代合法性；正式性能证据仍由 benchmark 产生。
 - 算法返回完整 `Schedule`，站点和目标用 `pb.ds` 的零基索引；开始时间相对规划起点，单位秒，开始和持续时间必须是有限整数秒。不得返回分数代替计划。
 - 数据读取、窗口生成、计分、独立校验及导出由公共代码负责。不要在自己的算法中复制一套规则或修改公共评测器来提高成绩。
 - 用 `obsplan.benchmark` 跑对照。保留全部运行、失败和超时；不只挑最好一次。不得复用预先生成的 E/G/H 计划却漏记生成时间。

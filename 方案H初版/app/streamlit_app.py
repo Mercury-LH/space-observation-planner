@@ -8,10 +8,12 @@ from __future__ import annotations
 
 import json
 import sys
+from time import perf_counter
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
+import numba
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -22,7 +24,7 @@ SCHEME_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCHEME_DIR))
 
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
-                                 orbit_class, pass_profile, replay_weather, run_planning, simulate_days,
+                                 orbit_class, pass_profile, replay_weather, run_effort, run_planning, simulate_days,
                                  station_nights,
                                  subset_problem, summary_json, task_rows, validate_run, weather_stats,
                                  status_csv_bytes, status_rows)
@@ -31,6 +33,7 @@ from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.visibility import get_windows  # noqa: E402
+from obsplan.effort import EFFORT_ORDER, get_effort  # noqa: E402
 
 RUNS = SCHEME_DIR / "outputs" / "app_runs"
 BLUE, ORANGE, AQUA, NAVY = "#2a78d6", "#eb6834", "#1baf7a", "#14213D"
@@ -59,6 +62,37 @@ def problem_for(run: Run):
     return cfg_, ds, pb, orbit
 
 
+def effort_reference(selected):
+    """Display the published reference cohort, never a predicted current score."""
+    profiles = [get_effort(level) for level in EFFORT_ORDER]
+    st.caption("六档是离散的计算预设。历史同条件前沿只有四个确认点；high、xhigh 仍待统一校准。"
+               "向右增加搜索投入，不保证每次运行质量都严格提高。")
+    st.dataframe(pd.DataFrame([
+        {"档位": p.key, "方案": p.title,
+         "证据": "同条件确认" if p.evidence_status == "controlled" else "探索结果，待校准",
+         "参考求解秒": round(p.reference_solver_s, 2) if p.reference_solver_s is not None else None,
+         "参考覆盖": p.reference_covered,
+         "参考质量 Q": p.reference_quality}
+        for p in profiles
+    ]), hide_index=True, use_container_width=True)
+    st.caption("表中 high、xhigh 的质量与覆盖来自探索记录，耗时留空；不把它们加入下方同条件前沿。")
+    verified = [p for p in profiles if p.reference_solver_s is not None]
+    fig = go.Figure(go.Scatter(
+        x=[p.reference_solver_s for p in verified], y=[p.reference_quality for p in verified],
+        text=[p.key for p in verified], mode="markers+text", textposition="top center",
+        marker={"size": [15 if p.key == selected else 10 for p in verified],
+                "color": [ORANGE if p.key == selected else BLUE for p in verified]},
+        customdata=[[p.reference_covered, p.reference_total_s] for p in verified],
+        hovertemplate="%{text}<br>求解 %{x:.2f} 秒<br>Q %{y:.6f}<br>覆盖 %{customdata[0]}"
+                      "<br>含校验端到端 %{customdata[1]:.2f} 秒<extra></extra>",
+    ))
+    fig.update_layout(title="已测候选的质量—时间前沿（四个确认点）", height=360,
+                      xaxis={"title": "完整求解秒（对数刻度）", "type": "log"},
+                      yaxis_title="内部质量 Q", margin=dict(l=25, r=35, t=55, b=35))
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption(profiles[0].reference_context + "历史参考包含完整来源生成与精修；Q 是内部指标，不是官方成绩。")
+
+
 # ------------------------------------------------------------------ 侧栏：选择结果 / 新建规划
 st.sidebar.title("🛰️ 观测规划")
 runs = list_runs(RUNS)
@@ -80,6 +114,22 @@ if labels:
 
 with st.sidebar.expander("新建规划", expanded=not labels):
     st.caption("规则默认取自答疑文档，规划期默认为企业老师 2026-10-21 确认的 8 月 1–7 日（UTC），可按需修改。")
+    planning_style = st.radio("规划方式", ["六档自动规划", "自定义算法"], key="planning_style")
+    automatic = planning_style == "六档自动规划"
+    effort = None
+    if automatic:
+        effort = st.select_slider("计算档位", options=EFFORT_ORDER, value="instant", key="effort_level",
+                                  help="拖动只选择预设；点击运行才开始求解。instant 是最快档，不表示零等待。")
+        st.caption("instant · medium · high · xhigh · max · ultra")
+        profile = get_effort(effort)
+        st.markdown(f"**{profile.title}**")
+        st.caption(profile.description)
+        if profile.evidence_status == "controlled":
+            st.caption(f"历史全量参考：求解 {profile.reference_solver_s:.1f} 秒；"
+                       f"含校验 {profile.reference_total_s:.1f} 秒。")
+        else:
+            st.info("已有探索结果，尚待同条件校准，不展示耗时承诺。")
+        st.caption("六档均使用已采纳的本地伐谋规则，并自动做独立逐秒校验。")
     d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 8, 1))
     days = st.number_input("规划天数", 1.0, 7.0, 6.0, 1.0)
     c1, c2 = st.columns(2)
@@ -88,23 +138,27 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     sun_max = st.number_input("站点太阳高度角上限 °", -18.0, 0.0, -6.0, 1.0)
     use_sunlit = st.checkbox("目标须被太阳照亮", value=True)
     moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
-    w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
-    algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
-    mode = st.radio("模式", ["快速（全量约 1 分钟）", "高质量（全量约 2 分钟）"], horizontal=False)
-    fast = mode.startswith("快速")
-    iters = 150 if fast else 300
-    weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
-    evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
-                          help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
-                               "关闭则用人工的「价值 − 价格」。全量约多 15 秒，综合指标高约 0.8%")
-    refine_on = st.checkbox("按秒精修（推荐）", value=True,
-                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 4 秒")
-    st.markdown("**演示模式**（缩小规模，几秒出结果）")
+    if automatic:
+        w_cov, algo, fast, iters, weather, evolved, refine_on = 0.5, "portfolio", False, 300, False, True, True
+        st.caption("自动档位统一使用覆盖与观测分各 50% 的内部质量口径。更改规则、日期或规模后，历史参考不再直接适用。")
+    else:
+        w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
+        algo = st.radio("算法", ["H", "E", "B"], format_func=lambda k: ALGOS[k])
+        mode = st.radio("模式", ["快速", "高质量"], horizontal=False)
+        fast = mode == "快速"
+        iters = 150 if fast else 300
+        weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
+        evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather)
+        refine_on = st.checkbox("按秒精修（推荐）", value=True)
+    st.markdown("**演示范围**（缩小规模）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
-    go_btn = st.button("运行规划", type="primary", use_container_width=True)
+    if not stations:
+        st.warning("至少选择一个站点。")
+    go_btn = st.button("运行规划", type="primary", use_container_width=True, disabled=not stations)
 
 if go_btn:
+    ui_started = perf_counter()
     cfg = Config(start_utc=f"{d0:%Y-%m-%d}T00:00:00", days=float(days), elev_min=elev_min, elev_max=elev_max,
                  sun_max=sun_max, use_sunlit=use_sunlit, w_cov=w_cov, w_score=1 - w_cov, moon_sep_deg=float(moon))
     cfg_, ds, pb, orbit = base(cfg_key(cfg))
@@ -112,19 +166,34 @@ if go_btn:
     if frac < 1 or len(stations) < 10:
         subset = {"target_frac": float(frac), "stations": [s - 1 for s in stations], "seed": 0}
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
+    upstream_preprocessing_s = perf_counter() - ui_started
     bar = st.sidebar.progress(0.0, text="开始规划……")
-    run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
-                       weather=weather and algo == "H", fast=fast, refine_seconds=refine_on,
-                       full_problem=not subset, evolved_rule=evolved)
+    callback = lambda f, t: bar.progress(min(1.0, max(0.0, f)), text=t)
+    try:
+        if automatic:
+            run = run_effort(pb, effort, progress=callback, full_problem=not subset,
+                             workers=min(8, numba.config.NUMBA_NUM_THREADS))
+        else:
+            run = run_planning(pb, algo, iters=iters, progress=callback,
+                               weather=weather and algo == "H", fast=fast, refine_seconds=refine_on,
+                               full_problem=not subset, evolved_rule=evolved)
+    except (ValueError, RuntimeError) as exc:
+        st.sidebar.error(str(exc))
+        st.stop()
     run.subset = subset
-    bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
+    run.notes.update(upstream_preprocessing_time_s=upstream_preprocessing_s,
+                     ui_total_time_s=perf_counter() - ui_started,
+                     ui_total_time_scope="data/windows/subset preparation through solve"
+                     + (" and initial validation" if automatic else "") + "; excludes save and render")
+    bar.progress(1.0, text=f"完成：求解 {run.runtime_s:.2f} 秒")
     run.save(RUNS)
     st.session_state["selected"] = run.run_id
     st.rerun()
 
 if choice is None:
     st.title("空间目标观测规划")
-    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 1 分钟、高质量模式约 2 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
+    st.info("在左侧拖动计算档位，点击「运行规划」后开始求解。结果和档位会一起保存。instant 是最快档，仍需计算与校验；首次运行还需准备可见窗口。")
+    effort_reference(effort)
     st.stop()
 
 run = Run.load(choice)
@@ -134,6 +203,13 @@ rows = task_rows(pb, run, orbit)
 df = pd.DataFrame(rows)
 
 st.title("空间目标观测规划")
+if run.notes.get("effort_level"):
+    st.caption(f"本次计算档位：{run.notes['effort_level']} · 求解 {run.runtime_s:.2f} 秒 · "
+               f"独立校验 {run.notes.get('validation_time_s', 0):.2f} 秒")
+    if "ui_total_time_s" in run.notes:
+        st.caption(f"数据准备至校验结束共 {run.notes['ui_total_time_s']:.2f} 秒（不含保存与页面绘制）。")
+with st.expander("六档说明与历史实测前沿"):
+    effort_reference(effort)
 scope = "全量" if not run.subset else f"演示：{run.subset['target_frac']:.0%} 目标 × {len(run.subset['stations'])} 站"
 extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "") + \
     (" · 按历史天气期望规划" if run.notes.get("weather_aware") else "") + \
@@ -152,8 +228,9 @@ with tabs[0]:
         ("累计得分", f"{m['score']:.0f}", "含 48 小时后的重复观测"),
         ("综合指标", f"{m['combined']:.4f}", f"覆盖权重 {cfg.w_cov:g}（内部口径）"),
         ("观测任务", f"{m['tasks']}", f"其中重复观测 {m['repeat_tasks']}"),
-        ("求解用时", f"{run.runtime_s:.0f} 秒", "不含窗口预处理"),
-        ("Skyfield 校验", "未校验" if v is None else ("全部合法" if v["legal"] else "有违规"),
+        ("求解用时", f"{run.runtime_s:.2f} 秒", "不含窗口预处理与独立校验"),
+        ("Skyfield 校验", "未校验" if v is None else ("未完成" if v.get("geometry_checked") is False else
+          ("全部合法" if v["legal"] else "有违规")),
          "到「校验与导出」运行" if v is None else f"违规 {sum(v['violations'].values())} 项"),
     ]
     for col, (label, value, note) in zip(k, tiles):
@@ -237,7 +314,8 @@ with tabs[2]:
         a = cfg.start_dt + timedelta(seconds=n_sel[1] * cfg.cell_s)
         b = cfg.start_dt + timedelta(seconds=n_sel[2] * cfg.cell_s)
         part = df[(df["站点"] == s_sel) & (df["开始"] >= a) & (df["结束"] <= b)] if len(df) else df
-        st.caption(f"这一夜安排了 {len(part)} 个任务，占用约 {(part['时长(秒)'].sum() + 30 * len(part)) / 60:.0f} 分钟 / "
+        occupied_s = part["时长(秒)"].sum() + 30 * len(part) if len(part) else 0
+        st.caption(f"这一夜安排了 {len(part)} 个任务，占用约 {occupied_s / 60:.0f} 分钟 / "
                    f"黑夜 {(b - a).total_seconds() / 60:.0f} 分钟")
         if len(part):
             fig = px.timeline(part, x_start="开始", x_end="结束", y="轨道", color=color_by,
@@ -254,7 +332,7 @@ with tabs[2]:
 # ------------------------------------------------------------------ 时间价格
 with tabs[3]:
     if run.mu is None:
-        st.info("时间价格只有价格协调方案（H）才有。")
+        st.info("这份结果未保存时间价格矩阵。可在自定义算法中选择 H 查看价格分析。")
     else:
         mu = run.mu.astype(float)
         day = st.slider("查看第几天", 1, int(cfg.days), 2)
@@ -445,12 +523,29 @@ with tabs[6]:
             st.rerun()
     else:
         v = run.validation
-        if v["legal"]:
+        if v.get("geometry_checked") is False:
+            st.error("独立几何校验未完成或结构检查失败，这份计划不能作为合法结果。")
+        elif v["legal"]:
             st.success(f"全部 {m['tasks']} 个任务通过 Skyfield 逐秒校验。")
         else:
             st.error(f"发现违规：{v['violations']}")
         mg = v["margins"]
-        st.write(f"最小余量：仰角下限 {mg[0]:.3f}°，仰角上限 {mg[1]:.3f}°，太阳角 {mg[2]:.3f}°")
+        if len(mg) == 3 and all(value is not None and np.isfinite(value) for value in mg):
+            st.write(f"最小余量：仰角下限 {mg[0]:.3f}°，仰角上限 {mg[1]:.3f}°，太阳角 {mg[2]:.3f}°")
+        else:
+            st.caption("未取得完整的几何余量。")
+        if not v["legal"] and st.button("重试独立校验（保留原计划）", key="retry_validation"):
+            retry_started = perf_counter()
+            try:
+                with st.spinner("使用原计划重新逐秒校验……"):
+                    run = validate_run(pb, run)
+                    run.notes.pop("validation_error", None)
+                    run.notes["revalidation_time_s"] = perf_counter() - retry_started
+                    run.save(RUNS)
+            except Exception as exc:
+                st.error(f"校验仍未完成：{type(exc).__name__}。原计划已保留，可稍后重试。")
+            else:
+                st.rerun()
     c1, c2, c3 = st.columns(3)
     c1.download_button("下载观测计划（CSV）", csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv", mime="text/csv",
                        use_container_width=True)

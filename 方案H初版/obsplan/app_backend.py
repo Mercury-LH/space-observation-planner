@@ -7,6 +7,7 @@ import time
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 from pathlib import Path
+from uuid import uuid4
 
 import numpy as np
 
@@ -24,6 +25,7 @@ ALGOS = {
     "H": "H 价格协调（推荐）",
     "E": "E AI 进化权重贪心 + 局部搜索",
     "B": "B 固定优先级贪心（基线）",
+    "portfolio": "统一计算档位（H+ / 完整融合）",
 }
 
 
@@ -174,6 +176,113 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"
     return Run(run_id, algo, json.loads(cfg.to_json()), {}, sch.station, sch.target, sch.start_s, sch.dur_s,
                m, rt, mu=mu, notes=notes)
+
+
+def run_effort(pb: Problem, effort: str, progress=None, full_problem: bool = True,
+               workers: int = 8) -> Run:
+    """Run a catalog effort through the shared portfolio, then independently validate.
+
+    runtime_s measures the complete solver call. Common near-window preparation
+    and independent one-second validation are recorded separately in notes.
+    Progress indicates stage completion, never an estimate of time remaining.
+    Weather planning and custom quality weights belong to run_planning.
+    """
+    from . import portfolio
+    from .benchmark import check_config
+    from .effort import get_effort, spec_for_effort
+    from .refine import near_windows
+
+    cfg = pb.cfg
+    if cfg.w_cov != 0.5 or cfg.w_score != 0.5 or cfg.score_ref != "sumP":
+        raise ValueError("统一计算档位仅支持覆盖/得分各 0.5、sumP 归一化；自定义权重请使用手动算法模式")
+    check_config(cfg)
+    profile = get_effort(effort)
+    spec = spec_for_effort(effort, seed=cfg.seed, workers=workers, full_problem=full_problem)
+    total_started = time.perf_counter()
+    last_progress = 0.0
+
+    def update(fraction, message):
+        nonlocal last_progress
+        last_progress = max(last_progress, min(1.0, max(0.0, fraction)))
+        if progress is not None:
+            progress(last_progress, message)
+
+    stages = []
+    if any(source in spec["sources"] for source in ("E", "G+")):
+        stages += ["ga_train", "e_construct"]
+        if "E" in spec["sources"]:
+            stages.append("e_local_search")
+        if "G+" in spec["sources"]:
+            stages += ["g_construct", "g_local_search"]
+    if "H+" in spec["sources"]:
+        stages.append("hplus")
+    stages.append("source_checks")
+    for rd in range(1, spec["fusion"]["rounds"] + 1):
+        stages += [f"fusion_{rd}_pool", f"fusion_{rd}_merge"]
+        if spec["fusion"]["local_search"]:
+            stages.append(f"fusion_{rd}_local_search")
+    stages += ["grid_summary", "finish", "final_summary"]
+    labels = {"ga_train": "训练候选评分权重", "e_construct": "构造 E 候选计划",
+              "e_local_search": "E 局部搜索", "g_construct": "G 分块求解与建模",
+              "g_local_search": "G 局部搜索", "hplus": "H+ 价格迭代与本地伐谋规则恢复",
+              "source_checks": "检查来源计划", "grid_summary": "汇总最佳网格计划",
+              "finish": "按秒精修", "final_summary": "汇总最终计划"}
+
+    def on_event(event):
+        stage = event.get("stage", "")
+        label = labels.get(stage, "融合计划")
+        if stage.startswith("fusion_"):
+            parts = stage.split("_", 2)
+            action = {"pool": "构建候选池", "merge": "分块融合", "local_search": "局部搜索"}
+            label = f"第 {parts[1]} 轮融合：{action.get(parts[2] if len(parts) > 2 else '', '汇总')}"
+        if stage in stages:
+            within = 1.0 if event.get("event") == "complete" else 0.0
+            if event.get("event") == "progress":
+                fraction = event.get("fraction", 0.0)
+                if isinstance(fraction, (float, int)) and np.isfinite(fraction):
+                    within = min(1.0, max(0.0, fraction))
+            value = 0.05 + 0.75 * (stages.index(stage) + within) / len(stages)
+        else:
+            value = last_progress
+        update(value, label + ("完成" if event.get("event") in ("complete", "round_complete") else "……"))
+
+    update(0.0, "准备公共几何；进度表示阶段推进，不代表剩余时间……")
+    if full_problem:
+        near_windows(pb)
+    preprocessing_s = time.perf_counter() - total_started
+    update(0.05, f"开始 {profile.title}……")
+    solver_started = time.perf_counter()
+    sch, info = portfolio.solve(pb, spec, progress=on_event)
+    solver_s = time.perf_counter() - solver_started
+    notes = {"effort_level": profile.key, "effort_label": profile.title, "label": profile.title,
+             "mode": profile.title, "full_problem": full_problem,
+             "actual_solver_config": info.get("actual_config", spec),
+             "stage_timings_s": info.get("stage_timings_s", {}),
+             "famou": info.get("famou", {"mode": "unspecified", "runtime_cloud_calls": None}),
+             "preprocessing_time_s": preprocessing_s, "solver_time_s": solver_s,
+             "timing_scope": "portfolio solve; common near-window preparation and validation recorded separately"}
+    for name in ("refine", "insert"):
+        if name in info.get("finish", {}):
+            notes[name] = info["finish"][name]
+    run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{profile.key}-{uuid4().hex[:8]}"
+    run = Run(run_id, "portfolio", json.loads(cfg.to_json()), {}, sch.station, sch.target,
+              sch.start_s, sch.dur_s, evaluate(cfg, pb.ds, sch), solver_s, notes=notes)
+    update(0.85, "使用 Skyfield 独立逐秒校验最终计划……")
+    validation_started = time.perf_counter()
+    try:
+        run = validate_run(pb, run)
+    except Exception as exc:
+        # Preserve the completed solver output for inspection when validation
+        # infrastructure fails; failure must never become a legal saved result.
+        run.validation = {"legal": False, "geometry_checked": False, "step_s": 1.0,
+                          "violations": {"独立校验未完成": 1}, "margins": [float("nan")] * 3,
+                          "error_type": type(exc).__name__}
+        run.notes["validation_error"] = str(exc)
+    run.notes["validation_time_s"] = time.perf_counter() - validation_started
+    run.notes["total_time_s"] = time.perf_counter() - total_started
+    run.notes["total_time_scope"] = "run_effort only: near-window preparation, solve and validation; excludes upstream Problem build"
+    update(1.0, "规划完成，独立校验通过" if run.validation["legal"] else "规划已保留，独立校验未通过")
+    return run
 
 
 # ------------------------------------------------------------------ 展示数据
@@ -327,9 +436,12 @@ def pass_profile(pb: Problem, run: Run, i: int, pad_s: int = 300) -> dict:
 
 def validate_run(pb: Problem, run: Run) -> Run:
     from .validator import validate
-    chk = validate(pb.cfg, pb.ds, run.schedule())
-    run.validation = {"legal": chk["legal"], "violations": chk["violations"],
-                      "margins": [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
+    chk = validate(pb.cfg, pb.ds, run.schedule(), step_s=1.0)
+    geometry_checked = chk.get("geometry_checked") is True
+    run.validation = {"legal": bool(chk["legal"] and geometry_checked), "violations": chk["violations"],
+                      "geometry_checked": geometry_checked, "step_s": 1.0,
+                      "margins": [float(chk[k]) if chk[k] is not None else float("nan") for k in
+                                  ("min_elev_margin", "max_elev_margin", "sun_margin")]}
     run.per_task = chk["per_task"].astype(np.float32)
     return run
 
@@ -360,7 +472,22 @@ def status_csv_bytes(rows: list[dict]) -> bytes:
 
 
 def summary_json(run: Run) -> bytes:
+    def public_value(value):
+        if isinstance(value, np.ndarray):
+            return public_value(value.tolist())
+        if isinstance(value, np.generic):
+            value = value.item()
+        if isinstance(value, (float, np.floating)):
+            number = float(value)
+            return number if np.isfinite(number) else None
+        if isinstance(value, dict):
+            return {key: public_value(item) for key, item in value.items()}
+        if isinstance(value, (list, tuple)):
+            return [public_value(item) for item in value]
+        return value
+
     d = {"run_id": run.run_id, "algo": ALGOS.get(run.algo, run.algo), "metrics": run.metrics,
          "runtime_s": run.runtime_s, "config": run.cfg, "subset": run.subset, "validation": run.validation,
          "notes": run.notes}
-    return json.dumps(d, ensure_ascii=False, indent=2, default=float).encode("utf-8")
+    return json.dumps(public_value(d), ensure_ascii=False, indent=2,
+                      default=float, allow_nan=False).encode("utf-8")
