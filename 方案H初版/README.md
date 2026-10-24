@@ -122,6 +122,8 @@ uv run python run_compare.py                              # A–H 全部方案�
 
 ## 产品界面
 
+六档也已整理为独立代码入口目录：[计算档位/](计算档位/README.md)，每档含 `run.py` 与说明，共用底层求解和校验代码。下一轮优化可从 [交接文档](docs/下一阶段优化交接.md) 开始。
+
 ```bash
 uv sync --frozen --extra app
 uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8501
