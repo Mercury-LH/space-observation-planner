@@ -1,0 +1,29 @@
+{
+  "before": {
+    "source": "AC",
+    "low_power_mode": 1
+  },
+  "before_utc": "2026-10-24T06:15:50.261342+00:00",
+  "user_authorized": true,
+  "normal": {
+    "source": "AC",
+    "low_power_mode": 0
+  },
+  "normal_utc": "2026-10-24T06:16:17.531234+00:00",
+  "change_method": "System Settings low power menu: Never",
+  "before_settings": {
+    "AC": 1,
+    "Battery": 0
+  },
+  "restored_settings": {
+    "AC": 1,
+    "Battery": 0
+  },
+  "restored_active_profile": {
+    "source": "Battery",
+    "low_power_mode": 0
+  },
+  "restored_utc": "2026-10-24T06:28:20.825278+00:00",
+  "restored": true,
+  "restore_method": "System Settings low power menu: Only on Power Adapter"
+}

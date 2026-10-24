@@ -1,0 +1,240 @@
+{
+  "schema_version": 1,
+  "suite_id": "7d92f7a9acca4753a5348f61c0943843",
+  "run_id": "002-hplus_10_fast-r1",
+  "preset": "hplus_10_fast",
+  "repeat": 0,
+  "seed": 2028,
+  "workers": 8,
+  "fresh_solve": true,
+  "rankable": true,
+  "status": "valid",
+  "timing_s": {
+    "preprocessing": 0.8086578749935143,
+    "solver": 45.200422875001095,
+    "validation": 72.88461508299224,
+    "total": 119.16003379196627
+  },
+  "power_profile_checks": {
+    "start": {
+      "source": "Battery",
+      "low_power_mode": 0
+    },
+    "after_solver": {
+      "source": "Battery",
+      "low_power_mode": 0
+    },
+    "after_validation": {
+      "source": "Battery",
+      "low_power_mode": 0
+    }
+  },
+  "environment_changed": false,
+  "provenance": {
+    "revision": "2e419040557a61d6e0f7b0777322208f5b3ea3f2",
+    "source_hash": "2431d9a2bbbf1cb29edead3eeb794c85d4465680e9de5587b14acf61c755ec8a",
+    "source_files": {
+      "obsplan/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "obsplan/__main__.py": "95a16436a442378dc57ec4240c86ec1f8eea0b8a73c3f08e77851b6fafbac416",
+      "obsplan/app_backend.py": "54ac7a1b08c7e229bf40d4a935a9e55d54aabd245e1107e0548e82f7b224447c",
+      "obsplan/benchmark.py": "d7eb0269fc202ea81af099c109a4613300c03b884e8c51a1f16a9ab7369205b8",
+      "obsplan/benchmark_worker.py": "2baf2009f2d68bfd58ee9b1e46d66ff1b3226fb4e2d5a536f397dd1fa7531daa",
+      "obsplan/bounds.py": "76e64ce6ff385e291176d86fd2b270e1fc3926abf898d3c95508c9701c166c40",
+      "obsplan/checks.py": "8c5a13635b7ffb8aefc25837b34a23e48913fbfaeecaa8503df28bb67a60d820",
+      "obsplan/config.py": "c8b116b06f7ddd6bd61ed3ed68d117f85ccf2d4e2c15c52f3475471af77e3d20",
+      "obsplan/cpsat.py": "ae7bf98b954c672d8f3c2738e1a270af05a2db3cdd9d44fa598ce9f80706dc44",
+      "obsplan/data.py": "713ecb10bb1fa7facdaae6e4c1dbabf21f1752f46a822a426fd021642e856f21",
+      "obsplan/dynamic.py": "89f81dcab895d03125574cb563860ed5c372edcff9c18578546aa6268f8bcc34",
+      "obsplan/environment.py": "8870d7f098be2465944bf2cf5edaab5069d730569fadaa2c8d83ec1fdf33247a",
+      "obsplan/evolved/__init__.py": "8355e13655a0c9b9262b22af2b9b364cb5a3a1213e4f06c53dd33a2e4bc2d969",
+      "obsplan/evolved/recover_rule.py": "3b7fae52fa32d979b0854838a511128288b369ca5536eee50a23b085df3eda16",
+      "obsplan/famou_eval.py": "5eb5a942482f666b0f31e4e677dd1f6e2579d9e6a5305913bc1fef6fdbeb692e",
+      "obsplan/famou_h_eval.py": "5302daa1a35862918a398fea50671f05b74a5d4951e216eff03cf3d1959508db",
+      "obsplan/fusion_merge.py": "0293a6be61b772444a2403b06f928c17ad8bd31aa618178d196b4a3fe2005947",
+      "obsplan/fusion_pricecp.py": "4df261d18fbfc00e0776cc93af7168944efd1e50a6a40d30d952d04457b65680",
+      "obsplan/ga.py": "1c0fa70745f781e57fea25a931a478b0356e6ea63aac7d56c8a8f3c0f06eba95",
+      "obsplan/greedy.py": "f491de45acc2c5dc15823b27011bf23ed6281e9894f5b0f1382afaed69ca9d1f",
+      "obsplan/lagrange.py": "928a872aae955845ae93451a4f2a0e7dcdb9e88c15d25c7e338683db28180ab2",
+      "obsplan/lns.py": "bd5ebe72cf874b1f4631d0d5496370d0d986085168fc52546e7c6d0c0628872f",
+      "obsplan/local_search.py": "f131ac66cd9634c6865e932cb7cb85841ac33b60d24f5b95e88c06d55d4dff13",
+      "obsplan/portfolio.py": "fd4bdf3e4b8e5293d1fe79d07922a6b7acdcff4d15c8986b9203110782aea60e",
+      "obsplan/problem.py": "ba8f5e53ac66a734f98abf51c863b6b49512dd70aea0180eae08776bbf1ab07d",
+      "obsplan/refine.py": "ac5830c453eac3e23f8079d81bad7f7ae095a032aa0c563d686af3ab7e74e43b",
+      "obsplan/schedule.py": "711956231923dbef5fc4fb3ed42fe72cea8755da222afcd9d6c0317abaee1534",
+      "obsplan/target_status.py": "029baaf74a70ba7605e732ddbf9b60326a6add8f2edaa225608a6f5575f2db7b",
+      "obsplan/validator.py": "4e96976bc6eaa5973cb6862bfd9c9f2f0f7235cf7d082998198d9564539431f0",
+      "obsplan/visibility.py": "462e17066967735dbcd509870d08ecbddef3234ef54c3439fe1783f94ae7e08a",
+      "integrations/famou/evaluator.py": "7a038893970ce100bcf41cb872a3ff11ecfcac897eb83de6775da2e964483990",
+      "integrations/famou/init.py": "10da2e8db7a60bdd38b153baea0136becec518be23ecfdbc03c08cbc6afed331",
+      "integrations/famou_h/evaluator.py": "f037a6b3baa028f273b4419302cf9b9e54edc4695242c378b78ba6263cb66c19",
+      "integrations/famou_h/init.py": "2baa879675feef11f2abba63b25a43746b284a4d5d8843106744f99d25b53d7e",
+      "integrations/famou_h2/evaluator.py": "b7d921fc5ecd16c3b6f970e295b3e7ab260c1fe3cbfff4912706a340943902c2",
+      "integrations/famou_h2/init.py": "2baa879675feef11f2abba63b25a43746b284a4d5d8843106744f99d25b53d7e",
+      "integrations/famou_h3/evaluator.py": "26f6c86e42b9d90d3d4fe3f47dd76ca0a647424cb95ba7ba6da0c6b321e8258f",
+      "integrations/famou_h3/init.py": "2baa879675feef11f2abba63b25a43746b284a4d5d8843106744f99d25b53d7e"
+    },
+    "plugin_source_hash": null,
+    "input_hash": "859f10bbc62c1814a4817c0ecea40ed05f9d1211545a4a9df8516c53b8a21dce",
+    "config_hash": "f67f1c44290b8eb7cfaf25ca57fb331115a111f55dc4412abe414e59d285b7ea",
+    "environment": {
+      "python": "3.12.13",
+      "system": "Darwin",
+      "release": "27.0.0",
+      "machine": "arm64",
+      "processor": "Apple M5",
+      "memory_bytes": 17179869184,
+      "logical_cpus": 10,
+      "dependencies": {
+        "numpy": "2.5.4",
+        "sgp4": "2.27",
+        "numba": "0.68.0",
+        "ortools": "9.15.6755",
+        "skyfield": "1.55"
+      },
+      "power_profile": {
+        "source": "Battery",
+        "low_power_mode": 0
+      }
+    }
+  },
+  "config": {
+    "start_utc": "2026-08-01T00:00:00",
+    "days": 6.0,
+    "cell_s": 30,
+    "elev_min": 10.0,
+    "elev_max": 85.0,
+    "use_sun": true,
+    "sun_max": -6.0,
+    "use_sunlit": true,
+    "elev_margin": 0.02,
+    "sun_margin": 0.05,
+    "sunlit_margin_km": 10.0,
+    "moon_sep_deg": 0.0,
+    "moon_margin_deg": 0.5,
+    "obs_min_s": 120,
+    "obs_max_s": 240,
+    "switch_s": 30,
+    "repeat_gap_h": 48.0,
+    "priority_score": {
+      "高": 5.0,
+      "中": 3.0,
+      "低": 2.0
+    },
+    "w_cov": 0.5,
+    "w_score": 0.5,
+    "score_ref": "sumP",
+    "seed": 2028
+  },
+  "entrypoint": "obsplan.portfolio:solve",
+  "solver_spec": {
+    "preset": "hplus_fast",
+    "h_iters": 10,
+    "seed": 2028,
+    "workers": 8
+  },
+  "solver_spec_hash": "52d44ff441a0574545a49d76c2dc09e749ab7235b71a2788410aaa941b22f460",
+  "cache": {
+    "windows": "warm",
+    "near_windows": "warm",
+    "namespace": "02e3e3e41cb1b7b06b30dde60f0e24f0b2ed31fabbe42230d81584cf4e5d2997",
+    "numba_disk_cache_present": true,
+    "in_process_warmup": false,
+    "jit_cost_included_in_solver": true
+  },
+  "input_summary": {
+    "targets": 10000,
+    "stations": 10,
+    "issues_count": 0,
+    "sgp4_failed_targets": 1
+  },
+  "comparison_key": "1c6504013ad007d38fcaa852858a8106cca36d098205862060c20b8e426e85f7",
+  "stage_timings_s": {
+    "hplus": 42.552011082996614,
+    "source_checks": 0.10090150003088638,
+    "grid_summary": 0.010581750015262514,
+    "finish": 2.5246841249754652,
+    "final_summary": 0.007512958021834493
+  },
+  "famou": {
+    "mode": "local_adopted_rule",
+    "runtime_cloud_calls": 0,
+    "invoked": false
+  },
+  "actual_solver_config": {
+    "preset": "hplus_fast",
+    "sources": [
+      "H+"
+    ],
+    "h_iters": 10,
+    "h_fast": true,
+    "workers": 8,
+    "seed": 2028,
+    "fusion_seed": 2028,
+    "ga": {
+      "n_scen": 3,
+      "pop": 16,
+      "gens": 12
+    },
+    "g": {
+      "block_h": 4.0,
+      "commit_h": 3.0,
+      "time_limit_s": 10.0,
+      "k_win": 1,
+      "k_dur": 1
+    },
+    "fusion": {
+      "rounds": 0,
+      "durations": [
+        4,
+        5,
+        6,
+        7,
+        8
+      ],
+      "shifts": [
+        -1,
+        1
+      ],
+      "block_h": 24.0,
+      "step_h": 12.0,
+      "time_limit_s": 30.0,
+      "budget_s": 300.0,
+      "passes": 1,
+      "local_search": true
+    },
+    "early_stop": {
+      "patience": 0,
+      "min_gain": 0.0,
+      "min_gain_per_s": 0.0
+    },
+    "finish_near": true
+  },
+  "source_metrics": {
+    "H+": {
+      "covered": 9933,
+      "score": 27609.699999999997,
+      "combined": 0.9558626272370434,
+      "tasks": 11954
+    }
+  },
+  "stop_reason": "no_fusion_requested",
+  "plan_sha256": "525eb8cb976eb6e347989c06cdbd9d27401c92decf62e22f4e33da3c504eb17b",
+  "validation": {
+    "legal": true,
+    "violations": {},
+    "geometry_checked": true,
+    "min_elev_margin": 0.01968274885102872,
+    "max_elev_margin": 0.01963164529796302,
+    "sun_margin": 0.05053116228865662,
+    "step_s": 1.0
+  },
+  "metrics": {
+    "tasks": 11954,
+    "covered": 9933,
+    "coverage_rate": 0.9933,
+    "score": 28090.586666666662,
+    "combined": 0.9638608753021533,
+    "repeat_tasks": 2021,
+    "mean_dur_s": 147.1975071105906
+  }
+}

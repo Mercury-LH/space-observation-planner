@@ -1,0 +1,64 @@
+{
+  "selection_rule": "Include every run whose recorded power checkpoints are all Battery/low_power_mode=0, regardless of score or timing. Assert that every included run is valid, rankable and has no worker_exit. This is an explicit environment cohort, not the whole interrupted v5 suite.",
+  "mixed_suite_report_refused": "normal-power-v5: Refusing to compare different inputs/configs/code/environments",
+  "included": [
+    {
+      "suite_id": "200d3225f6c24dcf9613160cf4da1d17",
+      "run_id": "003-hplus_10_fast-r2"
+    },
+    {
+      "suite_id": "200d3225f6c24dcf9613160cf4da1d17",
+      "run_id": "004-hplus_1_fast-r2"
+    },
+    {
+      "suite_id": "7d92f7a9acca4753a5348f61c0943843",
+      "run_id": "001-hplus_1_fast-r1"
+    },
+    {
+      "suite_id": "7d92f7a9acca4753a5348f61c0943843",
+      "run_id": "002-hplus_10_fast-r1"
+    }
+  ],
+  "other_runs_preserved": [
+    {
+      "suite_id": "200d3225f6c24dcf9613160cf4da1d17",
+      "run_id": "001-hplus_1_fast-r1",
+      "status": "valid",
+      "power_profile_checks": {
+        "start": {
+          "source": "AC",
+          "low_power_mode": 0
+        },
+        "after_solver": {
+          "source": "AC",
+          "low_power_mode": 0
+        },
+        "after_validation": {
+          "source": "AC",
+          "low_power_mode": 0
+        }
+      },
+      "geometry_legal": true
+    },
+    {
+      "suite_id": "200d3225f6c24dcf9613160cf4da1d17",
+      "run_id": "002-hplus_10_fast-r1",
+      "status": "environment_changed",
+      "power_profile_checks": {
+        "start": {
+          "source": "AC",
+          "low_power_mode": 0
+        },
+        "after_solver": {
+          "source": "AC",
+          "low_power_mode": 0
+        },
+        "after_validation": {
+          "source": "Battery",
+          "low_power_mode": 0
+        }
+      },
+      "geometry_legal": true
+    }
+  ]
+}

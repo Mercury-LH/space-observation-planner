@@ -23,6 +23,7 @@ def main():
     parser.add_argument("summary", type=Path)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--recommended", help="Highlight a measured method; does not alter ranking")
+    parser.add_argument("--subtitle", default="", help="State the verified measurement conditions on the figure")
     args = parser.parse_args()
     report = json.loads(args.summary.read_text(encoding="utf-8"))
     rows = [r for r in report["methods"] if r["rankable"]]
@@ -49,10 +50,12 @@ def main():
         labels.append(label)
         left.scatter(row["solver_s_median"], row["quality_median"], s=65,
                      color=color, edgecolor="white", zorder=3)
-        if name in (args.recommended, "fusion_baseline", "hplus_300_full", "manual_greedy_refined"):
+        if name in (args.recommended, "fusion_baseline", "hplus_10_fast", "hplus_300_full", "manual_greedy_refined"):
+            baseline = name == "fusion_baseline"
             left.annotate(label, (row["solver_s_median"], row["quality_median"]),
-                          xytext=(6, -17 if name == "hplus_300_full" else 7),
-                          textcoords="offset points", fontsize=8)
+                          xytext=(-6 if baseline else 6, -17 if name == "hplus_300_full" else 7),
+                          textcoords="offset points", fontsize=8,
+                          ha="right" if baseline else "left")
     left.set_xscale("log")
     left.xaxis.set_major_formatter(ScalarFormatter())
     left.set_xlabel("Complete solver wall time (seconds, logarithmic scale)")
@@ -71,7 +74,10 @@ def main():
     right.set_title(f"Time weight = {report['default_weight']:.4f}; scale = {report['time_scale_s']:g}s")
     right.grid(axis="x", alpha=0.15)
     right.set_axisbelow(True)
-    fig.suptitle("Measured quality and runtime trade-off", fontsize=15, fontweight="bold")
+    title = "Measured quality and runtime trade-off"
+    if args.subtitle:
+        title += "\n" + args.subtitle
+    fig.suptitle(title, fontsize=13, fontweight="bold")
     fig.tight_layout(pad=2)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(args.output, dpi=170, facecolor=fig.get_facecolor(), bbox_inches="tight")

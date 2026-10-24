@@ -1,0 +1,31 @@
+{
+  "run_id": "001-fusion_baseline-r1",
+  "plan_sha256": "912ab1be24031278d203b06ad211e34ed6dadf03c453d92b5c19d66648979122",
+  "iterations_completed": 300,
+  "fusion_rounds": [
+    {
+      "round": 1,
+      "pool_size": 383439,
+      "before_combined": 0.9656254207970195,
+      "gain": 0.006275673607876953,
+      "duration_s": 199.26290362502914,
+      "gain_per_s": 3.149444022800375e-05
+    },
+    {
+      "round": 2,
+      "pool_size": 406613,
+      "before_combined": 0.9719010944048965,
+      "gain": 0.001117690107112046,
+      "duration_s": 251.775033916987,
+      "gain_per_s": 4.439241213569097e-06
+    },
+    {
+      "round": 3,
+      "pool_size": 411723,
+      "before_combined": 0.9730187845120085,
+      "gain": 0.0005223571286008255,
+      "duration_s": 284.17709383397596,
+      "gain_per_s": 1.838139455764865e-06
+    }
+  ]
+}

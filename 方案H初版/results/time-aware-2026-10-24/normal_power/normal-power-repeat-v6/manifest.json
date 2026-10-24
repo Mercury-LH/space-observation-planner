@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "suite_id": "7d92f7a9acca4753a5348f61c0943843",
+  "presets": [
+    "hplus_1_fast",
+    "hplus_10_fast"
+  ],
+  "repeats": 1,
+  "workers": 8,
+  "timeout_s": 1200,
+  "time_weight": 0.42857142857142855,
+  "time_scale_s": 120.0,
+  "weights": [
+    0,
+    0.1,
+    0.2,
+    0.4,
+    0.42857142857142855
+  ],
+  "validation_enabled": true,
+  "config": {
+    "start_utc": "2026-08-01T00:00:00",
+    "days": 6.0,
+    "cell_s": 30,
+    "elev_min": 10.0,
+    "elev_max": 85.0,
+    "use_sun": true,
+    "sun_max": -6.0,
+    "use_sunlit": true,
+    "elev_margin": 0.02,
+    "sun_margin": 0.05,
+    "sunlit_margin_km": 10.0,
+    "moon_sep_deg": 0.0,
+    "moon_margin_deg": 0.5,
+    "obs_min_s": 120,
+    "obs_max_s": 240,
+    "switch_s": 30,
+    "repeat_gap_h": 48.0,
+    "priority_score": {
+      "高": 5.0,
+      "中": 3.0,
+      "低": 2.0
+    },
+    "w_cov": 0.5,
+    "w_score": 0.5,
+    "score_ref": "sumP",
+    "seed": 2028
+  },
+  "runs": [
+    {
+      "run_id": "001-hplus_1_fast-r1",
+      "preset": "hplus_1_fast",
+      "repeat": 0
+    },
+    {
+      "run_id": "002-hplus_10_fast-r1",
+      "preset": "hplus_10_fast",
+      "repeat": 0
+    }
+  ]
+}

@@ -23,6 +23,8 @@
 
 ## 运行
 
+**最新时间加权选型**：见 [2026-10-24 实测报告](results/time-aware-2026-10-24/README.md)。快速复现使用 `uv run python -m obsplan.benchmark run --suite benchmarks/recommended.json --output outputs/benchmarks/recommended`；质量优先的 H+ 配置为 `benchmarks/quality-hplus.json`。完整基准、轻量候选、独立校验与不同功耗的结果均分别保留。
+
 **团队统一评测入口**：`uv run python -m obsplan.benchmark run --suite benchmarks/default.json --output outputs/benchmarks/full`。它从头生成各来源计划，分别记录预处理、完整求解和独立校验耗时，按可配置时间权重汇总合法结果；接口、计分边界、插件接入及队友 AI 约定见 [自动评测与协作](docs/自动评测与协作.md) 和 [AGENTS.md](AGENTS.md)。历史结果表中的 M1 Pro 耗时不直接参与新机器的排名。
 
 ```bash
