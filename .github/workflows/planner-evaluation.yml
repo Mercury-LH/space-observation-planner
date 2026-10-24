@@ -19,7 +19,8 @@ permissions:
 jobs:
   contract:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    # all: five workers, each capped at 60 min, plus setup/reporting allowance.
+    timeout-minutes: 320
     defaults:
       run:
         working-directory: 方案H初版
@@ -38,7 +39,7 @@ jobs:
           python -m pip install uv==0.12.1
           uv sync --frozen
       - name: Check solver, benchmark, validation and UTC contracts
-        run: uv run python -m pytest -q tests/test_portfolio.py tests/test_benchmark.py tests/test_validator_contract.py tests/test_config_time.py
+        run: uv run python -m pytest -q tests/test_portfolio.py tests/test_benchmark.py tests/test_benchmark_baselines.py tests/test_validator_contract.py tests/test_config_time.py
       - name: Manual full-data benchmark
         if: github.event_name == 'workflow_dispatch' && inputs.benchmark != 'none'
         env:

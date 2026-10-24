@@ -4,9 +4,9 @@
   "repeats": 1,
   "workers": 8,
   "timeout_s": 2400,
-  "time_weight": 0.2,
+  "time_weight": 0.42857142857142855,
   "time_scale_s": 120.0,
-  "weights": [0.0, 0.1, 0.2, 0.4],
+  "weights": [0.0, 0.1, 0.2, 0.4, 0.42857142857142855],
   "config": {
     "start_utc": "2026-08-01T00:00:00",
     "days": 6.0,
