@@ -16,6 +16,9 @@ from .greedy import State, _find_start
 from .problem import Problem
 
 RESERVED = -2
+NO_TASK = -9          # 不会出现在 t_task 里的编号：传给 _sep_ok_excl 表示不排除任何已有观测
+# 站点占用 owner 中小于 -1 的格是封锁的（-2 预留、-3 已过去/停机/固定任务），任何任务都不能占用；
+# t_task 为 -1 的观测记录是固定的（动态重规划里已执行或原样保留的观测），只参与次数与 48 小时间隔判定。
 
 
 @njit(cache=True)
@@ -110,17 +113,23 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
                 continue
             step = 1 if L < max_pos else (L + max_pos - 1) // max_pos
             for au in range(k0, k1 - m_min + 1, step):
-                if t_cnt[u] > 0 and not _sep_ok_excl(u, -1, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
+                if t_cnt[u] > 0 and not _sep_ok_excl(u, NO_TASK, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
                     continue
                 b1, b2, nb = -1, -1, 0
+                blocked = False
                 for c in range(au, au + m_min + 1):
                     o = owner[s, c]
+                    if o < -1:
+                        blocked = True
+                        break
                     if o >= 0 and o != b1 and o != b2:
                         if nb == 0:
                             b1 = o
                         elif nb == 1:
                             b2 = o
                         nb += 1
+                if blocked:
+                    continue
                 if nb == 0:
                     if gain_base > best_gain:
                         best_gain = gain_base
@@ -217,7 +226,7 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
         for c in range(au, au + m_min + 1):
             if owner[s, c] != -1:
                 clear = False
-        if not clear or not _sep_ok_excl(u, -1, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
+        if not clear or not _sep_ok_excl(u, NO_TASK, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
             continue
         st[n], tg[n], a[n], m[n], w[n] = s, u, au, m_min, wu
         alive[n] = True
@@ -265,7 +274,8 @@ def extend_all(order, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m,
 
 @njit(cache=True)
 def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_obs_m, t_task, w_k0, w_k1, gap):
-    """同站任务按时间顺序整体左移（direction=-1）或右移（+1），把碎片空隙并到一起。返回移动的任务数。"""
+    """同站任务按时间顺序整体左移（direction=-1）或右移（+1），把碎片空隙并到一起。返回移动的任务数。
+    移动时不越过封锁的格（动态重规划中已过去、停机或固定任务占用的时段）。"""
     moved = 0
     T = owner.shape[1]
     last_s, bound = -1, 0
@@ -277,7 +287,10 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
             last_s = s
             bound = 0 if direction < 0 else T - 1
         if direction < 0:
-            target = max(w_k0[w[k]], bound)
+            lo = max(w_k0[w[k]], bound)
+            target = a[k]
+            while target - 1 >= lo and owner[s, target - 1] == -1:
+                target -= 1
             if target < a[k] and _sep_ok_excl(tg[k], k, target, m[k], t_cnt, t_obs_a, t_obs_m, t_task, gap):
                 for c in range(a[k], a[k] + m[k] + 1):
                     owner[s, c] = -1
@@ -288,7 +301,10 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
                 moved += 1
             bound = a[k] + m[k] + 1
         else:
-            target = min(w_k1[w[k]] - m[k], bound - m[k])
+            hi = min(w_k1[w[k]] - m[k], bound - m[k])
+            target = a[k]
+            while target + 1 <= hi and owner[s, target + m[k] + 1] == -1:
+                target += 1
             if target > a[k] and _sep_ok_excl(tg[k], k, target, m[k], t_cnt, t_obs_a, t_obs_m, t_task, gap):
                 for c in range(a[k], a[k] + m[k] + 1):
                     owner[s, c] = -1

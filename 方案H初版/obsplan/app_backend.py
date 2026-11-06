@@ -72,6 +72,21 @@ def list_runs(folder: Path) -> list[Path]:
     return sorted(folder.glob("*.npz"), key=lambda p: p.stat().st_mtime, reverse=True)
 
 
+def load_problem(cfg: Config) -> tuple[Dataset, Problem, dict]:
+    """读数据、算（或读缓存的）可见窗口、建问题实例，并记下各步用时（界面"演示"页用）。"""
+    from .data import load
+    from .visibility import get_windows
+    t0 = time.time()
+    ds = load(cfg)
+    t1 = time.time()
+    cached = (Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz").exists()
+    win = get_windows(cfg, ds)
+    t2 = time.time()
+    pb = Problem.build(cfg, ds, win)
+    t3 = time.time()
+    return ds, pb, {"load_s": t1 - t0, "windows_s": t2 - t1, "windows_cached": cached, "build_s": t3 - t2}
+
+
 def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: int = 0) -> Problem:
     """演示模式：只保留部分目标和指定站点。"""
     rng = np.random.default_rng(seed)
@@ -327,11 +342,76 @@ def pass_profile(pb: Problem, run: Run, i: int, pad_s: int = 300) -> dict:
 
 def validate_run(pb: Problem, run: Run) -> Run:
     from .validator import validate
+    t0 = time.time()
     chk = validate(pb.cfg, pb.ds, run.schedule())
     run.validation = {"legal": chk["legal"], "violations": chk["violations"],
-                      "margins": [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
+                      "margins": [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]],
+                      "seconds": round(time.time() - t0, 1)}
     run.per_task = chk["per_task"].astype(np.float32)
     return run
+
+
+def near_for(pb: Problem, run: Run) -> dict | None:
+    """全量运行里"按秒补覆盖"插入的目标在网格上没有窗口，结构检查要对照它们的真实可见区间。"""
+    if run.subset or not run.notes.get("insert", {}).get("added"):
+        return None
+    from .refine import near_windows
+    return near_windows(pb)
+
+
+def structural_check(pb: Problem, run: Run) -> dict[str, int]:
+    """快速结构检查（obsplan/checks.py，按秒精修后的口径）：各类违规的任务数，空字典表示全部合法。"""
+    from .checks import structural_violations
+    bad = structural_violations(pb, run.schedule(), by_second=True, extra_windows=near_for(pb, run))
+    return {k: len(v) for k, v in bad.items()}
+
+
+# ------------------------------------------------------------------ 突发事件重规划（obsplan/replan.py）
+def replan_run(pb: Problem, run: Run, event, mode: str = "minimal", fast: bool = True, progress=None) -> dict:
+    """在当前结果上处理突发事件：冻结事件时刻前已执行的任务，用价格协调重排之后的时段。"""
+    from .replan import replan
+    return replan(pb, run.schedule(), event, mode=mode, iters=150 if fast else 300, fast=fast,
+                  extra_windows=near_for(pb, run), progress=progress)
+
+
+def replan_changed(res: dict) -> np.ndarray:
+    """新计划里与原计划不完全相同的任务（移动、新增，以及跟着按秒微调过的保留任务）。"""
+    st = res["new_status"]
+    return np.nonzero(((st == "移动") | (st == "新增") | ((st == "保留") & ~res["pinned"])))[0]
+
+
+def validate_replan(pb: Problem, res: dict, include_kept: bool = False) -> dict:
+    """Skyfield 逐秒校验重排后的计划：默认只校验改动过的任务（其余任务与原计划完全相同），也可校验事件后的全部任务。"""
+    from .validator import validate
+    sch = res["schedule"]
+    idx = np.nonzero(res["new_status"] != "冻结")[0] if include_kept else replan_changed(res)
+    part = Schedule(sch.station[idx], sch.target[idx], sch.start_s[idx], sch.dur_s[idx])
+    t0 = time.time()
+    chk = validate(pb.cfg, res["ds"], part) if len(idx) else {"legal": True, "violations": {}}
+    return {"legal": chk["legal"], "violations": chk["violations"], "tasks": int(len(idx)),
+            "scope": "事件后的全部任务" if include_kept else "改动过的任务", "seconds": round(time.time() - t0, 1)}
+
+
+def schedule_csv_bytes(cfg: Config, ds: Dataset, sch: Schedule, name: str) -> bytes:
+    tmp = Path(cfg.cache_dir) / f"_export_{name}.csv"
+    export_csv(cfg, ds, sch, tmp)
+    data = tmp.read_bytes()
+    tmp.unlink(missing_ok=True)
+    return data
+
+
+def save_replan(run: Run, res: dict, folder: Path) -> Run:
+    """把重排后的计划另存为一份结果，其他页签（甘特图、目标状态、校验、导出）都能直接查看。"""
+    sch = res["schedule"]
+    refined = bool(res["refine"].get("refined") or run.notes.get("refine", {}).get("refined"))
+    notes = {k: run.notes[k] for k in ("mode", "famou_rule") if k in run.notes}
+    notes.update({"label": f"重排：{res['describe']}", "refine": {"refined": refined},
+                  "replan": {"from": run.run_id, "mode": res["mode"], "event": res["describe"], "diff": res["diff"]}})
+    new = Run(time.strftime("%Y%m%d-%H%M%S") + f"-{run.algo}R", run.algo, dict(run.cfg), dict(run.subset),
+              sch.station.astype(np.int64), sch.target.astype(np.int64), sch.start_s.astype(np.int64),
+              sch.dur_s.astype(np.int64), res["after"], float(res["seconds"]), notes=notes)
+    new.save(folder)
+    return new
 
 
 def csv_bytes(pb: Problem, run: Run) -> bytes:
