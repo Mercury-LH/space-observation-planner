@@ -207,7 +207,18 @@ def cmd_windows(args) -> int:
     return 0
 
 
+def _utf8_output() -> None:
+    """Windows 上输出被重定向到文件或管道时用本地编码（英文系统是 cp1252），印中文会报错，改用 UTF-8。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            "中文".encode(stream.encoding)
+        except (AttributeError, LookupError, TypeError, UnicodeEncodeError):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8")
+
+
 def main(argv=None) -> int:
+    _utf8_output()
     ap = argparse.ArgumentParser(prog="obsplan", description="空间目标观测规划（方案 H）")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("plan", "validate", "windows", "status"):
