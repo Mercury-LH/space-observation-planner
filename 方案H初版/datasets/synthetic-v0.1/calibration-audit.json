@@ -1,0 +1,168 @@
+{
+  "passed": true,
+  "pilot": true,
+  "checksums": {
+    "verified_files": 59,
+    "verified_bytes": 1686958,
+    "manifest_sha256": "d3dd5f49a8a5cd3fe556a69fcde2c11af5878920baebfd9f5c579db4cdac8e2d",
+    "events_sha256": "ae4f5043b21ef83d66066ac68841bf1d09658d4f84fb8ccd4fa72aa0c8718fa5",
+    "manifest_exclusions": [
+      "manifest.json",
+      "events.jsonl",
+      ".cache/**"
+    ]
+  },
+  "counts": {
+    "catalogs": 1,
+    "scenes": 4,
+    "unique_synthetic_targets": 200,
+    "target_instances": 800,
+    "candidate_rows": 43838,
+    "grid_tasks": 2175,
+    "final_tasks": 2175,
+    "repaired_tasks": 0
+  },
+  "quality": {
+    "covered": {
+      "min": 198.0,
+      "median": 198.0,
+      "max": 198.0
+    },
+    "coverage_rate": {
+      "min": 0.99,
+      "median": 0.99,
+      "max": 0.99
+    },
+    "score": {
+      "min": 1481.2466666666667,
+      "median": 1602.5183333333334,
+      "max": 2062.5333333333333
+    },
+    "combined": {
+      "min": 1.830837651122625,
+      "median": 1.847964130978128,
+      "max": 1.8570574712643677
+    }
+  },
+  "groups": {
+    "split": {
+      "train": {
+        "scenes": 4,
+        "catalogs": 1,
+        "target_instances": 800,
+        "candidate_rows": 43838,
+        "grid_tasks": 2175,
+        "final_tasks": 2175,
+        "quality": {
+          "covered": {
+            "min": 198.0,
+            "median": 198.0,
+            "max": 198.0
+          },
+          "coverage_rate": {
+            "min": 0.99,
+            "median": 0.99,
+            "max": 0.99
+          },
+          "score": {
+            "min": 1481.2466666666667,
+            "median": 1602.5183333333334,
+            "max": 2062.5333333333333
+          },
+          "combined": {
+            "min": 1.830837651122625,
+            "median": 1.847964130978128,
+            "max": 1.8570574712643677
+          }
+        }
+      }
+    },
+    "n_targets": {
+      "200": {
+        "scenes": 4,
+        "catalogs": 1,
+        "target_instances": 800,
+        "candidate_rows": 43838,
+        "grid_tasks": 2175,
+        "final_tasks": 2175,
+        "quality": {
+          "covered": {
+            "min": 198.0,
+            "median": 198.0,
+            "max": 198.0
+          },
+          "coverage_rate": {
+            "min": 0.99,
+            "median": 0.99,
+            "max": 0.99
+          },
+          "score": {
+            "min": 1481.2466666666667,
+            "median": 1602.5183333333334,
+            "max": 2062.5333333333333
+          },
+          "combined": {
+            "min": 1.830837651122625,
+            "median": 1.847964130978128,
+            "max": 1.8570574712643677
+          }
+        }
+      }
+    },
+    "distribution": {
+      "nominal": {
+        "scenes": 4,
+        "catalogs": 1,
+        "target_instances": 800,
+        "candidate_rows": 43838,
+        "grid_tasks": 2175,
+        "final_tasks": 2175,
+        "quality": {
+          "covered": {
+            "min": 198.0,
+            "median": 198.0,
+            "max": 198.0
+          },
+          "coverage_rate": {
+            "min": 0.99,
+            "median": 0.99,
+            "max": 0.99
+          },
+          "score": {
+            "min": 1481.2466666666667,
+            "median": 1602.5183333333334,
+            "max": 2062.5333333333333
+          },
+          "combined": {
+            "min": 1.830837651122625,
+            "median": 1.847964130978128,
+            "max": 1.8570574712643677
+          }
+        }
+      }
+    }
+  },
+  "timings": {
+    "catalog_geometry_wall_s": 1.6096816249992116,
+    "teacher_wall_s": 1.0142136650028988,
+    "validation_wall_s": 23.40020808400004,
+    "scene_wall_s": 24.534106540999346,
+    "elapsed_first_start_to_last_complete_s": 26.158057,
+    "interpretation": "data production records; elapsed time includes interruptions; not a solver speed comparison"
+  },
+  "events": {
+    "counts": {
+      "build_start": 1,
+      "catalog_complete": 1,
+      "scene_complete": 4,
+      "build_complete": 1
+    },
+    "failures": 0,
+    "timeouts": 0,
+    "scenes_with_repairs": 0,
+    "repaired_tasks": 0
+  },
+  "evidence_scope": "saved one-second grid/final validation evidence checked; Skyfield was not rerun",
+  "orbital_identity": "SGP4 mean elements, epoch and drag; excludes satnum/name/designator",
+  "split_isolation": "catalog IDs and orbital-parameter hashes checked; variants remain in one split"
+}
