@@ -1,16 +1,64 @@
 # synthetic-v0.2：600 个独立观测调度场景
 
-本版本扩展目标规模、站点网络、轨道分布、月份和优先级比例。固定规格为600个独立目录、每目录一个六天场景，train/validation/test=420/90/90。540个主体场景采用有物理边界的截断正态控制量，60个压力场景单独统计；不是将整个轨道目录或全部特征强行拟合成单一正态分布。
+面向地面光学站观测空间目标的**静态候选排序预训练、规则蒸馏和调度基准**。输入为合成轨道、站点、优先级与六天规划期；计划由本地固定预算教师生成，再通过独立 Skyfield 逐秒校验。当前数据不包含完整强化学习状态转移，也不代表已经训练出神经网络。
 
-当前状态：采样规格和生成协议已固定，正在执行代表性校准。这里的600是事前目标，正式生成、审计、上传和下载数量以完成后的证据为准。v0.1继续可用，不被覆盖。
+**生产与发布状态（待正式实测回填）：{{V2_PRODUCTION_STATE}}**
 
-- [生成与验收协议](PROTOCOL.md)
-- [采样设计与分布门槛](PROTOCOL.sampling.md)
-- [600个目录规格](catalog-specs.json)
-- [采样分布检查](sampling-report.json)
-- [事前选定的10个校准目录](calibration-specs.json)
-- [独立校验缓存与原参考的一致性证据](evidence/validator-cache-verification.json)
+## 事前规格
 
-当前教师仍采用固定3轮价格协调、本地已演化排序规则、每目标最多12个池窗口和按秒精修。完整窗口另行保存。候选标签适合排序或模仿学习；未选中不等于不合法，不声称教师最优，也不包含完整强化学习状态转移或已训练的神经网络。
+- 600 个独立轨道目录，每目录一个场景；train / validation / test 为 **420 / 90 / 90**，不以同轨道的多个变体扩充独立样本数。
+- 540 个主体场景采用有界的截断正态控制参数；60 个压力场景独立标记，分布在 validation/test，各类各 5 个。不强行把得分、质量、成功率或 20 维特征变成正态。
+- 目标数支持范围 1,000–16,000，站点数 4–16；冻结规格中的目标总数为 **4,334,032**。这是生成前的配置总数，实际完成数见数据卡。
+- 覆盖 2027 年 12 个月、三类轨道、24 个虚构站点锚区、多种目标优先级比例及六类压力情形；不宣称拟合了真实任务出现概率。
+- 完整几何窗口保留；教师每目标最多 12 个窗口、固定 3 轮价格协调、使用本地已演化规则，无局部搜索，最后按整数秒精修。
+- 每个候选包含 20 维静态特征及网格教师选择标签。两份计划各做独立 1 秒校验；**1,200 份通过报告是发布门槛，实际通过数量以正式审计为准**。
 
-完整数据将通过同仓库 `synthetic-data-v0.2` Release 分发，代码和清单保留在Git。最终数据卡、统计图、审计与下载命令将在实际验收后补齐。
+![540 个主体场景的事前控制参数分布](figures/core-distributions.png)
+
+*图中是冻结场景规格与理论分布对照，不是模型结果，也不是已完成数据量。高优先级和 LEO 比例表示抽样概率，实际生成比例会有有限样本波动。*
+
+## 下载和读取
+
+发布目标为公开项目 [space-observation-planner](https://github.com/Mercury-LH/space-observation-planner) 的 `synthetic-data-v0.2` Release；v0.1 保持原样。计划采用 60 个数据分片（每片 10 个目录）和 1 个元数据分片。下面的命令在该版本发布后使用；实际上传和完整匿名下载复核记录见 [Release 发布说明](https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.2)，资产清单本身不代表远端上传已经完成。
+
+```bash
+git clone --branch synthetic-data-v0.2 https://github.com/Mercury-LH/space-observation-planner.git
+cd space-observation-planner/方案H初版
+uv sync --frozen
+uv run python -m obsplan.training_data.download outputs/synthetic-v0.2 \
+  --index datasets/synthetic-v0.2/release-assets.json
+uv run python -m obsplan.training_data.loader outputs/synthetic-v0.2 --smoke
+```
+
+必须显式传入 v0.2 的 `--index`；下载器的历史默认值仍指向 v0.1。下载器检查每片 SHA-256 后解压，不需要云端伐谋或 PyTorch。`--smoke` 先扫描全部 train 拟合标准化，再读取每个划分的一批；它是加载检查，不是完整测试集评测。
+
+```python
+from obsplan.training_data.loader import DatasetReader
+
+reader = DatasetReader("outputs/synthetic-v0.2")
+normalizer = reader.fit_normalizer()  # 只在 train 拟合
+for epoch in range(10):
+    for batch in reader.iter_batches(
+        "train", batch_size=4096, normalizer=normalizer,
+        shuffle=True, seed=2026 + epoch,
+    ):
+        x = batch["features"]       # [B, 20]
+        y = batch["grid_selected"]  # 教师是否选择；不是物理合法性标签
+        # 在这里调用训练代码；加载器本身不会训练模型。
+```
+
+## 证据和说明
+
+| 文件 | 用途 |
+|---|---|
+| [DATASET_CARD.md](DATASET_CARD.md) | 分布、特征、标签、用途限制、实际规模与质量/时间记录 |
+| [PROTOCOL.md](PROTOCOL.md) / [PROTOCOL.sampling.md](PROTOCOL.sampling.md) | 生成前锁定的流程和验收门槛 |
+| [catalog-specs.json](catalog-specs.json) / [sampling-report.json](sampling-report.json) | 全部 600 个事前规格与分布检查；不是生成完成清单 |
+| [calibration-specs.json](calibration-specs.json) | 按输入规格预选的 10 个完整规模校准目录，不计入正式完成数 |
+| [schema.json](schema.json) | JSON/NPZ 数据字典和数组关联 |
+| [SOURCES.md](SOURCES.md) / [DATA_LICENSE.md](DATA_LICENSE.md) | 来源、方法依据和原创数据 CC BY 4.0 许可 |
+| [figures/metadata.json](figures/metadata.json) | 规格图输入指纹和绘图说明 |
+
+发布资产记录（待回填）：{{V2_RELEASE_SUMMARY}}
+
+匿名下载、解压、审计及加载记录（待回填）：{{V2_PUBLIC_VERIFICATION}}
