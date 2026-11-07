@@ -1,0 +1,1404 @@
+[
+  {
+    "catalog_id": "v2-cat-025",
+    "split": "train",
+    "seed": 202711070025,
+    "n_targets": 1076,
+    "n_stations": 13,
+    "size_bin": "small",
+    "start_utc": "2027-07-01T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "nominal_gaussian",
+    "sampling_group": "core",
+    "stress_type": null,
+    "sampling_latents": {
+      "n_targets": 1075.5809265579192,
+      "n_stations": 13.017808859968387,
+      "leo_fraction": 0.5880839018721298,
+      "meo_remaining_fraction": 0.5991694415143441,
+      "high_priority_fraction": 0.26218119857938094,
+      "medium_remaining_fraction": 0.4478133266116085,
+      "leo_altitude_mean_km": 1178.2376813748247,
+      "leo_inclination_mean_deg": 72.99290398920034
+    },
+    "sampling_quantiles": {
+      "n_targets": 0.001429379783738774,
+      "n_stations": 0.8927468279635212,
+      "leo_fraction": 0.13220236435966723,
+      "meo_remaining_fraction": 0.34201590532175297,
+      "high_priority_fraction": 0.5428529149013912,
+      "medium_remaining_fraction": 0.6819056937310084,
+      "leo_altitude_mean_km": 0.8400339556944905,
+      "leo_inclination_mean_deg": 0.6663727196285042
+    },
+    "family_probabilities": [
+      0.5880839018721298,
+      0.24680753846604378,
+      0.16510855966182644
+    ],
+    "priority_probabilities": [
+      0.4074137095198619,
+      0.3304050919007572,
+      0.26218119857938094
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1178.2376813748247,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          72.99290398920034,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      0,
+      1,
+      2,
+      5,
+      6,
+      8,
+      9,
+      11,
+      12,
+      13,
+      18,
+      19,
+      20
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-460",
+    "split": "validation",
+    "seed": 202711070460,
+    "n_targets": 7087,
+    "n_stations": 6,
+    "size_bin": "medium",
+    "start_utc": "2027-06-11T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "nominal_gaussian",
+    "sampling_group": "core",
+    "stress_type": null,
+    "sampling_latents": {
+      "n_targets": 7086.534251644734,
+      "n_stations": 5.589145211018104,
+      "leo_fraction": 0.7774969117966871,
+      "meo_remaining_fraction": 0.6772067697257393,
+      "high_priority_fraction": 0.2707399277736868,
+      "medium_remaining_fraction": 0.37384630245150074,
+      "leo_altitude_mean_km": 1041.3633042992683,
+      "leo_inclination_mean_deg": 47.055966084046055
+    },
+    "sampling_quantiles": {
+      "n_targets": 0.5008255744418358,
+      "n_stations": 0.031150392491806574,
+      "leo_fraction": 0.7915448551164523,
+      "meo_remaining_fraction": 0.6006881946787958,
+      "high_priority_fraction": 0.5770494640482063,
+      "medium_remaining_fraction": 0.39316242232276,
+      "leo_altitude_mean_km": 0.583708886012878,
+      "leo_inclination_mean_deg": 0.17883589220961504
+    },
+    "family_probabilities": [
+      0.7774969117966871,
+      0.15068059761616678,
+      0.0718224905871461
+    ],
+    "priority_probabilities": [
+      0.4566288906989916,
+      0.2726311815273216,
+      0.2707399277736868
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1041.3633042992683,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          47.055966084046055,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      0,
+      2,
+      3,
+      8,
+      10,
+      13
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-246",
+    "split": "train",
+    "seed": 202711070246,
+    "n_targets": 15935,
+    "n_stations": 6,
+    "size_bin": "large",
+    "start_utc": "2027-09-03T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "nominal_gaussian",
+    "sampling_group": "core",
+    "stress_type": null,
+    "sampling_latents": {
+      "n_targets": 15935.113681015651,
+      "n_stations": 5.791329104953195,
+      "leo_fraction": 0.6928690598707656,
+      "meo_remaining_fraction": 0.6809387689396889,
+      "high_priority_fraction": 0.3143012118095097,
+      "medium_remaining_fraction": 0.2602992141136804,
+      "leo_altitude_mean_km": 1112.2594946196052,
+      "leo_inclination_mean_deg": 58.027272186248496
+    },
+    "sampling_quantiles": {
+      "n_targets": 0.9998985287210735,
+      "n_stations": 0.03857716944859905,
+      "leo_fraction": 0.477509475565316,
+      "meo_remaining_fraction": 0.612969842356281,
+      "high_priority_fraction": 0.7372337146889704,
+      "medium_remaining_fraction": 0.07548221727166662,
+      "leo_altitude_mean_km": 0.7311470769628428,
+      "leo_inclination_mean_deg": 0.3641942285056761
+    },
+    "family_probabilities": [
+      0.6928690598707656,
+      0.20913736427489013,
+      0.09799357585434423
+    ],
+    "priority_probabilities": [
+      0.5072119325058028,
+      0.17848685568468764,
+      0.3143012118095097
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1112.2594946196052,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          58.027272186248496,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      2,
+      5,
+      12,
+      13,
+      17,
+      22
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-540",
+    "split": "validation",
+    "seed": 202711070540,
+    "n_targets": 11177,
+    "n_stations": 6,
+    "size_bin": "large",
+    "start_utc": "2027-01-20T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "high_load",
+    "sampling_latents": {
+      "n_targets": 11177.416839495809,
+      "n_stations": 5.592570229623661,
+      "leo_fraction": 0.6164326223404706,
+      "meo_remaining_fraction": 0.6470100906490395,
+      "high_priority_fraction": 0.17383584123025408,
+      "medium_remaining_fraction": 0.20130982967084493,
+      "leo_altitude_mean_km": 659.8161400544573,
+      "leo_inclination_mean_deg": 65.5748130960927
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.6164326223404706,
+      0.24817196378950648,
+      0.13539541387002293
+    ],
+    "priority_probabilities": [
+      0.6598491926876515,
+      0.16631496608209445,
+      0.17383584123025408
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          659.8161400544573,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          65.5748130960927,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      6,
+      12,
+      13,
+      18,
+      20,
+      23
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-545",
+    "split": "validation",
+    "seed": 202711070545,
+    "n_targets": 1745,
+    "n_stations": 14,
+    "size_bin": "small",
+    "start_utc": "2027-03-13T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "low_load",
+    "sampling_latents": {
+      "n_targets": 1744.6984883800499,
+      "n_stations": 14.18391249602703,
+      "leo_fraction": 0.7901008500131786,
+      "meo_remaining_fraction": 0.4370416650581195,
+      "high_priority_fraction": 0.27077148616718866,
+      "medium_remaining_fraction": 0.36984665204274464,
+      "leo_altitude_mean_km": 1268.7358516996014,
+      "leo_inclination_mean_deg": 48.61509986026263
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.7901008500131786,
+      0.09173467400452436,
+      0.118164475982297
+    ],
+    "priority_probabilities": [
+      0.45952578941763983,
+      0.26970272441517157,
+      0.27077148616718866
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1268.7358516996014,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          48.61509986026263,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      2,
+      3,
+      4,
+      6,
+      7,
+      9,
+      10,
+      11,
+      15,
+      16,
+      19,
+      20,
+      22,
+      23
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-550",
+    "split": "validation",
+    "seed": 202711070550,
+    "n_targets": 3633,
+    "n_stations": 12,
+    "size_bin": "small",
+    "start_utc": "2027-05-09T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "leo_polar",
+    "sampling_latents": {
+      "n_targets": 3632.7311603143353,
+      "n_stations": 11.974404129625935,
+      "leo_fraction": 0.9596196256868188,
+      "meo_remaining_fraction": 0.37675328025415894,
+      "high_priority_fraction": 0.17759276287951964,
+      "medium_remaining_fraction": 0.46396421237923363,
+      "leo_altitude_mean_km": 1026.8764358087196,
+      "leo_inclination_mean_deg": 95.0
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.9596196256868188,
+      0.015213438480381798,
+      0.025166935832799404
+    ],
+    "priority_probabilities": [
+      0.4408397110948951,
+      0.3815675260255853,
+      0.17759276287951964
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1026.8764358087196,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          95.0,
+          7.0,
+          75.0,
+          110.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      1,
+      3,
+      7,
+      9,
+      10,
+      13,
+      14,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-555",
+    "split": "validation",
+    "seed": 202711070555,
+    "n_targets": 6455,
+    "n_stations": 10,
+    "size_bin": "medium",
+    "start_utc": "2027-07-16T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "high_orbit",
+    "sampling_latents": {
+      "n_targets": 6455.329946198065,
+      "n_stations": 9.707935459735133,
+      "leo_fraction": 0.27150818770967344,
+      "meo_remaining_fraction": 0.5040489986597246,
+      "high_priority_fraction": 0.2618498321942902,
+      "medium_remaining_fraction": 0.33021913747102355,
+      "leo_altitude_mean_km": 1129.6762056880875,
+      "leo_inclination_mean_deg": 40.8095529502577
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.27150818770967344,
+      0.3671955685167472,
+      0.3612962437735794
+    ],
+    "priority_probabilities": [
+      0.4943988560688171,
+      0.2437513117368928,
+      0.2618498321942902
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1129.6762056880875,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          40.8095529502577,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      0,
+      5,
+      9,
+      11,
+      13,
+      15,
+      18,
+      19,
+      20,
+      21
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-560",
+    "split": "validation",
+    "seed": 202711070560,
+    "n_targets": 9954,
+    "n_stations": 8,
+    "size_bin": "medium",
+    "start_utc": "2027-09-18T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "high_priority",
+    "sampling_latents": {
+      "n_targets": 9953.821101929969,
+      "n_stations": 8.044055757569307,
+      "leo_fraction": 0.707906682053391,
+      "meo_remaining_fraction": 0.6405638536963432,
+      "high_priority_fraction": 0.6145387221239709,
+      "medium_remaining_fraction": 0.4543530574462864,
+      "leo_altitude_mean_km": 776.1240076500204,
+      "leo_inclination_mean_deg": 59.177885421991945
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.707906682053391,
+      0.1871044213828311,
+      0.1049888965637779
+    ],
+    "priority_probabilities": [
+      0.2103257677459027,
+      0.17513551013012643,
+      0.6145387221239709
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          776.1240076500204,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          59.177885421991945,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      0,
+      6,
+      8,
+      13,
+      16,
+      17,
+      21,
+      23
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-565",
+    "split": "validation",
+    "seed": 202711070565,
+    "n_targets": 7531,
+    "n_stations": 6,
+    "size_bin": "medium",
+    "start_utc": "2027-06-07T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "stress",
+    "sampling_group": "stress",
+    "stress_type": "regional_network",
+    "sampling_latents": {
+      "n_targets": 7531.305899842434,
+      "n_stations": 6.2371293344074346,
+      "leo_fraction": 0.6500369017280215,
+      "meo_remaining_fraction": 0.6165586077085864,
+      "high_priority_fraction": 0.269380230991179,
+      "medium_remaining_fraction": 0.3143667044692405,
+      "leo_altitude_mean_km": 1065.821466521654,
+      "leo_inclination_mean_deg": 93.03491809987452
+    },
+    "sampling_quantiles": {},
+    "family_probabilities": [
+      0.6500369017280215,
+      0.21577276061995423,
+      0.13419033765202423
+    ],
+    "priority_probabilities": [
+      0.5009372400054403,
+      0.22968252900338076,
+      0.269380230991179
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          1065.821466521654,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          93.03491809987452,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      6,
+      7,
+      8,
+      9,
+      17,
+      18
+    ],
+    "network_mode": "regional_asia",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  },
+  {
+    "catalog_id": "v2-cat-305",
+    "split": "train",
+    "seed": 202711070305,
+    "n_targets": 12624,
+    "n_stations": 15,
+    "size_bin": "large",
+    "start_utc": "2027-10-15T00:00:00+00:00",
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "distribution": "nominal_gaussian",
+    "sampling_group": "core",
+    "stress_type": null,
+    "sampling_latents": {
+      "n_targets": 12623.874764882536,
+      "n_stations": 15.038718143271042,
+      "leo_fraction": 0.5807268313884506,
+      "meo_remaining_fraction": 0.6134971540553604,
+      "high_priority_fraction": 0.21001617502013314,
+      "medium_remaining_fraction": 0.4589899418170203,
+      "leo_altitude_mean_km": 917.3072470221036,
+      "leo_inclination_mean_deg": 55.14548569877735
+    },
+    "sampling_quantiles": {
+      "n_targets": 0.9702097817963533,
+      "n_stations": 0.9860418816219191,
+      "leo_fraction": 0.11692077085607673,
+      "meo_remaining_fraction": 0.3874390046156406,
+      "high_priority_fraction": 0.33585732845713767,
+      "medium_remaining_fraction": 0.7208049301317483,
+      "leo_altitude_mean_km": 0.3069123111900837,
+      "leo_inclination_mean_deg": 0.3097107406791991
+    },
+    "family_probabilities": [
+      0.5807268313884506,
+      0.2572228957149588,
+      0.16205027289659057
+    ],
+    "priority_probabilities": [
+      0.4273891951159707,
+      0.36259462986389623,
+      0.21001617502013314
+    ],
+    "orbit_parameters": {
+      "LEO": {
+        "altitude_km": [
+          917.3072470221036,
+          250.0,
+          550.0,
+          1800.0
+        ],
+        "eccentricity": [
+          0.004,
+          0.003,
+          5e-05,
+          0.012
+        ],
+        "inclination_deg": [
+          55.14548569877735,
+          12.0,
+          0.0,
+          120.0
+        ],
+        "bstar": [
+          1.2e-05,
+          8e-06,
+          1e-07,
+          5e-05
+        ]
+      },
+      "MEO": {
+        "altitude_km": [
+          17000.0,
+          4000.0,
+          8000.0,
+          26000.0
+        ],
+        "eccentricity": [
+          0.025,
+          0.02,
+          0.0001,
+          0.08
+        ],
+        "inclination_deg": [
+          55.0,
+          20.0,
+          10.0,
+          100.0
+        ],
+        "bstar": null
+      },
+      "GEO_like": {
+        "altitude_km": [
+          35786.0,
+          300.0,
+          34500.0,
+          37000.0
+        ],
+        "eccentricity": [
+          0.005,
+          0.006,
+          1e-05,
+          0.025
+        ],
+        "inclination_deg": [
+          5.0,
+          5.0,
+          0.0,
+          25.0
+        ],
+        "bstar": null
+      }
+    },
+    "station_anchor_ids": [
+      1,
+      2,
+      3,
+      4,
+      6,
+      7,
+      10,
+      13,
+      14,
+      16,
+      17,
+      18,
+      19,
+      21,
+      23
+    ],
+    "network_mode": "global_two_hemispheres",
+    "station_jitter": {
+      "longitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "latitude_deg": [
+        0.0,
+        0.02,
+        -0.06,
+        0.06
+      ],
+      "height_m": [
+        0.0,
+        20.0,
+        -60.0,
+        60.0
+      ]
+    }
+  }
+]
