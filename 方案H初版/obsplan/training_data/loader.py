@@ -187,12 +187,17 @@ class DatasetReader:
 
     def iter_batches(self, split: str, batch_size: int = 4096, *,
                      normalizer: Normalizer | None = None,
-                     max_batches: int | None = None) -> Iterator[dict]:
+                     max_batches: int | None = None,
+                     shuffle: bool = False, seed: int = 2026) -> Iterator[dict]:
         """Yield NumPy arrays ready for torch.from_numpy; never combine scenes.
 
         Labels are the teacher's choices.  They are not a feasibility mask and
         are not labels for every possible dynamically updated planning state.
         Remaining rows are yielded even when a scene is shorter than batch_size.
+        With shuffle=True, a local RNG permutes scenes within the requested split
+        and candidate rows within each scene. All candidate fields move together.
+        candidate_id always preserves the original action row; row_offset is the
+        offset within this traversal, not necessarily the original row position.
         """
         split = _split(split)
         if not isinstance(batch_size, int) or isinstance(batch_size, bool) or batch_size <= 0:
@@ -202,15 +207,28 @@ class DatasetReader:
             raise ValueError("max_batches must be a positive integer or None")
         if normalizer is not None and normalizer.train_manifest_sha256 != self.train_manifest_sha256:
             raise ValueError("normalizer was fitted to a different train manifest")
+        if not isinstance(shuffle, bool):
+            raise ValueError("shuffle must be a boolean")
+        if not isinstance(seed, int) or isinstance(seed, bool) or seed < 0:
+            raise ValueError("seed must be a nonnegative integer")
+        rng = np.random.default_rng(seed)
+        records = self.records(split)
+        scene_order = rng.permutation(len(records)) if shuffle else range(len(records))
         emitted = 0
-        for record, arrays in self.iter_scenes(split):
-            for offset in range(0, len(arrays["features"]), batch_size):
-                batch = {name: np.ascontiguousarray(value[offset:offset + batch_size])
+        for scene_index in scene_order:
+            record = records[scene_index]
+            arrays = self._load_actions(record)
+            n = len(arrays["features"])
+            row_order = rng.permutation(n) if shuffle else np.arange(n, dtype=np.int64)
+            for offset in range(0, n, batch_size):
+                ids = row_order[offset:offset + batch_size]
+                index = ids if shuffle else slice(offset, offset + batch_size)
+                batch = {name: np.ascontiguousarray(value[index])
                          for name, value in arrays.items() if name != "grid_task_candidate"}
                 if normalizer is not None:
                     batch["features"] = normalizer.transform(batch["features"])
                 batch.update(scene_id=record["scene_id"], catalog_id=record["catalog_id"],
-                             split=split, row_offset=offset)
+                             split=split, row_offset=offset, candidate_id=np.ascontiguousarray(ids))
                 yield batch
                 emitted += 1
                 if max_batches is not None and emitted >= max_batches:
@@ -246,6 +264,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("root", type=Path, help="extracted dataset containing manifest.json")
     parser.add_argument("--batch-size", type=int, default=4096)
     parser.add_argument("--smoke", action="store_true", help="read one batch per split after fitting train stats")
+    parser.add_argument("--shuffle", action="store_true", help="shuffle scenes and candidate rows within each split")
+    parser.add_argument("--seed", type=int, default=2026, help="reproducible batching seed")
     parser.add_argument("--normalizer-output", type=Path, help="optional NEW JSON file; default writes nothing")
     args = parser.parse_args(argv)
     reader = DatasetReader(args.root)
@@ -254,11 +274,13 @@ def main(argv: list[str] | None = None) -> None:
         normalizer.save(args.normalizer_output)
     summary = {"feature_names": FEATURES, "normalizer": normalizer.as_dict(), "splits": {},
                "label_semantics": "grid_selected is a heuristic teacher choice, not a legality label",
+               "batch_shuffle": args.shuffle, "batch_seed": args.seed,
                "mode": "first_batch_per_split" if args.smoke else "all_batches"}
     for split in SPLITS:
         rows, selected, batches = 0, 0, 0
         for batch in reader.iter_batches(split, args.batch_size, normalizer=normalizer,
-                                         max_batches=1 if args.smoke else None):
+                                         max_batches=1 if args.smoke else None,
+                                         shuffle=args.shuffle, seed=args.seed):
             rows += len(batch["features"])
             selected += int(batch["grid_selected"].sum())
             batches += 1

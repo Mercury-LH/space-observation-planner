@@ -1,0 +1,7 @@
+{
+  "command": "python -m pytest tests/test_training_audit.py tests/test_training_build.py tests/test_training_download.py tests/test_training_loader.py tests/test_training_package.py tests/test_training_teacher.py -q",
+  "result": "87 passed",
+  "wall_s": 2.14,
+  "scope": "dataset-specific unit and integration tests; full physical checks recorded per scene",
+  "frozen_generation_commit": "85bc712b3035b103dfd72adaaa90e578002b043e"
+}

@@ -1,0 +1,30 @@
+{
+  "grid": {
+    "legal": true,
+    "violations": {},
+    "geometry_checked": true,
+    "min_elev_margin": 0.019832427800270835,
+    "max_elev_margin": 0.0369561267764027,
+    "sun_margin": 0.06091780867846097,
+    "step_s": 1.0,
+    "tasks": 545,
+    "original_tasks": 545,
+    "removed_tasks": 0,
+    "failed_attempts": [],
+    "wall_s": 3.9935580829987884
+  },
+  "final": {
+    "legal": true,
+    "violations": {},
+    "geometry_checked": true,
+    "min_elev_margin": 0.019832427800270835,
+    "max_elev_margin": 0.02121844661670025,
+    "sun_margin": 0.047622132470602985,
+    "step_s": 1.0,
+    "tasks": 545,
+    "original_tasks": 545,
+    "removed_tasks": 0,
+    "failed_attempts": [],
+    "wall_s": 5.231405957998504
+  }
+}

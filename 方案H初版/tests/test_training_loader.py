@@ -210,3 +210,47 @@ def test_unique_selected_ranks_required_without_task_mapping(tmp_path):
     amend_actions(tmp_path, 'a', change)
     with pytest.raises(ValueError, match='teacher labels'):
         list(DatasetReader(tmp_path).iter_batches('train'))
+
+
+def test_seeded_shuffle_is_reproducible_complete_and_preserves_all_labels(tmp_path):
+    write_corpus(tmp_path, [('train', 'a', 17, 1.), ('train', 'b', 11, 3.),
+                            ('train', 'c', 13, 5.), ('validation', 'd', 9, 1000.),
+                            ('test', 'e', 9, -2000.)])
+    reader = DatasetReader(tmp_path)
+    source = {record['scene_id']: arrays for record, arrays in reader.iter_scenes('train')}
+
+    def read(seed):
+        batches = list(reader.iter_batches('train', batch_size=4, shuffle=True, seed=seed))
+        ordered = []
+        for batch in batches:
+            assert batch['scene_id'] in {'a', 'b', 'c'} and batch['split'] == 'train'
+            original = source[batch['scene_id']]
+            ids = batch['candidate_id']
+            for field in original:
+                if field != 'grid_task_candidate':
+                    np.testing.assert_array_equal(batch[field], original[field][ids])
+            ordered.extend((batch['scene_id'], int(i)) for i in ids)
+        return ordered
+
+    first = read(2026)
+    assert first == read(2026)
+    assert first != read(2027)
+    expected = {(scene_id, i) for scene_id, arrays in source.items() for i in range(len(arrays['features']))}
+    assert len(first) == len(set(first)) == len(expected)
+    assert set(first) == expected
+    assert first != [(scene_id, i) for scene_id, arrays in source.items() for i in range(len(arrays['features']))]
+
+
+def test_default_batch_candidate_ids_restore_original_order(tmp_path):
+    write_corpus(tmp_path)
+    reader = DatasetReader(tmp_path)
+    batches = list(reader.iter_batches('train', batch_size=3))
+    assert [(b['scene_id'], b['candidate_id'].tolist()) for b in batches] == [
+        ('a', [0, 1, 2]), ('a', [3, 4]), ('b', [0, 1, 2])]
+
+
+@pytest.mark.parametrize('kwargs', [{'shuffle': 'yes'}, {'seed': -1}, {'seed': True}, {'seed': 1.5}])
+def test_invalid_shuffle_settings_rejected(tmp_path, kwargs):
+    write_corpus(tmp_path)
+    with pytest.raises(ValueError):
+        list(DatasetReader(tmp_path).iter_batches('train', **kwargs))

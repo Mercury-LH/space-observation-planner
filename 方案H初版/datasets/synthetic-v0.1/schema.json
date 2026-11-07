@@ -1,0 +1,163 @@
+{
+  "schema_version": 1,
+  "schema_kind": "artifact_dictionary",
+  "dataset_version": "synthetic-v0.1",
+  "description": "NPZ/JSON 数据字典，不是宣称能够校验二进制 NPZ 的 JSON Schema；完整一致性检查由 obsplan.training_data.audit 执行。",
+  "generation_commit": "85bc712b3035b103dfd72adaaa90e578002b043e",
+  "release_tag": "synthetic-data-v0.1",
+  "license": "CC-BY-4.0",
+  "serialization": {"arrays": "numpy.savez_compressed", "allow_pickle": false, "text": "UTF-8", "time_zone": "UTC"},
+  "dimensions": {
+    "N": "catalog/scene 中的目标数，包括没有窗口或未观测目标",
+    "S": "场景站数，5 或 10；catalog 总是 10",
+    "W": "当前窗口文件的窗口数；完整窗口和保留池分别计算",
+    "D": "当前窗口文件的夜间区间条数",
+    "C": "当前场景候选数",
+    "T_grid": "发布网格计划的任务数",
+    "T_final": "发布精修计划的任务数",
+    "T_original": "独立校验和删除修复前，原始教师网格任务数"
+  },
+  "feature_names": ["priority", "duration_cells", "task_score", "cover_value", "price_cost", "price_per_cell", "window_cells", "slack_cells", "target_windows", "scarcity", "urgency", "conflict", "night_pos", "time_frac", "max_obs", "sub_pick", "sub_pick_same_duration", "sub_count", "target_dual", "window_demand"],
+  "artifacts": {
+    "manifest.json": {
+      "format": "json",
+      "fields": {
+        "identity": "版本、协议/代码/星历哈希、依赖、catalog_specs、workers=4、scene_workers=4、scene_numba_threads=1、window_budget=12、pilot 标志",
+        "base_commit": "生产启动时 Git HEAD；本发布生成代码为 generation_commit",
+        "feature_names": "上述 20 列的固定顺序",
+        "catalogs": "catalog.json 内容列表",
+        "scenes": "scene.json 内容列表，仅完成场景进入此列表",
+        "files": "每个数据文件的相对路径 path、bytes 和 sha256；不包含 manifest.json、events.jsonl 和 .cache/**",
+        "status": "building / failed / complete",
+        "summary": "完整生产结束后汇总 catalogs、scenes、unique_synthetic_targets、target_instances、candidate_rows、grid_tasks、final_tasks、repaired_tasks",
+        "dependencies": "Python、NumPy、SGP4、Skyfield、Numba、OR-Tools 版本",
+        "environment": "系统、机器架构、进程/线程设置；不是算法速度对照证明",
+        "ephemeris": "name 和 sha256；星历文件不在 Release 分片内",
+        "generation_code_files": "生成依赖源码的相对路径与哈希",
+        "failures": "可选：失败记录；失败不自动替换为新随机场景"
+      }
+    },
+    "events.jsonl": {"format": "jsonl", "required_fields": ["time_utc", "kind"], "description": "构建开始、目录完成、场景完成/失败及整体完成事件；事件字段按类型变化。"},
+    "catalogs/{catalog_id}/catalog.json": {
+      "format": "json",
+      "required_fields": ["catalog_id", "split", "n_targets", "seed", "start_utc", "distribution", "n_windows", "sgp4_failed", "geometry_wall_s", "family_counts"],
+      "splits": ["train", "validation", "test"],
+      "distribution": ["nominal", "high_leo_shift"]
+    },
+    "catalogs/{catalog_id}/targets.npz": {
+      "arrays": {
+        "target_id": {"dtype": "int32", "shape": ["N"], "description": "catalog 内零基目标索引；全局主键为 catalog_id + target_id"},
+        "satnum": {"dtype": "int64", "shape": ["N"], "description": "合成 TLE 编号；不同 catalog 可以重复，不是现实 NORAD 身份"},
+        "family": {"dtype": "int8", "shape": ["N"], "values": {"0": "LEO", "1": "MEO", "2": "GEO_like"}},
+        "semimajor_km": {"dtype": "float64", "shape": ["N"], "unit": "km", "description": "导出 TLE 前的合成平均半长轴"},
+        "eccentricity": {"dtype": "float64", "shape": ["N"]},
+        "inclination_deg": {"dtype": "float64", "shape": ["N"], "unit": "degree"},
+        "raan_deg": {"dtype": "float64", "shape": ["N"], "unit": "degree"},
+        "arg_perigee_deg": {"dtype": "float64", "shape": ["N"], "unit": "degree"},
+        "mean_anomaly_deg": {"dtype": "float64", "shape": ["N"], "unit": "degree"},
+        "bstar": {"dtype": "float64", "shape": ["N"], "description": "SGP4 B* 参数；高轨类别置零"},
+        "mean_motion_rad_min": {"dtype": "float64", "shape": ["N"], "unit": "radian/minute"},
+        "mean_element_perigee_km": {"dtype": "float64", "shape": ["N"], "unit": "km", "description": "按原始平均要素计算的近地点高度，不是独立高精度传播的最低高度"},
+        "line1": {"dtype": "unicode", "shape": ["N"], "characters": 69, "description": "实际传播使用的导出后回读 TLE 第一行"},
+        "line2": {"dtype": "unicode", "shape": ["N"], "characters": 69},
+        "names": {"dtype": "unicode", "shape": ["N"], "description": "SYN- 前缀的虚构目标名"},
+        "base_priority": {"dtype": "float32", "shape": ["N"], "description": "catalog 基础优先级；scene 变体的实际优先级以 input 清单为准"},
+        "stations": {"dtype": "float64", "shape": [10, 3], "columns": ["longitude_deg", "latitude_deg", "height_m"]}
+      }
+    },
+    "catalogs/{catalog_id}/windows.npz": {"format": "npz", "array_definition": "window_arrays", "description": "完整 30 秒几何窗口，station 是 catalog 的十站索引；窗口未逐候选做 1 秒证明。"},
+    "scenes/{scene_id}/pool_windows.npz": {"format": "npz", "array_definition": "window_arrays", "description": "每目标最多 12 个保留窗口，station 是当前 scene 的局部站点索引。"},
+    "scenes/{scene_id}/pool_source_indices.npz": {
+      "arrays": {"catalog_window_id": {"dtype": "int64", "shape": ["W"], "description": "每条 pool 窗口在本 catalog 完整 windows 中的零基索引；使用 scene.base_station_indices 将局部站号映射回 catalog"}}
+    },
+    "scenes/{scene_id}/actions.npz": {
+      "arrays": {
+        "features": {"dtype": "float32", "shape": ["C", 20], "description": "基于保留池、教师选定价格的静态特征；生成时四位小数，原规则以 float64 计算"},
+        "candidate_window": {"dtype": "int32", "shape": ["C"], "description": "pool_windows.npz 的零基窗口索引，不是完整 catalog 窗口索引"},
+        "candidate_duration_cells": {"dtype": "int16", "shape": ["C"], "minimum": 4, "maximum": 8, "unit": "30-second cell"},
+        "rule_score_uncovered": {"dtype": "float32", "shape": ["C"], "description": "未覆盖状态的原始规则分"},
+        "rule_score_covered": {"dtype": "float32", "shape": ["C"], "description": "已覆盖状态的原始规则分；恢复器实际用 min(uncovered, covered)"},
+        "grid_selected": {"dtype": "bool", "shape": ["C"], "description": "教师至少选择一次；false 不是非法标签"},
+        "grid_selected_count": {"dtype": "int32", "shape": ["C"], "description": "发布网格计划中该候选出现次数，可大于 1"},
+        "grid_selection_rank": {"dtype": "int32", "shape": ["C"], "unselected": -1, "description": "首次出现在发布 grid_plan 中的零基行号；修复后重新对齐，不等于 source_grid_row"},
+        "grid_start_s": {"dtype": "int32", "shape": ["C"], "unselected": -1, "unit": "second since scene start", "description": "首次网格放置开始时间，选中值为 30 的倍数"},
+        "grid_duration_s": {"dtype": "int32", "shape": ["C"], "unselected": -1, "unit": "second", "description": "首次网格放置时长，等于对应 candidate_duration_cells * 30"},
+        "grid_task_candidate": {"dtype": "int32", "shape": ["T_grid"], "description": "发布 grid_plan 每行对应的候选 ID；任务级数组，不随候选 iter_batches 切片"}
+      },
+      "invariants": ["grid_selected == (grid_selected_count > 0)", "sum(grid_selected_count) == T_grid", "grid_task_candidate == grid_plan.candidate_id", "candidate_window 与 candidate_duration_cells 的组合不重复", "未选中的 rank/start/duration 全为 -1"]
+    },
+    "scenes/{scene_id}/grid_plan.npz": {"format": "npz", "array_definition": "plan_arrays", "task_dimension": "T_grid", "description": "独立校验及可能删除修复后的网格计划，行顺序保留教师插入顺序。"},
+    "scenes/{scene_id}/plan.npz": {"format": "npz", "array_definition": "plan_arrays", "task_dimension": "T_final", "description": "独立校验及可能删除修复后的秒精修计划，起止与时长可以不同于网格计划。"},
+    "scenes/{scene_id}/grid_geometry.npz": {"format": "npz", "array_definition": "geometry_arrays", "task_dimension": "T_grid"},
+    "scenes/{scene_id}/final_geometry.npz": {"format": "npz", "array_definition": "geometry_arrays", "task_dimension": "T_final"},
+    "scenes/{scene_id}/validation.json": {"format": "json", "required_fields": ["grid", "final"], "description": "两份独立 1 秒报告，含 legal、geometry_checked、violations、边界余量、step_s、tasks、original_tasks、removed_tasks、failed_attempts、wall_s。受照检查由违规集合/invalid_mask记录，无逐秒阳光数组。"},
+    "scenes/{scene_id}/scene.json": {
+      "format": "json",
+      "required_fields": ["scene_id", "catalog_id", "split", "path", "distribution", "n_targets", "n_stations", "full_variant_windows", "pool_windows", "candidate_rows", "grid_positive_candidates", "grid_tasks", "final_tasks", "config", "variant", "variant_name", "base_station_indices", "teacher", "teacher_timings", "refinement", "metrics", "grid_metrics", "validation_wall_s", "scene_wall_s", "scene_numba_threads", "legal", "geometry_checked", "repairs", "task_provenance"],
+      "description": "config.data_dir 为相对于 scene 的 input；metrics 是最终计划，grid_metrics 是网格计划；base_station_indices[scene_station] 得到 catalog 站号。"
+    },
+    "scenes/{scene_id}/input/": {"format": "UTF-8 text", "files": ["轨道.txt", "站址.txt", "低优先级目标.txt", "中优先级目标.txt", "高优先级目标.txt"], "description": "公共原生读取器输入；站址文本编号一基，计划/数组站号零基。"}
+  },
+  "array_definitions": {
+    "window_arrays": {
+      "station": {"dtype": "int16", "shape": ["W"]},
+      "target": {"dtype": "int32", "shape": ["W"]},
+      "k0": {"dtype": "int32", "shape": ["W"], "description": "首个 30 秒采样点索引"},
+      "k1": {"dtype": "int32", "shape": ["W"], "description": "末个采样点索引，包含该点；可观测持续跨度为 (k1-k0)*30 秒"},
+      "dark": {"dtype": "int32", "shape": ["D", 3], "columns": ["station", "first_sample", "last_sample"]},
+      "n_samples": {"dtype": "int64", "shape": [], "value": 17281},
+      "sgp4_failed": {"dtype": "bool", "shape": ["N"], "description": "传播异常标记；全量正式发布须全部为 false"}
+    },
+    "plan_arrays": {
+      "station": {"dtype": "int16", "shape": ["T"], "description": "scene 局部站点零基索引"},
+      "target": {"dtype": "int32", "shape": ["T"], "description": "catalog 目标零基索引"},
+      "start_s": {"dtype": "int32", "shape": ["T"], "unit": "second since scene start"},
+      "dur_s": {"dtype": "int32", "shape": ["T"], "unit": "second"},
+      "candidate_id": {"dtype": "int32", "shape": ["T"], "description": "actions.npz 的候选行索引；精修后时长可不再等于该候选的网格时长"},
+      "source_grid_row": {"dtype": "int32", "shape": ["T"], "description": "修复前原始教师网格计划的插入序号，范围[0,T_original)。不是发布 grid_plan 的直接行索引；两计划按此键关联，不要求行数或该键集合相同。"}
+    },
+    "geometry_arrays": {
+      "per_task": {"dtype": "float64", "shape": ["T", 3], "unit": "degree", "columns": ["min_target_elevation", "max_target_elevation", "max_station_solar_altitude"], "description": "包括任务端点的独立 1 秒采样极值；不是完整逐秒序列"},
+      "invalid_mask": {"dtype": "bool", "shape": ["T"], "description": "综合结构、几何与受照等检查的非法任务标记；发布成功计划全部 false"}
+    }
+  },
+  "optional_failure_artifacts": {
+    "{grid|final}_before_repair.npz": "删除修复前计划，仅 station/target/start_s/dur_s 四个数组",
+    "{grid|final}_before_repair_validation.json": "修复前失败报告",
+    "{grid|final}_before_repair_geometry.npz": "修复前几何证据",
+    "failed_grid_plan.npz": "失败阶段保留的部分网格计划，不可当作已通过教师数据",
+    "failed_final_plan.npz": "失败阶段保留的精修计划，不可当作已通过教师数据",
+    "failed_actions.npz": "失败阶段保留的原始数组，字段/类型可能尚未转换到发布 schema",
+    "failure.json": "scene_id、异常 type、error 与 partial_metadata",
+    "orchestration_failure.json": "进程编排失败记录"
+  },
+  "release_assets": {
+    "catalog_shard": "synthetic-v0.1-{catalog_id}.tar.gz：该 catalog 与其四个 scene",
+    "metadata_shard": "synthetic-v0.1-metadata.tar.gz：manifest.json 与 events.jsonl",
+    "index": "release-assets.json：assets(name,bytes,sha256,url,catalog_id,split)、total_bytes、manifest_sha256、events_sha256",
+    "excluded": [".cache/**", "de421.bsp", "模型权重", "个人信息", "访问凭据"]
+  },
+  "loader_api": {
+    "reader": "obsplan.training_data.loader.DatasetReader(root)",
+    "split_names": ["train", "validation", "test"],
+    "split_alias": {"val": "validation"},
+    "normalizer": "reader.fit_normalizer() 仅扫描 train；validation/test 复用同一参数；总体方差，常量列 scale=1",
+    "iter_batches": {
+      "arguments": {"split": "train / validation / test", "batch_size": 4096, "shuffle": false, "seed": 2026},
+      "recommended_training": "for epoch in range(epochs): reader.iter_batches('train', batch_size=4096, normalizer=normalizer, shuffle=True, seed=2026+epoch)",
+      "shuffle_scope": "指定 split 内的场景顺序及各场景内的候选顺序；不跨 split、不合并场景，所有候选级字段同步重排",
+      "extra_batch_fields": {
+        "scene_id": "当前场景字符串",
+        "catalog_id": "当前轨道目录字符串",
+        "split": "规范化划分名",
+        "row_offset": "本次候选排列中的批次偏移；shuffle 时不是原始候选行号",
+        "candidate_id": {"dtype": "int64", "shape": ["B"], "description": "actions.npz 的原始候选行号；加载器生成，不是 actions.npz 中的额外数组"}
+      },
+      "excluded_task_array": "grid_task_candidate；需要完整任务映射时使用 iter_scenes()",
+      "torch_optional": "可使用 torch.from_numpy(batch['features'])；下载和 NumPy 加载器不依赖 torch"
+    },
+    "preview": "Git 内约1.74MB，200目标catalog的4个train场景；无validation/test，只作接口演示，不用于泛化评估"
+  },
+  "validation_scope": "生产时全部发布 grid/final 计划独立 Skyfield 1 秒校验；audit 复核保存证据和一致性，不重跑 Skyfield，不证明每个未选候选逐秒合法或计划最优。",
+  "learning_scope": "静态候选排序/规则蒸馏/离线模仿及环境实例；不含完整动态状态、合法动作掩码、奖励、next_state 或最优标签。"
+}
