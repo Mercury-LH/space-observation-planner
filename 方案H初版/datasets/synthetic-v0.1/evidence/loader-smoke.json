@@ -1,0 +1,42 @@
+{
+  "mode": "first_batch_per_split_using_saved_train_normalizer",
+  "train_rows": 14280409,
+  "train_manifest_sha256": "a28b0aff59d566c585e3c33a01311cbfe5893df73bf416fc3850f6764e5a55fe",
+  "batch_shuffle": true,
+  "batch_seed": 2026,
+  "splits": {
+    "train": {
+      "scenes": 80,
+      "read_rows": 8192,
+      "read_selected": 373,
+      "scene_id": "cat-011-v3",
+      "shape": [
+        8192,
+        20
+      ],
+      "dtype": "float32"
+    },
+    "validation": {
+      "scenes": 20,
+      "read_rows": 8192,
+      "read_selected": 203,
+      "scene_id": "cat-023-v2",
+      "shape": [
+        8192,
+        20
+      ],
+      "dtype": "float32"
+    },
+    "test": {
+      "scenes": 20,
+      "read_rows": 8192,
+      "read_selected": 291,
+      "scene_id": "cat-028-v2",
+      "shape": [
+        8192,
+        20
+      ],
+      "dtype": "float32"
+    }
+  }
+}

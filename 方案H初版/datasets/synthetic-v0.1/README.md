@@ -6,7 +6,7 @@
 
 生成前固定规模为 30 个独立轨道 catalog、120 个六天场景；按 catalog 隔离为 train/validation/test = 20/5/5，对应 80/20/20 个场景。目标规模覆盖 1,000、5,000、10,000；共有 103,000 条独立合成轨道，四种变体合计 412,000 个目标实例。`cat-027` 和 `cat-029` 是预先指定的高倾角 LEO 分布偏移测试组。
 
-**发布状态：[待正式验收回填：实际场景数、候选行数、任务数、失败/超时数、压缩体积及上传状态。]** 生成代码冻结在 `85bc712b3035b103dfd72adaaa90e578002b043e`；Release tag 为 `synthetic-data-v0.1`。正式资产清单以本目录的 `release-assets.json` 为准，不用生成前目标代替实际验收结果。
+**发布状态：完整生产 120 场景、21,791,917 候选行、536,751 条最终任务；正式记录失败 0、超时 0；240/240 份独立逐秒计划报告通过，删除修复 0 条任务。31 个分片共 744,282,558 字节。以 Release 资产分发；上传及匿名下载的核验记录见 Release 发布说明。** 生成代码冻结在 `85bc712b3035b103dfd72adaaa90e578002b043e`；Release tag 为 `synthetic-data-v0.1`。正式资产清单以本目录的 `release-assets.json` 为准，不用生成前目标代替实际验收结果。
 
 ## 下载并读取
 
@@ -56,6 +56,8 @@ for epoch in range(10):
 ```
 
 加载器一次加载一个压缩场景，再在场景内部切批，不要求整批数据同时驻留内存。训练时建议启用 `shuffle=True`，避免按原始时长分块顺序连续喂给模型；随机化仅作用于指定划分中的场景顺序和场景内候选顺序，各字段同步重排，不跨划分且不合并场景。`scene_id` 加 `candidate_id` 可以恢复原候选位置。validation/test 复用训练标准化，不重新拟合。
+
+正式完整数据可以复用仓库提供的 [normalizer.json](normalizer.json)：`from obsplan.training_data.loader import Normalizer` 后调用 `Normalizer.load("datasets/synthetic-v0.1/normalizer.json")`。该文件只由正式训练集拟合，并绑定训练清单指纹；不适用于小型 preview 或另行生成的数据。
 
 `iter_batches()` 返回候选级数组；要读取长度为任务数的 `grid_task_candidate`，使用 `iter_scenes()`。不要随机拆分候选行来重新划分训练集，避免同一轨道 catalog 泄漏。这里提供的是读取和训练接口示例，尚未据此训练或评估神经网络。
 

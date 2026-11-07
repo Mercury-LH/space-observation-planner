@@ -1,0 +1,620 @@
+{
+  "schema_version": 1,
+  "dataset_version": "synthetic-v0.1",
+  "generation_commit": "85bc712b3035b103dfd72adaaa90e578002b043e",
+  "input_hashes": {
+    "manifest_sha256": "eae61447a9a2a5ada83d88809229b204ee3e1ba81f7c6bc760b1d0bfc52cd98c",
+    "events_sha256": "554fbd7bfa6129de194618e5de3b152870931d59919f2f104f5b74df9ed33e72",
+    "audit_sha256": "4496373651f3b0cc1772ba3fc3e98efd66f85f047dabb57cf78f668d239e97f0",
+    "release_index_sha256": "abaf48b3a795b4ebaa9bdc4ef24d08bdc9524697a0b6355d1b2732773d1a41a3",
+    "split_manifest_sha256": "00f39ebf33e90596339c98a736bb51fd36c8c6b8e03b73592c004d1461551eed"
+  },
+  "counts": {
+    "catalogs": 30,
+    "scenes": 120,
+    "unique_synthetic_targets": 103000,
+    "target_instances": 412000,
+    "candidate_rows": 21791917,
+    "grid_tasks": 536751,
+    "final_tasks": 536751,
+    "repaired_tasks": 0
+  },
+  "overall": {
+    "scenes": 120,
+    "catalogs": 30,
+    "target_instances": 412000,
+    "candidate_rows": 21791917,
+    "grid_tasks": 536751,
+    "final_tasks": 536751,
+    "quality": {
+      "covered": {
+        "min": 918.0,
+        "median": 1000.0,
+        "max": 7523.0,
+        "mean": 2612.6916666666666
+      },
+      "coverage_rate": {
+        "min": 0.3306,
+        "median": 0.9664999999999999,
+        "max": 1.0,
+        "mean": 0.8917124999999999
+      },
+      "score": {
+        "min": 6202.76,
+        "median": 9469.865,
+        "max": 39584.96666666667,
+        "mean": 14920.228083333333
+      },
+      "combined": {
+        "min": 0.4578276314430328,
+        "median": 1.6537926670468113,
+        "max": 1.815644827586207,
+        "mean": 1.439716198635468
+      }
+    },
+    "grid_positive_candidates": 536751,
+    "grid_positive_candidate_fraction": 0.02463073808513496,
+    "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+    "full_variant_windows": 27055707,
+    "pool_windows": 4751419,
+    "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+  },
+  "by_split": {
+    "train": {
+      "scenes": 80,
+      "catalogs": 20,
+      "target_instances": 268000,
+      "candidate_rows": 14280409,
+      "grid_tasks": 359850,
+      "final_tasks": 359850,
+      "quality": {
+        "covered": {
+          "min": 932.0,
+          "median": 1000.0,
+          "max": 7523.0,
+          "mean": 2605.4375
+        },
+        "coverage_rate": {
+          "min": 0.3509,
+          "median": 0.9695,
+          "max": 1.0,
+          "mean": 0.89871375
+        },
+        "score": {
+          "min": 6415.969999999999,
+          "median": 9493.458333333332,
+          "max": 39584.96666666667,
+          "mean": 14957.444541666668
+        },
+        "combined": {
+          "min": 0.47827938235768425,
+          "median": 1.6684410097932756,
+          "max": 1.8066549356969064,
+          "mean": 1.4518851165244002
+        }
+      },
+      "grid_positive_candidates": 359850,
+      "grid_positive_candidate_fraction": 0.02519885809993257,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 17685906,
+      "pool_windows": 3091016,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    },
+    "validation": {
+      "scenes": 20,
+      "catalogs": 5,
+      "target_instances": 72000,
+      "candidate_rows": 3946768,
+      "grid_tasks": 87163,
+      "final_tasks": 87163,
+      "quality": {
+        "covered": {
+          "min": 977.0,
+          "median": 1000.0,
+          "max": 7274.0,
+          "mean": 2633.7
+        },
+        "coverage_rate": {
+          "min": 0.3306,
+          "median": 0.9874,
+          "max": 1.0,
+          "mean": 0.8869200000000002
+        },
+        "score": {
+          "min": 6733.633333333333,
+          "median": 9855.980000000001,
+          "max": 35598.52,
+          "mean": 14757.368166666663
+        },
+        "combined": {
+          "min": 0.4578276314430328,
+          "median": 1.7008908836265881,
+          "max": 1.815644827586207,
+          "mean": 1.4354183234725468
+        }
+      },
+      "grid_positive_candidates": 87163,
+      "grid_positive_candidate_fraction": 0.02208465255621815,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 4777663,
+      "pool_windows": 852267,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    },
+    "test": {
+      "scenes": 20,
+      "catalogs": 5,
+      "target_instances": 72000,
+      "candidate_rows": 3564740,
+      "grid_tasks": 89738,
+      "final_tasks": 89738,
+      "quality": {
+        "covered": {
+          "min": 918.0,
+          "median": 982.0,
+          "max": 7394.0,
+          "mean": 2620.7
+        },
+        "coverage_rate": {
+          "min": 0.3366,
+          "median": 0.9495,
+          "max": 0.982,
+          "mean": 0.8685
+        },
+        "score": {
+          "min": 6202.76,
+          "median": 9078.523333333334,
+          "max": 36495.94333333333,
+          "mean": 14934.222166666665
+        },
+        "combined": {
+          "min": 0.45810265782245474,
+          "median": 1.6236546713822577,
+          "max": 1.7607005934980955,
+          "mean": 1.395338402242659
+        }
+      },
+      "grid_positive_candidates": 89738,
+      "grid_positive_candidate_fraction": 0.025173785465419637,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 4592138,
+      "pool_windows": 808136,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    }
+  },
+  "by_target_scale": {
+    "1000": {
+      "scenes": 72,
+      "catalogs": 18,
+      "target_instances": 72000,
+      "candidate_rows": 3849956,
+      "grid_tasks": 178668,
+      "final_tasks": 178668,
+      "quality": {
+        "covered": {
+          "min": 918.0,
+          "median": 983.5,
+          "max": 1000.0,
+          "mean": 978.9305555555555
+        },
+        "coverage_rate": {
+          "min": 0.918,
+          "median": 0.9835,
+          "max": 1.0,
+          "mean": 0.9789305555555554
+        },
+        "score": {
+          "min": 6202.76,
+          "median": 7329.695,
+          "max": 10024.656666666666,
+          "mean": 7752.975462962964
+        },
+        "combined": {
+          "min": 1.5049966273187185,
+          "median": 1.7454933431426063,
+          "max": 1.815644827586207,
+          "mean": 1.7263891302278809
+        }
+      },
+      "grid_positive_candidates": 178668,
+      "grid_positive_candidate_fraction": 0.04640780310216532,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 4730988,
+      "pool_windows": 835058,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    },
+    "5000": {
+      "scenes": 28,
+      "catalogs": 7,
+      "target_instances": 140000,
+      "candidate_rows": 7612283,
+      "grid_tasks": 199672,
+      "final_tasks": 199672,
+      "quality": {
+        "covered": {
+          "min": 2852.0,
+          "median": 4756.5,
+          "max": 4981.0,
+          "mean": 4363.75
+        },
+        "coverage_rate": {
+          "min": 0.5704,
+          "median": 0.9513,
+          "max": 0.9962,
+          "mean": 0.87275
+        },
+        "score": {
+          "min": 13751.349999999999,
+          "median": 24439.75,
+          "max": 33353.619999999995,
+          "mean": 23876.865595238098
+        },
+        "combined": {
+          "min": 0.7605646985619469,
+          "median": 1.3154093739345303,
+          "max": 1.3724865147854102,
+          "mean": 1.1959065179929549
+        }
+      },
+      "grid_positive_candidates": 199672,
+      "grid_positive_candidate_fraction": 0.02623023868135223,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 9244141,
+      "pool_windows": 1639493,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    },
+    "10000": {
+      "scenes": 20,
+      "catalogs": 5,
+      "target_instances": 200000,
+      "candidate_rows": 10329678,
+      "grid_tasks": 158411,
+      "final_tasks": 158411,
+      "quality": {
+        "covered": {
+          "min": 3306.0,
+          "median": 6613.5,
+          "max": 7523.0,
+          "mean": 6042.75
+        },
+        "coverage_rate": {
+          "min": 0.3306,
+          "median": 0.66135,
+          "max": 0.7523,
+          "mean": 0.6042750000000001
+        },
+        "score": {
+          "min": 16951.716666666667,
+          "median": 28377.851666666666,
+          "max": 39584.96666666667,
+          "mean": 28183.045000000002
+        },
+        "combined": {
+          "min": 0.4578276314430328,
+          "median": 0.821750851630259,
+          "max": 0.8886803106948764,
+          "mean": 0.7490271978022988
+        }
+      },
+      "grid_positive_candidates": 158411,
+      "grid_positive_candidate_fraction": 0.015335521591282904,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 13080578,
+      "pool_windows": 2276868,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    }
+  },
+  "test_distribution": {
+    "nominal": {
+      "scenes": 12,
+      "catalogs": 3,
+      "target_instances": 28000,
+      "candidate_rows": 1443190,
+      "grid_tasks": 49910,
+      "final_tasks": 49910,
+      "quality": {
+        "covered": {
+          "min": 963.0,
+          "median": 982.0,
+          "max": 4760.0,
+          "mean": 2093.5
+        },
+        "coverage_rate": {
+          "min": 0.6478,
+          "median": 0.9664999999999999,
+          "max": 0.982,
+          "mean": 0.9377666666666666
+        },
+        "score": {
+          "min": 6776.096666666667,
+          "median": 8239.956666666667,
+          "max": 33353.619999999995,
+          "mean": 13356.37611111111
+        },
+        "combined": {
+          "min": 0.8459661204841584,
+          "median": 1.6816559049379987,
+          "max": 1.7607005934980955,
+          "mean": 1.546896472912147
+        }
+      },
+      "grid_positive_candidates": 49910,
+      "grid_positive_candidate_fraction": 0.03458311102488238,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 1843742,
+      "pool_windows": 317703,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    },
+    "high_leo_shift": {
+      "scenes": 8,
+      "catalogs": 2,
+      "target_instances": 44000,
+      "candidate_rows": 2121550,
+      "grid_tasks": 39828,
+      "final_tasks": 39828,
+      "quality": {
+        "covered": {
+          "min": 918.0,
+          "median": 2158.0,
+          "max": 7394.0,
+          "mean": 3411.5
+        },
+        "coverage_rate": {
+          "min": 0.3366,
+          "median": 0.8287,
+          "max": 0.95,
+          "mean": 0.7646
+        },
+        "score": {
+          "min": 6202.76,
+          "median": 12947.931666666667,
+          "max": 36495.94333333333,
+          "mean": 17300.99125
+        },
+        "combined": {
+          "min": 0.45810265782245474,
+          "median": 1.1659821501286771,
+          "max": 1.6531940935472857,
+          "mean": 1.168001296238427
+        }
+      },
+      "grid_positive_candidates": 39828,
+      "grid_positive_candidate_fraction": 0.018773066861492778,
+      "candidate_fraction_definition": "sum(selected candidate rows) / sum(candidate rows); not task count / rows",
+      "full_variant_windows": 2748396,
+      "pool_windows": 490433,
+      "quality_definition": "unweighted per-scene teacher final-plan metrics; combined is internal Q, not official score"
+    }
+  },
+  "windows": {
+    "catalog_full_windows_sum": 7761435,
+    "scene_full_variant_windows_sum": 27055707,
+    "scene_pool_windows_sum": 4751419,
+    "scene_target_instances_with_pool": 402053,
+    "pool_targets_by_scene": {
+      "cat-000-v0": 989,
+      "cat-000-v1": 989,
+      "cat-000-v2": 989,
+      "cat-000-v3": 984,
+      "cat-001-v0": 958,
+      "cat-001-v1": 958,
+      "cat-001-v2": 958,
+      "cat-001-v3": 935,
+      "cat-002-v0": 984,
+      "cat-002-v1": 984,
+      "cat-002-v2": 984,
+      "cat-002-v3": 952,
+      "cat-003-v0": 1000,
+      "cat-003-v1": 1000,
+      "cat-003-v2": 1000,
+      "cat-003-v3": 984,
+      "cat-004-v0": 1000,
+      "cat-004-v1": 1000,
+      "cat-004-v2": 1000,
+      "cat-004-v3": 997,
+      "cat-005-v0": 1000,
+      "cat-005-v1": 1000,
+      "cat-005-v2": 1000,
+      "cat-005-v3": 999,
+      "cat-006-v0": 1000,
+      "cat-006-v1": 1000,
+      "cat-006-v2": 1000,
+      "cat-006-v3": 999,
+      "cat-007-v0": 955,
+      "cat-007-v1": 955,
+      "cat-007-v2": 955,
+      "cat-007-v3": 941,
+      "cat-008-v0": 974,
+      "cat-008-v1": 974,
+      "cat-008-v2": 974,
+      "cat-008-v3": 973,
+      "cat-009-v0": 988,
+      "cat-009-v1": 988,
+      "cat-009-v2": 988,
+      "cat-009-v3": 983,
+      "cat-010-v0": 957,
+      "cat-010-v1": 957,
+      "cat-010-v2": 957,
+      "cat-010-v3": 946,
+      "cat-011-v0": 990,
+      "cat-011-v1": 990,
+      "cat-011-v2": 990,
+      "cat-011-v3": 963,
+      "cat-012-v0": 4999,
+      "cat-012-v1": 4999,
+      "cat-012-v2": 4999,
+      "cat-012-v3": 4988,
+      "cat-013-v0": 4998,
+      "cat-013-v1": 4998,
+      "cat-013-v2": 4998,
+      "cat-013-v3": 4998,
+      "cat-014-v0": 4999,
+      "cat-014-v1": 4999,
+      "cat-014-v2": 4999,
+      "cat-014-v3": 4987,
+      "cat-015-v0": 4996,
+      "cat-015-v1": 4996,
+      "cat-015-v2": 4996,
+      "cat-015-v3": 4948,
+      "cat-016-v0": 4800,
+      "cat-016-v1": 4800,
+      "cat-016-v2": 4800,
+      "cat-016-v3": 4631,
+      "cat-017-v0": 9744,
+      "cat-017-v1": 9744,
+      "cat-017-v2": 9744,
+      "cat-017-v3": 9694,
+      "cat-018-v0": 9858,
+      "cat-018-v1": 9858,
+      "cat-018-v2": 9858,
+      "cat-018-v3": 8602,
+      "cat-019-v0": 9583,
+      "cat-019-v1": 9583,
+      "cat-019-v2": 9583,
+      "cat-019-v3": 9405,
+      "cat-020-v0": 991,
+      "cat-020-v1": 991,
+      "cat-020-v2": 991,
+      "cat-020-v3": 980,
+      "cat-021-v0": 1000,
+      "cat-021-v1": 1000,
+      "cat-021-v2": 1000,
+      "cat-021-v3": 983,
+      "cat-022-v0": 1000,
+      "cat-022-v1": 1000,
+      "cat-022-v2": 1000,
+      "cat-022-v3": 998,
+      "cat-023-v0": 5000,
+      "cat-023-v1": 5000,
+      "cat-023-v2": 5000,
+      "cat-023-v3": 4973,
+      "cat-024-v0": 9968,
+      "cat-024-v1": 9968,
+      "cat-024-v2": 9968,
+      "cat-024-v3": 9967,
+      "cat-025-v0": 968,
+      "cat-025-v1": 968,
+      "cat-025-v2": 968,
+      "cat-025-v3": 965,
+      "cat-026-v0": 983,
+      "cat-026-v1": 983,
+      "cat-026-v2": 983,
+      "cat-026-v3": 979,
+      "cat-027-v0": 954,
+      "cat-027-v1": 954,
+      "cat-027-v2": 954,
+      "cat-027-v3": 937,
+      "cat-028-v0": 4799,
+      "cat-028-v1": 4799,
+      "cat-028-v2": 4799,
+      "cat-028-v3": 4743,
+      "cat-029-v0": 9765,
+      "cat-029-v1": 9765,
+      "cat-029-v2": 9765,
+      "cat-029-v3": 9019
+    },
+    "interpretation": "catalog total counts each catalog once; scene totals include all four reused variants"
+  },
+  "validation": {
+    "published_reports": 240,
+    "passed_reports": 240,
+    "final_report_violations": 0,
+    "removed_tasks": 0,
+    "retained_failed_attempts": 0,
+    "scenes_with_repairs": 0,
+    "evidence": "saved grid/final independent Skyfield one-second reports; this finalizer does not rerun geometry"
+  },
+  "formal_events": {
+    "event_counts": {
+      "build_start": 1,
+      "catalog_complete": 30,
+      "scene_complete": 120,
+      "build_complete": 1
+    },
+    "failures": 0,
+    "timeouts": 0,
+    "failed_scene_ids": []
+  },
+  "preliminary_serial_trial": {
+    "scope": "pre-production serial trial; excluded from formal dataset counts and failure rates",
+    "manifest_sha256": "4ccb81227803bbd428d3709df8b3fde0840a811565712e4491e7082b807f5086",
+    "completed_scenes": 6,
+    "manifest_status": "building",
+    "failures": [
+      {
+        "scene_id": "cat-001-v2",
+        "exception_type": "KeyboardInterrupt",
+        "path": "scenes/cat-001-v2/failure.json",
+        "sha256": "cf627ddb3cfe956a0c7175754a48775b068736b66f86c7af696d570ebf527efa"
+      }
+    ],
+    "interrupted_scene_count": 1
+  },
+  "timings": {
+    "catalog_geometry_wall_s_sum": 308.29659800199806,
+    "teacher_stage_wall_s_sums": {
+      "price_fit_and_initial_recovery_s": 88.60144449999643,
+      "candidate_features_and_rule_s": 28.897542703976796,
+      "state_recovery_and_grid_labels_s": 16.776932954988297,
+      "integer_second_refinement_s": 83.48997699601387,
+      "total_s": 217.77011963200493
+    },
+    "teacher_wall_s_sum": 217.77011963200493,
+    "validation_wall_s_sum": 18754.62182704106,
+    "scene_wall_s_sum": 19063.182250333994,
+    "actual_elapsed_first_start_to_last_complete_s": 5613.398151,
+    "first_build_start_utc": "2026-11-07T17:38:29.421500+00:00",
+    "last_build_complete_utc": "2026-11-07T19:12:02.819651+00:00",
+    "interpretation": "stage/scene sums include overlapping concurrent work; do not add them to infer elapsed. Elapsed is wall-clock first start to last complete and includes interruptions. Not a solver speed ranking."
+  },
+  "planning_dates": {
+    "start_min_utc": "2026-01-10T00:00:00+00:00",
+    "start_max_utc": "2026-11-08T00:00:00+00:00",
+    "end_max_utc": "2026-11-14T00:00:00+00:00",
+    "start_dates": [
+      "2026-01-10",
+      "2026-01-13",
+      "2026-01-16",
+      "2026-01-19",
+      "2026-02-16",
+      "2026-02-19",
+      "2026-02-22",
+      "2026-02-25",
+      "2026-03-25",
+      "2026-03-28",
+      "2026-03-31",
+      "2026-04-03",
+      "2026-05-01",
+      "2026-05-04",
+      "2026-05-07",
+      "2026-06-07",
+      "2026-06-10",
+      "2026-06-13",
+      "2026-07-14",
+      "2026-07-17",
+      "2026-07-20",
+      "2026-08-20",
+      "2026-08-23",
+      "2026-08-26",
+      "2026-09-26",
+      "2026-09-29",
+      "2026-10-02",
+      "2026-11-02",
+      "2026-11-05",
+      "2026-11-08"
+    ]
+  },
+  "teacher_source": {
+    "path": "obsplan/evolved/recover_rule.py",
+    "sha256": "3b7fae52fa32d979b0854838a511128288b369ca5536eee50a23b085df3eda16",
+    "history": "local rule previously evolved on the original competition instance; synthetic split isolation does not erase this history"
+  },
+  "release": {
+    "tag": "synthetic-data-v0.1",
+    "repository": "Mercury-LH/space-observation-planner",
+    "url": "https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.1",
+    "assets": 31,
+    "total_compressed_bytes": 744282558,
+    "verification_scope": "local production, audit and asset index",
+    "remote_verification_record": "https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.1"
+  }
+}
