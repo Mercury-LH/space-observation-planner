@@ -1,0 +1,16 @@
+{
+  "catalog_id": "cat-000",
+  "split": "train",
+  "n_targets": 200,
+  "seed": 2026110700,
+  "start_utc": "2026-01-10T00:00:00+00:00",
+  "distribution": "nominal",
+  "n_windows": 16126,
+  "sgp4_failed": 0,
+  "geometry_wall_s": 1.5597610410004563,
+  "family_counts": {
+    "LEO": 139,
+    "MEO": 41,
+    "GEO_like": 20
+  }
+}

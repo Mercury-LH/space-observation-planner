@@ -1,0 +1,12 @@
+{
+  "scenes": 120,
+  "matched_final_tasks": 536751,
+  "unmatched_final_tasks": 0,
+  "keys": [
+    "station",
+    "target",
+    "candidate_id"
+  ],
+  "passed": true,
+  "link": "original source_grid_row; start and duration may change during refinement"
+}

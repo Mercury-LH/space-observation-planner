@@ -1,0 +1,199 @@
+{
+  "verified_utc": "2026-11-07T19:14:46.452272+00:00",
+  "repository": "Mercury-LH/space-observation-planner",
+  "repository_public": true,
+  "release_id": 437733771,
+  "draft": true,
+  "release_url": "https://github.com/Mercury-LH/space-observation-planner/releases/tag/untagged-64323719c85fc0e064e1",
+  "release_tag": "synthetic-data-v0.1",
+  "assets": [
+    {
+      "name": "synthetic-v0.1-cat-000.tar.gz",
+      "bytes": 7494076,
+      "sha256": "e629adeb4b75de5cd3f7fc4685f9d3e0bb0f76bec218b4d01a0cf0502f0d5eac",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-001.tar.gz",
+      "bytes": 7327049,
+      "sha256": "85ff3863ea04179b66213b9a172426850888cb4b113d8b551348acf83ceffec5",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-002.tar.gz",
+      "bytes": 7517162,
+      "sha256": "2b9538f6de71201df266e2f2389d61518eacd2de6552e2367185dbe36ddc12b9",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-003.tar.gz",
+      "bytes": 7772631,
+      "sha256": "b169e2443361249183c3a18225fecf79dd3aaaf13d59f6b43295421223b9ce3f",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-004.tar.gz",
+      "bytes": 7728746,
+      "sha256": "8eea7b7fdd71021809ddee25805767b71e21347e6879e4316c623fe9ddb25db8",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-005.tar.gz",
+      "bytes": 7810711,
+      "sha256": "f9bdc4da44825a51f05fc424edf62141b6a98cf34925ad035c11c0a3c3d7ea76",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-006.tar.gz",
+      "bytes": 7747396,
+      "sha256": "451379c5d2da48505e7b1ec01246fabda39e5d8fbb0f7859dce00dde1a439d4f",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-007.tar.gz",
+      "bytes": 7433641,
+      "sha256": "ee5fccb4a62221f2dc77197e91eaafba9df870bdea02b80e5e2c338ac7b1a0e8",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-008.tar.gz",
+      "bytes": 7510334,
+      "sha256": "7030e7fc4816ded3a1b1d27a11020a6355db4e2277d197d8a7e2bf52be6d6ee2",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-009.tar.gz",
+      "bytes": 7539434,
+      "sha256": "bc9272f525a023a129199f71c355e8b31ce652ad76c92d1e171863de3c919b9f",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-010.tar.gz",
+      "bytes": 7256757,
+      "sha256": "7f758fe7c33b79ddb427c47a6d98bfe6094935247e22241791fa9efc81a79aa6",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-011.tar.gz",
+      "bytes": 7799931,
+      "sha256": "61b1f91667461b99d6458fb65902698b2a7e862b87cdfcfc3f2bdafef5f98f7a",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-012.tar.gz",
+      "bytes": 38323478,
+      "sha256": "aa76de4cdee9163d475811b93460eea134f496e88bcc259be86e57d194314858",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-013.tar.gz",
+      "bytes": 38376549,
+      "sha256": "9ccab0207dca9eae342a27bb23ae775e9ab48ea531a6e950e530e9c2ae30dc41",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-014.tar.gz",
+      "bytes": 38359418,
+      "sha256": "3649505aeb424f43c2466e599218dd8dad64743db70dad6d27b680d90b2dcc87",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-015.tar.gz",
+      "bytes": 38394458,
+      "sha256": "5e184815c637c6ef26ff138d9a4d1603930480c1ee419dee520e0b0095250cdf",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-016.tar.gz",
+      "bytes": 36868299,
+      "sha256": "186a4abca6e60f9de17be140df0b804e7cca58d040ffec174c639da1072dbe84",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-017.tar.gz",
+      "bytes": 70371246,
+      "sha256": "2b190063d97751c93f7f13abc550bf92aff54c3e766767b1b7fde1e929e7c75f",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-018.tar.gz",
+      "bytes": 69958559,
+      "sha256": "51e105ed251ebef153c2b873d810e4470468d552284cee3c523e734df15d017b",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-019.tar.gz",
+      "bytes": 67285477,
+      "sha256": "21489f4dca2b86c9b24a0d40cce1aac636a045a813f1ed97e510959f80daf53b",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-020.tar.gz",
+      "bytes": 7580840,
+      "sha256": "521d983a03e6b9dde26ccc6283d0bf62d46207fcb52535deb5a7ba56ce9c64e8",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-021.tar.gz",
+      "bytes": 7794454,
+      "sha256": "83906f7830d5c1947b0bbff9c89a54f8f05cca6c2c1949115b7bbb8ff2a0c641",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-022.tar.gz",
+      "bytes": 7855687,
+      "sha256": "d52f709ee8d3cd1065fdd7cc4659e875ce0f9a52e05ced2968bd9ab9cca81e8b",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-023.tar.gz",
+      "bytes": 38422404,
+      "sha256": "cd3406ee56849b4e528af9711c5938bc1ec91a4b382d22d018a5b5c505eb7197",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-024.tar.gz",
+      "bytes": 64928355,
+      "sha256": "a84bc9b70e729f1943622540c8f87820e80a95f57ac2ea679b6151f06fe07201",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-025.tar.gz",
+      "bytes": 7440957,
+      "sha256": "301a5ad3067d22f1ba3d2f03e0de60e13e44c0e41c5094b868e38ae17bc1c7a5",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-026.tar.gz",
+      "bytes": 7426528,
+      "sha256": "b2161e105ef526352a151565564f994cd7a852360f6c12adc8f84fa180ee34b0",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-027.tar.gz",
+      "bytes": 7000611,
+      "sha256": "b9399ead40e5419b87ef930aa1ed42c023784aa8119e21fe4bf25ce9e7fc7968",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-028.tar.gz",
+      "bytes": 37996616,
+      "sha256": "491913b56448ff70062661a53d00c4342ffd1151b64abdeccba928cf58bfab46",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-cat-029.tar.gz",
+      "bytes": 68787072,
+      "sha256": "12d8d2a16c9c656f1fe33415e33148f504d5abb7024c256973e84c043dcd3914",
+      "server_digest_verified": true
+    },
+    {
+      "name": "synthetic-v0.1-metadata.tar.gz",
+      "bytes": 173682,
+      "sha256": "c986f18e92d1a304c10dd99ebdaab80d07bb8cad34fe53dc4aaa2c46bddd6f9b",
+      "server_digest_verified": true
+    }
+  ],
+  "total_compressed_bytes": 744282558,
+  "anonymous_download_performed_by_this_check": false
+}

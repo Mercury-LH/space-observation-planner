@@ -1,0 +1,9 @@
+{
+  "source_split": "train",
+  "row_count": 14280409,
+  "scenes": 80,
+  "catalogs": 20,
+  "train_manifest_sha256": "a28b0aff59d566c585e3c33a01311cbfe5893df73bf416fc3850f6764e5a55fe",
+  "wall_s": 2.6472466250015714,
+  "scope": "full training feature scan; validation and test excluded; computed after all 80 training scenes became immutable"
+}

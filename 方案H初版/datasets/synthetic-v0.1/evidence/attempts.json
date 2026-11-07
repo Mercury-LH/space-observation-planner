@@ -1,0 +1,51 @@
+{
+  "attempts": [
+    {
+      "attempt": "training-data-calibration-v1",
+      "status": "completed_calibration",
+      "reason": "200 target serial end-to-end calibration; excluded from full dataset",
+      "completed_scenes": 4,
+      "candidate_rows": 43838,
+      "final_tasks": 2175,
+      "failed_or_interrupted_events": [],
+      "events_file": "training-data-calibration-v1-events.jsonl",
+      "events_sha256": "ae4f5043b21ef83d66066ac68841bf1d09658d4f84fb8ccd4fa72aa0c8718fa5",
+      "local_outputs_retained": true
+    },
+    {
+      "attempt": "synthetic-v0.1",
+      "status": "interrupted_by_operator",
+      "reason": "Stopped to change execution concurrency only; six complete scenes retained, seventh interrupted during validation; not pooled with the final dataset",
+      "completed_scenes": 6,
+      "candidate_rows": 321173,
+      "final_tasks": 14897,
+      "failed_or_interrupted_events": [
+        {
+          "time_utc": "2026-11-07T17:35:27.920319+00:00",
+          "kind": "scene_failed",
+          "scene_id": "cat-001-v2",
+          "type": "KeyboardInterrupt",
+          "error": "",
+          "partial_metadata": {}
+        }
+      ],
+      "events_file": "synthetic-v0.1-events.jsonl",
+      "events_sha256": "cee7d1679cf1433fb47554ed22e6cf535f745b1a67a468e847624faadd12dcde",
+      "local_outputs_retained": true
+    },
+    {
+      "attempt": "training-data-calibration-parallel",
+      "status": "completed_calibration",
+      "reason": "200 target four-process end-to-end calibration; excluded from full dataset",
+      "completed_scenes": 4,
+      "candidate_rows": 43838,
+      "final_tasks": 2175,
+      "failed_or_interrupted_events": [],
+      "events_file": "training-data-calibration-parallel-events.jsonl",
+      "events_sha256": "7bafbc291a1002c90e8ce3b5883c6ae172268de764d8cdd7803fe3306738cd10",
+      "local_outputs_retained": true
+    }
+  ],
+  "full_dataset_attempt": "synthetic-v0.1-full",
+  "note": "These calibration and interrupted trial rows do not add to full dataset training size."
+}

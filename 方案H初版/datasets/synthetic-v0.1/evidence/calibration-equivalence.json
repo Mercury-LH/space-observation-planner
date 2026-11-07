@@ -1,0 +1,259 @@
+{
+  "passed": true,
+  "comparison": "serial 200-target calibration vs four-process 200-target calibration; exact equality on common numerical arrays; metadata timings excluded",
+  "files_compared": 20,
+  "checks": [
+    {
+      "scene_id": "cat-000-v0",
+      "file": "actions.npz",
+      "compared_fields": [
+        "candidate_duration_cells",
+        "candidate_window",
+        "features",
+        "grid_duration_s",
+        "grid_selected",
+        "grid_selected_count",
+        "grid_selection_rank",
+        "grid_start_s",
+        "grid_task_candidate",
+        "rule_score_covered",
+        "rule_score_uncovered"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v0",
+      "file": "grid_plan.npz",
+      "compared_fields": [
+        "candidate_id",
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v0",
+      "file": "plan.npz",
+      "compared_fields": [
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v0",
+      "file": "pool_windows.npz",
+      "compared_fields": [
+        "dark",
+        "k0",
+        "k1",
+        "n_samples",
+        "sgp4_failed",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v0",
+      "file": "pool_source_indices.npz",
+      "compared_fields": [
+        "catalog_window_id"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "file": "actions.npz",
+      "compared_fields": [
+        "candidate_duration_cells",
+        "candidate_window",
+        "features",
+        "grid_duration_s",
+        "grid_selected",
+        "grid_selected_count",
+        "grid_selection_rank",
+        "grid_start_s",
+        "grid_task_candidate",
+        "rule_score_covered",
+        "rule_score_uncovered"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "file": "grid_plan.npz",
+      "compared_fields": [
+        "candidate_id",
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "file": "plan.npz",
+      "compared_fields": [
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "file": "pool_windows.npz",
+      "compared_fields": [
+        "dark",
+        "k0",
+        "k1",
+        "n_samples",
+        "sgp4_failed",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "file": "pool_source_indices.npz",
+      "compared_fields": [
+        "catalog_window_id"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "file": "actions.npz",
+      "compared_fields": [
+        "candidate_duration_cells",
+        "candidate_window",
+        "features",
+        "grid_duration_s",
+        "grid_selected",
+        "grid_selected_count",
+        "grid_selection_rank",
+        "grid_start_s",
+        "grid_task_candidate",
+        "rule_score_covered",
+        "rule_score_uncovered"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "file": "grid_plan.npz",
+      "compared_fields": [
+        "candidate_id",
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "file": "plan.npz",
+      "compared_fields": [
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "file": "pool_windows.npz",
+      "compared_fields": [
+        "dark",
+        "k0",
+        "k1",
+        "n_samples",
+        "sgp4_failed",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "file": "pool_source_indices.npz",
+      "compared_fields": [
+        "catalog_window_id"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "file": "actions.npz",
+      "compared_fields": [
+        "candidate_duration_cells",
+        "candidate_window",
+        "features",
+        "grid_duration_s",
+        "grid_selected",
+        "grid_selected_count",
+        "grid_selection_rank",
+        "grid_start_s",
+        "grid_task_candidate",
+        "rule_score_covered",
+        "rule_score_uncovered"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "file": "grid_plan.npz",
+      "compared_fields": [
+        "candidate_id",
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "file": "plan.npz",
+      "compared_fields": [
+        "dur_s",
+        "start_s",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "file": "pool_windows.npz",
+      "compared_fields": [
+        "dark",
+        "k0",
+        "k1",
+        "n_samples",
+        "sgp4_failed",
+        "station",
+        "target"
+      ],
+      "unequal_fields": []
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "file": "pool_source_indices.npz",
+      "compared_fields": [
+        "catalog_window_id"
+      ],
+      "unequal_fields": []
+    }
+  ]
+}

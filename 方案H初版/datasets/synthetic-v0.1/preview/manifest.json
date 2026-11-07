@@ -1,0 +1,1309 @@
+{
+  "identity": {
+    "dataset_version": "synthetic-v0.1",
+    "protocol_sha256": "0e1e4a9c031a095e1f8d8910e306d0720ee111f5ba058825aa8e9c43fbb484d3",
+    "pilot": true,
+    "workers": 4,
+    "scene_workers": 4,
+    "scene_numba_threads": 1,
+    "window_budget": 12,
+    "catalog_specs": [
+      {
+        "catalog_id": "cat-000",
+        "split": "train",
+        "n_targets": 200,
+        "seed": 2026110700,
+        "start_utc": "2026-01-10T00:00:00+00:00",
+        "distribution": "nominal"
+      }
+    ],
+    "generation_code_sha256": "c38e6c6cd5442b9b2c59e0138cc5f781471bcee855b241cde7c066ef838ecdbe",
+    "dependencies": {
+      "python": "3.12.13",
+      "numpy": "2.5.4",
+      "sgp4": "2.27",
+      "skyfield": "1.55",
+      "numba": "0.68.0",
+      "ortools": "9.15.6755"
+    },
+    "ephemeris_sha256": "a20a7139da04cbc462454634918e9a9ca69127044e2cc9d4f9c16e238d2deedc"
+  },
+  "dataset_version": "synthetic-v0.1",
+  "feature_names": [
+    "priority",
+    "duration_cells",
+    "task_score",
+    "cover_value",
+    "price_cost",
+    "price_per_cell",
+    "window_cells",
+    "slack_cells",
+    "target_windows",
+    "scarcity",
+    "urgency",
+    "conflict",
+    "night_pos",
+    "time_frac",
+    "max_obs",
+    "sub_pick",
+    "sub_pick_same_duration",
+    "sub_count",
+    "target_dual",
+    "window_demand"
+  ],
+  "scenes": [
+    {
+      "scene_id": "cat-000-v0",
+      "catalog_id": "cat-000",
+      "split": "train",
+      "path": "scenes/cat-000-v0",
+      "distribution": "nominal",
+      "n_targets": 200,
+      "n_stations": 10,
+      "full_variant_windows": 16126,
+      "pool_windows": 2366,
+      "candidate_rows": 11051,
+      "grid_positive_candidates": 542,
+      "grid_tasks": 542,
+      "final_tasks": 542,
+      "config": {
+        "data_dir": "input",
+        "start_utc": "2026-01-10T00:00:00+00:00",
+        "days": 6.0,
+        "cell_s": 30,
+        "elev_min": 10.0,
+        "elev_max": 85.0,
+        "use_sun": true,
+        "sun_max": -6.0,
+        "use_sunlit": true,
+        "elev_margin": 0.02,
+        "sun_margin": 0.05,
+        "sunlit_margin_km": 10.0,
+        "moon_sep_deg": 0.0,
+        "moon_margin_deg": 0.5,
+        "obs_min_s": 120,
+        "obs_max_s": 240,
+        "switch_s": 30,
+        "repeat_gap_h": 48.0,
+        "priority_score": {
+          "高": 5.0,
+          "中": 3.0,
+          "低": 2.0
+        },
+        "w_cov": 0.5,
+        "w_score": 0.5,
+        "score_ref": "sumP",
+        "seed": 2026110700
+      },
+      "variant": 0,
+      "variant_name": "balanced",
+      "base_station_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "teacher": {
+        "teacher": "hplus_3_no_local_search",
+        "price_iterations_requested": 3,
+        "price_iterations_completed": 3,
+        "price_nonzero_cells": 0,
+        "price_max": 0.0,
+        "price_convergence_claimed": false,
+        "price_selection": "best recovered manual-rule objective in the fixed H iteration budget",
+        "duplicate_state_recovery_counted": true,
+        "local_search": false,
+        "finish_near": false,
+        "feature_names": [
+          "priority",
+          "duration_cells",
+          "task_score",
+          "cover_value",
+          "price_cost",
+          "price_per_cell",
+          "window_cells",
+          "slack_cells",
+          "target_windows",
+          "scarcity",
+          "urgency",
+          "conflict",
+          "night_pos",
+          "time_frac",
+          "max_obs",
+          "sub_pick",
+          "sub_pick_same_duration",
+          "sub_count",
+          "target_dual",
+          "window_demand"
+        ],
+        "feature_context": "static whole-scene features at the teacher-selected H price",
+        "feature_storage": "float32; existing rule evaluated float64 rounded-to-4-decimal feature rows",
+        "label_semantics": {
+          "grid_selected": "chosen at least once by this heuristic; false does not mean infeasible or inferior",
+          "grid_selection_rank": "zero-based first insertion rank; -1 means not selected",
+          "grid_start_s": "first grid placement start; -1 means not selected",
+          "grid_duration_s": "first grid placement duration; -1 means not selected",
+          "grid_task_candidate": "candidate ID of each grid_plan row in insertion order",
+          "grid_selected_count": "number of placements; preserves repeats within a long window",
+          "rule_score_covered": "raw covered score; recovery clamps this to min(uncovered, covered)"
+        },
+        "optimality_claimed": false,
+        "sequential_state_features_included": false,
+        "validation_status": "grid_and_final_independent_1s_passed",
+        "famou": {
+          "mode": "local_adopted_rule",
+          "runtime_cloud_calls": 0
+        },
+        "timing_scope": "all H iterations, recoveries, features, labels and refinement; excludes windows and validation"
+      },
+      "teacher_timings": {
+        "price_fit_and_initial_recovery_s": 0.10421574999782024,
+        "candidate_features_and_rule_s": 0.012801875000150176,
+        "state_recovery_and_grid_labels_s": 0.007656207999389153,
+        "integer_second_refinement_s": 0.09874829100226634,
+        "total_s": 0.22344320800038986
+      },
+      "refinement": {
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.0,
+          "dur_before": 234.07749077490774,
+          "dur_after": 236.87269372693726,
+          "tasks_longer": 47
+        },
+        "insert": {
+          "added": 0,
+          "skipped": true
+        }
+      },
+      "metrics": {
+        "tasks": 542,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1625.0500000000002,
+        "combined": 1.8469550748752082,
+        "repeat_tasks": 344,
+        "mean_dur_s": 236.87269372693726,
+        "covered_高": 44,
+        "total_高": 44,
+        "covered_中": 68,
+        "total_中": 69,
+        "covered_低": 86,
+        "total_低": 87,
+        "station_busy_h": [
+          3.2,
+          5.0,
+          6.0,
+          5.8,
+          3.8,
+          2.9,
+          3.9,
+          3.7,
+          2.8,
+          3.1
+        ]
+      },
+      "grid_metrics": {
+        "tasks": 542,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1610.2999999999997,
+        "combined": 1.834683860232945,
+        "repeat_tasks": 344,
+        "mean_dur_s": 234.07749077490774,
+        "covered_高": 44,
+        "total_高": 44,
+        "covered_中": 68,
+        "total_中": 69,
+        "covered_低": 86,
+        "total_低": 87,
+        "station_busy_h": [
+          3.1,
+          4.9,
+          5.9,
+          5.7,
+          3.8,
+          2.9,
+          3.8,
+          3.7,
+          2.8,
+          3.1
+        ]
+      },
+      "validation_wall_s": 9.170221042000776,
+      "scene_wall_s": 9.434912207998423,
+      "scene_numba_threads": 1,
+      "legal": true,
+      "geometry_checked": true,
+      "repairs": 0,
+      "task_provenance": "source_grid_row indexes pre-repair teacher insertion order; candidate_id indexes actions.npz"
+    },
+    {
+      "scene_id": "cat-000-v1",
+      "catalog_id": "cat-000",
+      "split": "train",
+      "path": "scenes/cat-000-v1",
+      "distribution": "nominal",
+      "n_targets": 200,
+      "n_stations": 10,
+      "full_variant_windows": 16126,
+      "pool_windows": 2366,
+      "candidate_rows": 10929,
+      "grid_positive_candidates": 539,
+      "grid_tasks": 539,
+      "final_tasks": 539,
+      "config": {
+        "data_dir": "input",
+        "start_utc": "2026-01-10T00:00:00+00:00",
+        "days": 6.0,
+        "cell_s": 30,
+        "elev_min": 10.0,
+        "elev_max": 85.0,
+        "use_sun": true,
+        "sun_max": -6.0,
+        "use_sunlit": true,
+        "elev_margin": 0.02,
+        "sun_margin": 0.05,
+        "sunlit_margin_km": 10.0,
+        "moon_sep_deg": 0.0,
+        "moon_margin_deg": 0.5,
+        "obs_min_s": 120,
+        "obs_max_s": 240,
+        "switch_s": 30,
+        "repeat_gap_h": 48.0,
+        "priority_score": {
+          "高": 5.0,
+          "中": 3.0,
+          "低": 2.0
+        },
+        "w_cov": 0.5,
+        "w_score": 0.5,
+        "score_ref": "sumP",
+        "seed": 2026110700
+      },
+      "variant": 1,
+      "variant_name": "high_priority_dense",
+      "base_station_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "teacher": {
+        "teacher": "hplus_3_no_local_search",
+        "price_iterations_requested": 3,
+        "price_iterations_completed": 3,
+        "price_nonzero_cells": 0,
+        "price_max": 0.0,
+        "price_convergence_claimed": false,
+        "price_selection": "best recovered manual-rule objective in the fixed H iteration budget",
+        "duplicate_state_recovery_counted": true,
+        "local_search": false,
+        "finish_near": false,
+        "feature_names": [
+          "priority",
+          "duration_cells",
+          "task_score",
+          "cover_value",
+          "price_cost",
+          "price_per_cell",
+          "window_cells",
+          "slack_cells",
+          "target_windows",
+          "scarcity",
+          "urgency",
+          "conflict",
+          "night_pos",
+          "time_frac",
+          "max_obs",
+          "sub_pick",
+          "sub_pick_same_duration",
+          "sub_count",
+          "target_dual",
+          "window_demand"
+        ],
+        "feature_context": "static whole-scene features at the teacher-selected H price",
+        "feature_storage": "float32; existing rule evaluated float64 rounded-to-4-decimal feature rows",
+        "label_semantics": {
+          "grid_selected": "chosen at least once by this heuristic; false does not mean infeasible or inferior",
+          "grid_selection_rank": "zero-based first insertion rank; -1 means not selected",
+          "grid_start_s": "first grid placement start; -1 means not selected",
+          "grid_duration_s": "first grid placement duration; -1 means not selected",
+          "grid_task_candidate": "candidate ID of each grid_plan row in insertion order",
+          "grid_selected_count": "number of placements; preserves repeats within a long window",
+          "rule_score_covered": "raw covered score; recovery clamps this to min(uncovered, covered)"
+        },
+        "optimality_claimed": false,
+        "sequential_state_features_included": false,
+        "validation_status": "grid_and_final_independent_1s_passed",
+        "famou": {
+          "mode": "local_adopted_rule",
+          "runtime_cloud_calls": 0
+        },
+        "timing_scope": "all H iterations, recoveries, features, labels and refinement; excludes windows and validation"
+      },
+      "teacher_timings": {
+        "price_fit_and_initial_recovery_s": 0.10321425000074669,
+        "candidate_features_and_rule_s": 0.01260879199980991,
+        "state_recovery_and_grid_labels_s": 0.0075409589990158565,
+        "integer_second_refinement_s": 0.09921020800175029,
+        "total_s": 0.2225958749986603
+      },
+      "refinement": {
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.0,
+          "dur_before": 234.26716141001856,
+          "dur_after": 236.6790352504638,
+          "tasks_longer": 44
+        },
+        "insert": {
+          "added": 0,
+          "skipped": true
+        }
+      },
+      "metrics": {
+        "tasks": 539,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 2062.5333333333333,
+        "combined": 1.830837651122625,
+        "repeat_tasks": 341,
+        "mean_dur_s": 236.6790352504638,
+        "covered_高": 105,
+        "total_高": 105,
+        "covered_中": 55,
+        "total_中": 57,
+        "covered_低": 38,
+        "total_低": 38,
+        "station_busy_h": [
+          2.2,
+          6.6,
+          5.3,
+          5.4,
+          3.3,
+          3.5,
+          4.7,
+          3.0,
+          3.1,
+          2.8
+        ]
+      },
+      "grid_metrics": {
+        "tasks": 539,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 2045.3,
+        "combined": 1.8196761658031089,
+        "repeat_tasks": 341,
+        "mean_dur_s": 234.26716141001856,
+        "covered_高": 105,
+        "total_高": 105,
+        "covered_中": 55,
+        "total_中": 57,
+        "covered_低": 38,
+        "total_低": 38,
+        "station_busy_h": [
+          2.2,
+          6.4,
+          5.2,
+          5.4,
+          3.3,
+          3.5,
+          4.7,
+          3.0,
+          3.1,
+          2.8
+        ]
+      },
+      "validation_wall_s": 9.170634916998097,
+      "scene_wall_s": 9.434575541999948,
+      "scene_numba_threads": 1,
+      "legal": true,
+      "geometry_checked": true,
+      "repairs": 0,
+      "task_provenance": "source_grid_row indexes pre-repair teacher insertion order; candidate_id indexes actions.npz"
+    },
+    {
+      "scene_id": "cat-000-v2",
+      "catalog_id": "cat-000",
+      "split": "train",
+      "path": "scenes/cat-000-v2",
+      "distribution": "nominal",
+      "n_targets": 200,
+      "n_stations": 10,
+      "full_variant_windows": 16126,
+      "pool_windows": 2366,
+      "candidate_rows": 10959,
+      "grid_positive_candidates": 549,
+      "grid_tasks": 549,
+      "final_tasks": 549,
+      "config": {
+        "data_dir": "input",
+        "start_utc": "2026-01-10T00:00:00+00:00",
+        "days": 6.0,
+        "cell_s": 30,
+        "elev_min": 10.0,
+        "elev_max": 85.0,
+        "use_sun": true,
+        "sun_max": -6.0,
+        "use_sunlit": true,
+        "elev_margin": 0.02,
+        "sun_margin": 0.05,
+        "sunlit_margin_km": 10.0,
+        "moon_sep_deg": 0.0,
+        "moon_margin_deg": 0.5,
+        "obs_min_s": 120,
+        "obs_max_s": 240,
+        "switch_s": 30,
+        "repeat_gap_h": 48.0,
+        "priority_score": {
+          "高": 5.0,
+          "中": 3.0,
+          "低": 2.0
+        },
+        "w_cov": 0.5,
+        "w_score": 0.5,
+        "score_ref": "sumP",
+        "seed": 2026110700
+      },
+      "variant": 2,
+      "variant_name": "scarce_targets_prioritized",
+      "base_station_indices": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "teacher": {
+        "teacher": "hplus_3_no_local_search",
+        "price_iterations_requested": 3,
+        "price_iterations_completed": 3,
+        "price_nonzero_cells": 0,
+        "price_max": 0.0,
+        "price_convergence_claimed": false,
+        "price_selection": "best recovered manual-rule objective in the fixed H iteration budget",
+        "duplicate_state_recovery_counted": true,
+        "local_search": false,
+        "finish_near": false,
+        "feature_names": [
+          "priority",
+          "duration_cells",
+          "task_score",
+          "cover_value",
+          "price_cost",
+          "price_per_cell",
+          "window_cells",
+          "slack_cells",
+          "target_windows",
+          "scarcity",
+          "urgency",
+          "conflict",
+          "night_pos",
+          "time_frac",
+          "max_obs",
+          "sub_pick",
+          "sub_pick_same_duration",
+          "sub_count",
+          "target_dual",
+          "window_demand"
+        ],
+        "feature_context": "static whole-scene features at the teacher-selected H price",
+        "feature_storage": "float32; existing rule evaluated float64 rounded-to-4-decimal feature rows",
+        "label_semantics": {
+          "grid_selected": "chosen at least once by this heuristic; false does not mean infeasible or inferior",
+          "grid_selection_rank": "zero-based first insertion rank; -1 means not selected",
+          "grid_start_s": "first grid placement start; -1 means not selected",
+          "grid_duration_s": "first grid placement duration; -1 means not selected",
+          "grid_task_candidate": "candidate ID of each grid_plan row in insertion order",
+          "grid_selected_count": "number of placements; preserves repeats within a long window",
+          "rule_score_covered": "raw covered score; recovery clamps this to min(uncovered, covered)"
+        },
+        "optimality_claimed": false,
+        "sequential_state_features_included": false,
+        "validation_status": "grid_and_final_independent_1s_passed",
+        "famou": {
+          "mode": "local_adopted_rule",
+          "runtime_cloud_calls": 0
+        },
+        "timing_scope": "all H iterations, recoveries, features, labels and refinement; excludes windows and validation"
+      },
+      "teacher_timings": {
+        "price_fit_and_initial_recovery_s": 0.10203833400009898,
+        "candidate_features_and_rule_s": 0.012855999997555045,
+        "state_recovery_and_grid_labels_s": 0.007223042000987334,
+        "integer_second_refinement_s": 0.10040574999948149,
+        "total_s": 0.2225481250025041
+      },
+      "refinement": {
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.0,
+          "dur_before": 234.86338797814207,
+          "dur_after": 237.22586520947178,
+          "tasks_longer": 44
+        },
+        "insert": {
+          "added": 0,
+          "skipped": true
+        }
+      },
+      "metrics": {
+        "tasks": 549,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1579.9866666666667,
+        "combined": 1.8570574712643677,
+        "repeat_tasks": 351,
+        "mean_dur_s": 237.22586520947178,
+        "covered_高": 40,
+        "total_高": 40,
+        "covered_中": 60,
+        "total_中": 60,
+        "covered_低": 98,
+        "total_低": 100,
+        "station_busy_h": [
+          3.4,
+          5.2,
+          6.0,
+          6.1,
+          3.2,
+          2.8,
+          3.7,
+          4.0,
+          3.5,
+          3.0
+        ]
+      },
+      "grid_metrics": {
+        "tasks": 549,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1565.6,
+        "combined": 1.844655172413793,
+        "repeat_tasks": 351,
+        "mean_dur_s": 234.86338797814207,
+        "covered_高": 40,
+        "total_高": 40,
+        "covered_中": 60,
+        "total_中": 60,
+        "covered_低": 98,
+        "total_低": 100,
+        "station_busy_h": [
+          3.4,
+          5.1,
+          5.9,
+          6.0,
+          3.2,
+          2.8,
+          3.6,
+          3.9,
+          3.5,
+          3.0
+        ]
+      },
+      "validation_wall_s": 9.327861209003458,
+      "scene_wall_s": 9.588429208000889,
+      "scene_numba_threads": 1,
+      "legal": true,
+      "geometry_checked": true,
+      "repairs": 0,
+      "task_provenance": "source_grid_row indexes pre-repair teacher insertion order; candidate_id indexes actions.npz"
+    },
+    {
+      "scene_id": "cat-000-v3",
+      "catalog_id": "cat-000",
+      "split": "train",
+      "path": "scenes/cat-000-v3",
+      "distribution": "nominal",
+      "n_targets": 200,
+      "n_stations": 5,
+      "full_variant_windows": 7887,
+      "pool_windows": 2339,
+      "candidate_rows": 10899,
+      "grid_positive_candidates": 545,
+      "grid_tasks": 545,
+      "final_tasks": 545,
+      "config": {
+        "data_dir": "input",
+        "start_utc": "2026-01-10T00:00:00+00:00",
+        "days": 6.0,
+        "cell_s": 30,
+        "elev_min": 10.0,
+        "elev_max": 85.0,
+        "use_sun": true,
+        "sun_max": -6.0,
+        "use_sunlit": true,
+        "elev_margin": 0.02,
+        "sun_margin": 0.05,
+        "sunlit_margin_km": 10.0,
+        "moon_sep_deg": 0.0,
+        "moon_margin_deg": 0.5,
+        "obs_min_s": 120,
+        "obs_max_s": 240,
+        "switch_s": 30,
+        "repeat_gap_h": 48.0,
+        "priority_score": {
+          "高": 5.0,
+          "中": 3.0,
+          "低": 2.0
+        },
+        "w_cov": 0.5,
+        "w_score": 0.5,
+        "score_ref": "sumP",
+        "seed": 2026110700
+      },
+      "variant": 3,
+      "variant_name": "half_station_capacity",
+      "base_station_indices": [
+        1,
+        2,
+        4,
+        5,
+        9
+      ],
+      "teacher": {
+        "teacher": "hplus_3_no_local_search",
+        "price_iterations_requested": 3,
+        "price_iterations_completed": 3,
+        "price_nonzero_cells": 0,
+        "price_max": 0.0,
+        "price_convergence_claimed": false,
+        "price_selection": "best recovered manual-rule objective in the fixed H iteration budget",
+        "duplicate_state_recovery_counted": true,
+        "local_search": false,
+        "finish_near": false,
+        "feature_names": [
+          "priority",
+          "duration_cells",
+          "task_score",
+          "cover_value",
+          "price_cost",
+          "price_per_cell",
+          "window_cells",
+          "slack_cells",
+          "target_windows",
+          "scarcity",
+          "urgency",
+          "conflict",
+          "night_pos",
+          "time_frac",
+          "max_obs",
+          "sub_pick",
+          "sub_pick_same_duration",
+          "sub_count",
+          "target_dual",
+          "window_demand"
+        ],
+        "feature_context": "static whole-scene features at the teacher-selected H price",
+        "feature_storage": "float32; existing rule evaluated float64 rounded-to-4-decimal feature rows",
+        "label_semantics": {
+          "grid_selected": "chosen at least once by this heuristic; false does not mean infeasible or inferior",
+          "grid_selection_rank": "zero-based first insertion rank; -1 means not selected",
+          "grid_start_s": "first grid placement start; -1 means not selected",
+          "grid_duration_s": "first grid placement duration; -1 means not selected",
+          "grid_task_candidate": "candidate ID of each grid_plan row in insertion order",
+          "grid_selected_count": "number of placements; preserves repeats within a long window",
+          "rule_score_covered": "raw covered score; recovery clamps this to min(uncovered, covered)"
+        },
+        "optimality_claimed": false,
+        "sequential_state_features_included": false,
+        "validation_status": "grid_and_final_independent_1s_passed",
+        "famou": {
+          "mode": "local_adopted_rule",
+          "runtime_cloud_calls": 0
+        },
+        "timing_scope": "all H iterations, recoveries, features, labels and refinement; excludes windows and validation"
+      },
+      "teacher_timings": {
+        "price_fit_and_initial_recovery_s": 0.09717370899670641,
+        "candidate_features_and_rule_s": 0.0114444579994597,
+        "state_recovery_and_grid_labels_s": 0.006542791998072062,
+        "integer_second_refinement_s": 0.10964554200108978,
+        "total_s": 0.22482829200089327
+      },
+      "refinement": {
+        "refine": {
+          "refined": true,
+          "seconds_bounds": 0.0,
+          "seconds_lp": 0.0,
+          "dur_before": 233.94495412844037,
+          "dur_after": 236.63853211009175,
+          "tasks_longer": 44
+        },
+        "insert": {
+          "added": 0,
+          "skipped": true
+        }
+      },
+      "metrics": {
+        "tasks": 545,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1481.2466666666667,
+        "combined": 1.848973187081048,
+        "repeat_tasks": 347,
+        "mean_dur_s": 236.63853211009175,
+        "covered_高": 28,
+        "total_高": 28,
+        "covered_中": 63,
+        "total_中": 63,
+        "covered_低": 107,
+        "total_低": 109,
+        "station_busy_h": [
+          10.3,
+          10.6,
+          6.7,
+          5.9,
+          6.9
+        ]
+      },
+      "grid_metrics": {
+        "tasks": 545,
+        "covered": 198,
+        "coverage_rate": 0.99,
+        "score": 1470.4,
+        "combined": 1.839058500914077,
+        "repeat_tasks": 347,
+        "mean_dur_s": 233.94495412844037,
+        "covered_高": 28,
+        "total_高": 28,
+        "covered_中": 63,
+        "total_中": 63,
+        "covered_低": 107,
+        "total_低": 109,
+        "station_busy_h": [
+          10.2,
+          10.5,
+          6.6,
+          5.8,
+          6.8
+        ]
+      },
+      "validation_wall_s": 9.224964040997293,
+      "scene_wall_s": 9.485879833999206,
+      "scene_numba_threads": 1,
+      "legal": true,
+      "geometry_checked": true,
+      "repairs": 0,
+      "task_provenance": "source_grid_row indexes pre-repair teacher insertion order; candidate_id indexes actions.npz"
+    }
+  ],
+  "catalogs": [
+    {
+      "catalog_id": "cat-000",
+      "split": "train",
+      "n_targets": 200,
+      "seed": 2026110700,
+      "start_utc": "2026-01-10T00:00:00+00:00",
+      "distribution": "nominal",
+      "n_windows": 16126,
+      "sgp4_failed": 0,
+      "geometry_wall_s": 1.5597610410004563,
+      "family_counts": {
+        "LEO": 139,
+        "MEO": 41,
+        "GEO_like": 20
+      }
+    }
+  ],
+  "status": "complete",
+  "dependencies": {
+    "python": "3.12.13",
+    "numpy": "2.5.4",
+    "sgp4": "2.27",
+    "skyfield": "1.55",
+    "numba": "0.68.0",
+    "ortools": "9.15.6755"
+  },
+  "environment": {
+    "system": "Darwin",
+    "machine": "arm64",
+    "workers": 4,
+    "scene_workers": 4,
+    "scene_numba_threads": 1,
+    "cpu_count": 10,
+    "thread_env": {
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1",
+      "NUMBA_NUM_THREADS": "1"
+    }
+  },
+  "ephemeris": {
+    "name": "de421.bsp",
+    "sha256": "a20a7139da04cbc462454634918e9a9ca69127044e2cc9d4f9c16e238d2deedc"
+  },
+  "base_commit": "a5d7835b86af5342640e8e6b896d35edcbaf8d92",
+  "generation_code_files": [
+    {
+      "path": "obsplan/__init__.py",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "obsplan/__main__.py",
+      "sha256": "95a16436a442378dc57ec4240c86ec1f8eea0b8a73c3f08e77851b6fafbac416"
+    },
+    {
+      "path": "obsplan/app_backend.py",
+      "sha256": "d6f37c04530854c01e570bfc2f6268465574764ca11d17d9e3381b5742a76eea"
+    },
+    {
+      "path": "obsplan/benchmark.py",
+      "sha256": "d7eb0269fc202ea81af099c109a4613300c03b884e8c51a1f16a9ab7369205b8"
+    },
+    {
+      "path": "obsplan/benchmark_worker.py",
+      "sha256": "2baf2009f2d68bfd58ee9b1e46d66ff1b3226fb4e2d5a536f397dd1fa7531daa"
+    },
+    {
+      "path": "obsplan/bounds.py",
+      "sha256": "76e64ce6ff385e291176d86fd2b270e1fc3926abf898d3c95508c9701c166c40"
+    },
+    {
+      "path": "obsplan/checks.py",
+      "sha256": "8c5a13635b7ffb8aefc25837b34a23e48913fbfaeecaa8503df28bb67a60d820"
+    },
+    {
+      "path": "obsplan/config.py",
+      "sha256": "c8b116b06f7ddd6bd61ed3ed68d117f85ccf2d4e2c15c52f3475471af77e3d20"
+    },
+    {
+      "path": "obsplan/cpsat.py",
+      "sha256": "ae7bf98b954c672d8f3c2738e1a270af05a2db3cdd9d44fa598ce9f80706dc44"
+    },
+    {
+      "path": "obsplan/data.py",
+      "sha256": "713ecb10bb1fa7facdaae6e4c1dbabf21f1752f46a822a426fd021642e856f21"
+    },
+    {
+      "path": "obsplan/dynamic.py",
+      "sha256": "89f81dcab895d03125574cb563860ed5c372edcff9c18578546aa6268f8bcc34"
+    },
+    {
+      "path": "obsplan/effort.py",
+      "sha256": "5b8f2fdcc1af37e68a2740e517c9ef02fd3d6ec95add469b3237de5b9c554c50"
+    },
+    {
+      "path": "obsplan/environment.py",
+      "sha256": "8870d7f098be2465944bf2cf5edaab5069d730569fadaa2c8d83ec1fdf33247a"
+    },
+    {
+      "path": "obsplan/evolved/__init__.py",
+      "sha256": "8355e13655a0c9b9262b22af2b9b364cb5a3a1213e4f06c53dd33a2e4bc2d969"
+    },
+    {
+      "path": "obsplan/evolved/recover_rule.py",
+      "sha256": "3b7fae52fa32d979b0854838a511128288b369ca5536eee50a23b085df3eda16"
+    },
+    {
+      "path": "obsplan/famou_eval.py",
+      "sha256": "5eb5a942482f666b0f31e4e677dd1f6e2579d9e6a5305913bc1fef6fdbeb692e"
+    },
+    {
+      "path": "obsplan/famou_h_eval.py",
+      "sha256": "5302daa1a35862918a398fea50671f05b74a5d4951e216eff03cf3d1959508db"
+    },
+    {
+      "path": "obsplan/fusion_merge.py",
+      "sha256": "0293a6be61b772444a2403b06f928c17ad8bd31aa618178d196b4a3fe2005947"
+    },
+    {
+      "path": "obsplan/fusion_pricecp.py",
+      "sha256": "4df261d18fbfc00e0776cc93af7168944efd1e50a6a40d30d952d04457b65680"
+    },
+    {
+      "path": "obsplan/ga.py",
+      "sha256": "1c0fa70745f781e57fea25a931a478b0356e6ea63aac7d56c8a8f3c0f06eba95"
+    },
+    {
+      "path": "obsplan/greedy.py",
+      "sha256": "f491de45acc2c5dc15823b27011bf23ed6281e9894f5b0f1382afaed69ca9d1f"
+    },
+    {
+      "path": "obsplan/lagrange.py",
+      "sha256": "928a872aae955845ae93451a4f2a0e7dcdb9e88c15d25c7e338683db28180ab2"
+    },
+    {
+      "path": "obsplan/lns.py",
+      "sha256": "bd5ebe72cf874b1f4631d0d5496370d0d986085168fc52546e7c6d0c0628872f"
+    },
+    {
+      "path": "obsplan/local_search.py",
+      "sha256": "f131ac66cd9634c6865e932cb7cb85841ac33b60d24f5b95e88c06d55d4dff13"
+    },
+    {
+      "path": "obsplan/portfolio.py",
+      "sha256": "fd4bdf3e4b8e5293d1fe79d07922a6b7acdcff4d15c8986b9203110782aea60e"
+    },
+    {
+      "path": "obsplan/problem.py",
+      "sha256": "ba8f5e53ac66a734f98abf51c863b6b49512dd70aea0180eae08776bbf1ab07d"
+    },
+    {
+      "path": "obsplan/refine.py",
+      "sha256": "ac5830c453eac3e23f8079d81bad7f7ae095a032aa0c563d686af3ab7e74e43b"
+    },
+    {
+      "path": "obsplan/schedule.py",
+      "sha256": "711956231923dbef5fc4fb3ed42fe72cea8755da222afcd9d6c0317abaee1534"
+    },
+    {
+      "path": "obsplan/target_status.py",
+      "sha256": "029baaf74a70ba7605e732ddbf9b60326a6add8f2edaa225608a6f5575f2db7b"
+    },
+    {
+      "path": "obsplan/training_data/__init__.py",
+      "sha256": "fc6bd7e8809dc26e0a73ba1a7f3f6f2c7afea3d0e147b1988ea39b8657ad7c85"
+    },
+    {
+      "path": "obsplan/training_data/build.py",
+      "sha256": "5b0e0dc7995a6e21f18cc30588e22dbf47615a33a864888b88491ce1a3df1f74"
+    },
+    {
+      "path": "obsplan/training_data/catalog.py",
+      "sha256": "5aec7fb380e241a752fecf405a9ec94fbc03f7c7d1857651a621195cc8e0b292"
+    },
+    {
+      "path": "obsplan/training_data/teacher.py",
+      "sha256": "63d44c5e2a851278c680dde0fe7d57bbc823e16875c40c7db9ce925fe6d912ab"
+    },
+    {
+      "path": "obsplan/validator.py",
+      "sha256": "4e96976bc6eaa5973cb6862bfd9c9f2f0f7235cf7d082998198d9564539431f0"
+    },
+    {
+      "path": "obsplan/visibility.py",
+      "sha256": "462e17066967735dbcd509870d08ecbddef3234ef54c3439fe1783f94ae7e08a"
+    }
+  ],
+  "sources": "original synthetic SGP4 mean elements; no external orbit data included",
+  "files": [
+    {
+      "path": "catalogs/cat-000/catalog.json",
+      "bytes": 324,
+      "sha256": "54f6755693ec2c0aef98a54f7d86c2372acb5e3d7afa9effe07ed38763f2281f"
+    },
+    {
+      "path": "catalogs/cat-000/targets.npz",
+      "bytes": 29933,
+      "sha256": "15f76747d94a1a8e36b0b9b56a5cc9594d7c5628808db7e12a5101a06d3a5ba3"
+    },
+    {
+      "path": "catalogs/cat-000/windows.npz",
+      "bytes": 75624,
+      "sha256": "b08221915710b78d505f673f4d55f65796a86923f9a4711dceb5dd731c044b9b"
+    },
+    {
+      "path": "scenes/cat-000-v0/actions.npz",
+      "bytes": 309978,
+      "sha256": "46d3ac981f8e23c2cb882fdb98c4db6a3a4ea0c16fef4b84c9810d4ffedf54ba"
+    },
+    {
+      "path": "scenes/cat-000-v0/final_geometry.npz",
+      "bytes": 12760,
+      "sha256": "29231ab18ca4e8f44836fa9165def7bbbde00a080686bb926217681aba62b739"
+    },
+    {
+      "path": "scenes/cat-000-v0/grid_geometry.npz",
+      "bytes": 12823,
+      "sha256": "ccf1f1e509ab7d7ddc4ec145e23c9c3873e61ce723f7c21ed161c181c9dfbbb9"
+    },
+    {
+      "path": "scenes/cat-000-v0/grid_plan.npz",
+      "bytes": 6341,
+      "sha256": "daef6dc04da5cf470963c3d917633530815037e2d69027b92d685456e7fd0481"
+    },
+    {
+      "path": "scenes/cat-000-v0/input/中优先级目标.txt",
+      "bytes": 414,
+      "sha256": "6c14535ee7cec423cf532bfea82ef28b3cc76eadb8188aeb6ac6ae080cb9adcb"
+    },
+    {
+      "path": "scenes/cat-000-v0/input/低优先级目标.txt",
+      "bytes": 522,
+      "sha256": "f3c94ce9345e21d74bacc10e7563fcf7ecc144a31efe693c4890451f7257d28b"
+    },
+    {
+      "path": "scenes/cat-000-v0/input/站址.txt",
+      "bytes": 455,
+      "sha256": "3dc53f2ae6784c4796cf56b0d9db2d60fde04889060538d0c574bd7aad5310d0"
+    },
+    {
+      "path": "scenes/cat-000-v0/input/轨道.txt",
+      "bytes": 31600,
+      "sha256": "313d209558a10374679d34650883d7b3eaaaa0d53e343f636370016ea7ac4b69"
+    },
+    {
+      "path": "scenes/cat-000-v0/input/高优先级目标.txt",
+      "bytes": 264,
+      "sha256": "fcc95b2a1e398a5056453a2fb566f3dd30b6d9eca78a265db39bf6730348f4fd"
+    },
+    {
+      "path": "scenes/cat-000-v0/plan.npz",
+      "bytes": 6380,
+      "sha256": "4f2e0efba92b00ddfd48e2d635b83956e2efc1bcfe913b441039e894bd3d9e03"
+    },
+    {
+      "path": "scenes/cat-000-v0/pool_source_indices.npz",
+      "bytes": 3986,
+      "sha256": "c167315ab4430eef5fa267232f432de31cbec5dad672ade34833001b4315f342"
+    },
+    {
+      "path": "scenes/cat-000-v0/pool_windows.npz",
+      "bytes": 13352,
+      "sha256": "adb409cf403cfe36437baaa8c3b728b7f2e861cfab675fac49032d0906aabc92"
+    },
+    {
+      "path": "scenes/cat-000-v0/scene.json",
+      "bytes": 5036,
+      "sha256": "2971f00f73b9069f655fb5a430736df7a5ecf14987a45ad70f314a7e9a7fd06d"
+    },
+    {
+      "path": "scenes/cat-000-v0/validation.json",
+      "bytes": 731,
+      "sha256": "3d0a909c9aecfbab517a1dfe20e72ab0ce3719aff0d5d94afe7c47f1f067d977"
+    },
+    {
+      "path": "scenes/cat-000-v1/actions.npz",
+      "bytes": 304049,
+      "sha256": "9453662513c4a8ab7a45d50c9dfaac41bfb2eb48acb0b701eb49aecb0c6276d5"
+    },
+    {
+      "path": "scenes/cat-000-v1/final_geometry.npz",
+      "bytes": 12669,
+      "sha256": "f16efdd33a4679733b6f64d5ea3fd5275f1f67ae304d01206f1a13927da81bd6"
+    },
+    {
+      "path": "scenes/cat-000-v1/grid_geometry.npz",
+      "bytes": 12756,
+      "sha256": "b3298bfa6596faff5f413745802d79776f02e6492eb65c99a9ac066c7a003ebe"
+    },
+    {
+      "path": "scenes/cat-000-v1/grid_plan.npz",
+      "bytes": 6297,
+      "sha256": "dd2d220195ac529b36170f890364e5ee9748b4fd161827204626ec1c704f9514"
+    },
+    {
+      "path": "scenes/cat-000-v1/input/中优先级目标.txt",
+      "bytes": 342,
+      "sha256": "54bb64e03fd16f7c215af71bf1f4739405fa140d25137275adb94c9250e3c562"
+    },
+    {
+      "path": "scenes/cat-000-v1/input/低优先级目标.txt",
+      "bytes": 228,
+      "sha256": "50dadf9ff77c3214e3a55762f16a9189b9cff18c1043b347032203836ce23544"
+    },
+    {
+      "path": "scenes/cat-000-v1/input/站址.txt",
+      "bytes": 455,
+      "sha256": "3dc53f2ae6784c4796cf56b0d9db2d60fde04889060538d0c574bd7aad5310d0"
+    },
+    {
+      "path": "scenes/cat-000-v1/input/轨道.txt",
+      "bytes": 31600,
+      "sha256": "313d209558a10374679d34650883d7b3eaaaa0d53e343f636370016ea7ac4b69"
+    },
+    {
+      "path": "scenes/cat-000-v1/input/高优先级目标.txt",
+      "bytes": 630,
+      "sha256": "eeace0a62b10219ab365a585bad2bab64f30b011cc06bb1f66e3dbec948ae4f6"
+    },
+    {
+      "path": "scenes/cat-000-v1/plan.npz",
+      "bytes": 6344,
+      "sha256": "c2bcafad630dd61ec0bc040b4e7eeaf93d0414106a0f1b266c3b6697e942eb7e"
+    },
+    {
+      "path": "scenes/cat-000-v1/pool_source_indices.npz",
+      "bytes": 3986,
+      "sha256": "c5057132473d601c9d083a79c31f55e52f9b650107a620c0b032efcd2e729d6f"
+    },
+    {
+      "path": "scenes/cat-000-v1/pool_windows.npz",
+      "bytes": 13327,
+      "sha256": "829aed519f236689ff2e2cddf67934835a0da46389a6c2f781caad7843169134"
+    },
+    {
+      "path": "scenes/cat-000-v1/scene.json",
+      "bytes": 5036,
+      "sha256": "f97e21c055524c5b6c3e7be428e8a6000f5d51888e0c93604c6ff80aa577cc5a"
+    },
+    {
+      "path": "scenes/cat-000-v1/validation.json",
+      "bytes": 732,
+      "sha256": "0d768a20d3da6686f7f2c22ad37d03fabefaa6348bd7ac6e28b2320c82305d88"
+    },
+    {
+      "path": "scenes/cat-000-v2/actions.npz",
+      "bytes": 302642,
+      "sha256": "fb13cba50f2438a5afe399b0bd5463a282207f4205354428e96f51175c20dade"
+    },
+    {
+      "path": "scenes/cat-000-v2/final_geometry.npz",
+      "bytes": 12926,
+      "sha256": "82663f9fe8f40484e83cd58ea31bc079596ffd491f1c842f45c3cf9703b64a68"
+    },
+    {
+      "path": "scenes/cat-000-v2/grid_geometry.npz",
+      "bytes": 12982,
+      "sha256": "1b282febff2a068163e579ef685ce462477cf7bd092112f4686d7e81eaf016e3"
+    },
+    {
+      "path": "scenes/cat-000-v2/grid_plan.npz",
+      "bytes": 6395,
+      "sha256": "49d58a8b9a3768522676f0d5007298f77c64ab030aff6586b0fde0d875e9da4c"
+    },
+    {
+      "path": "scenes/cat-000-v2/input/中优先级目标.txt",
+      "bytes": 360,
+      "sha256": "d477a8952538c1439efe0eb464cbeb5a8722192c5e0a1b3de1a0f4a0b9c4e1a3"
+    },
+    {
+      "path": "scenes/cat-000-v2/input/低优先级目标.txt",
+      "bytes": 600,
+      "sha256": "1a25d8d56778c505eb37e844d41314165fa9a574541a5905952ef188988aabc1"
+    },
+    {
+      "path": "scenes/cat-000-v2/input/站址.txt",
+      "bytes": 455,
+      "sha256": "3dc53f2ae6784c4796cf56b0d9db2d60fde04889060538d0c574bd7aad5310d0"
+    },
+    {
+      "path": "scenes/cat-000-v2/input/轨道.txt",
+      "bytes": 31600,
+      "sha256": "313d209558a10374679d34650883d7b3eaaaa0d53e343f636370016ea7ac4b69"
+    },
+    {
+      "path": "scenes/cat-000-v2/input/高优先级目标.txt",
+      "bytes": 240,
+      "sha256": "0a37184696e9008c1e25c764ef78c0f887639b6c0770481f01f9e03b397b5770"
+    },
+    {
+      "path": "scenes/cat-000-v2/plan.npz",
+      "bytes": 6429,
+      "sha256": "ec0a107c7d8c6073d98013625b5db47374fa6c3447629d2082966de0a4ba73d1"
+    },
+    {
+      "path": "scenes/cat-000-v2/pool_source_indices.npz",
+      "bytes": 3992,
+      "sha256": "f3a55436e03f9490e590accc29b9db2d01e275a8cfaab071d92d9c5fb3f039f1"
+    },
+    {
+      "path": "scenes/cat-000-v2/pool_windows.npz",
+      "bytes": 13321,
+      "sha256": "5a7e95f5822984f7c5b100deee8da85583e20d32c3996da901fd23784e02dfdd"
+    },
+    {
+      "path": "scenes/cat-000-v2/scene.json",
+      "bytes": 5043,
+      "sha256": "c2943b00e7a208ff6b7a3637d7ed868d5303d5ba85c96f0e3c9758fc16f2fd58"
+    },
+    {
+      "path": "scenes/cat-000-v2/validation.json",
+      "bytes": 731,
+      "sha256": "3f48317cde4e247ed5f7d25b64eb871b13d9d6967e1fba4f9c799d1b37a111f2"
+    },
+    {
+      "path": "scenes/cat-000-v3/actions.npz",
+      "bytes": 301665,
+      "sha256": "9d139b9307714bd150026c0db7df3019fea2e1cbfda0457e42202f27cdde9525"
+    },
+    {
+      "path": "scenes/cat-000-v3/final_geometry.npz",
+      "bytes": 12859,
+      "sha256": "97907370c9842b1daa310719d4e7d85451a794b9605a196381e26b63bae37a04"
+    },
+    {
+      "path": "scenes/cat-000-v3/grid_geometry.npz",
+      "bytes": 12892,
+      "sha256": "4a14a695266a6af10da715cd3abaebcffacc7fd2252cdb49dee6225dbbbdb160"
+    },
+    {
+      "path": "scenes/cat-000-v3/grid_plan.npz",
+      "bytes": 6269,
+      "sha256": "f93f35274b6b558b4632d30a6e39dbbc0a5eb62e58b135265d7cfa6a02af74e2"
+    },
+    {
+      "path": "scenes/cat-000-v3/input/中优先级目标.txt",
+      "bytes": 378,
+      "sha256": "8e8eca854dad357d6afa173d2e3dd3fba6cf6a6da0d086fcce22f9809853b8cd"
+    },
+    {
+      "path": "scenes/cat-000-v3/input/低优先级目标.txt",
+      "bytes": 654,
+      "sha256": "2f9b129f3250cdc24d2e88a14d64dc0e06e6ae8b4ca8da25594ab171a709af7f"
+    },
+    {
+      "path": "scenes/cat-000-v3/input/站址.txt",
+      "bytes": 225,
+      "sha256": "039b09f372968a0fbd280abdb37a22ff51c7d8ee8dddbb6cfc5ee607b8994b55"
+    },
+    {
+      "path": "scenes/cat-000-v3/input/轨道.txt",
+      "bytes": 31600,
+      "sha256": "313d209558a10374679d34650883d7b3eaaaa0d53e343f636370016ea7ac4b69"
+    },
+    {
+      "path": "scenes/cat-000-v3/input/高优先级目标.txt",
+      "bytes": 168,
+      "sha256": "2dfd383de100bd887f6932ac06c841493f962e42db84253aa79a94b8a6d48d69"
+    },
+    {
+      "path": "scenes/cat-000-v3/plan.npz",
+      "bytes": 6305,
+      "sha256": "535f5cfdd4b365f4b261d12869710f11ed2b7b1adf3bda8eca3b0cca9eac2003"
+    },
+    {
+      "path": "scenes/cat-000-v3/pool_source_indices.npz",
+      "bytes": 3886,
+      "sha256": "1064225a56ef5c1b098fe601cf05f8bbcaf8210ec543043486c991783f35b3a4"
+    },
+    {
+      "path": "scenes/cat-000-v3/pool_windows.npz",
+      "bytes": 12300,
+      "sha256": "341fcc9cb1e5ddcd733777df53171249c620313e523db3ecaa8c5765ea48a43a"
+    },
+    {
+      "path": "scenes/cat-000-v3/scene.json",
+      "bytes": 4895,
+      "sha256": "ae78a97a941b092aeba925194bb6eee115408cf860f15112f42dad1ca37eadc3"
+    },
+    {
+      "path": "scenes/cat-000-v3/validation.json",
+      "bytes": 731,
+      "sha256": "215aa934357c9309eda7998bb121ec6040693786dd6147a35f9318a130a57160"
+    }
+  ],
+  "summary": {
+    "catalogs": 1,
+    "scenes": 4,
+    "unique_synthetic_targets": 200,
+    "target_instances": 800,
+    "candidate_rows": 43838,
+    "grid_tasks": 2175,
+    "final_tasks": 2175,
+    "repaired_tasks": 0
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "scope": "post-production supplemental plan-linkage check; not data generation or physics validation",
+  "attempts": [
+    {
+      "attempt": 1,
+      "status": "interrupted",
+      "exit_code": 130,
+      "reason": "Manual SIGINT after identifying repeated NPZ decompression inside per-task comparison. No dataset files were changed; the already completed loader smoke output was retained."
+    },
+    {
+      "attempt": 2,
+      "status": "passed",
+      "change": "Vectorized source-row intersection and array comparison; same linkage assertions and original data.",
+      "evidence": "plan-linkage.json"
+    }
+  ]
+}
