@@ -87,8 +87,8 @@ def audit_spec_contract(manifest: dict) -> tuple[list[dict], dict]:
     require(all(re.fullmatch(r"v2-cat-\d{3}", x) for x in ids), "noncanonical v0.2 catalog ID")
     pilot = identity.get("pilot") is True
     if "specs_sha256" in identity:
-        digest = hashlib.sha256(json.dumps(rows, sort_keys=True, ensure_ascii=False,
-                                          allow_nan=False).encode()).hexdigest()
+        from .v2_sampling import specs_sha256
+        digest = specs_sha256(rows)
         require(identity["specs_sha256"] == digest, "frozen spec fingerprint differs")
     for row in rows:
         require(row["split"] in EXPECTED_SPLITS, "unknown spec split")

@@ -111,6 +111,21 @@ def test_sampling_report_and_spec_metadata_are_bound(corpus):
         v2.audit_dataset(corpus, allow_pilot=True)
 
 
+def test_spec_fingerprint_uses_sampler_canonical_serialization(corpus):
+    from obsplan.training_data.v2_sampling import specs_sha256
+    manifest=json.loads((corpus/'manifest.json').read_text())
+    rows=manifest['identity']['catalog_specs']
+    manifest['identity']['specs_sha256']=specs_sha256(rows)
+    # Compact canonical JSON is intentionally distinct from the transaction
+    # identity hash serialization, which keeps default separator whitespace.
+    assert manifest['identity']['specs_sha256'] != hashlib.sha256(
+        json.dumps(rows,sort_keys=True,ensure_ascii=False,allow_nan=False).encode()).hexdigest()
+    assert v2.audit_spec_contract(manifest)[0] == rows
+    manifest['identity']['specs_sha256']='0'*64
+    with pytest.raises(AuditError,match='frozen spec fingerprint differs'):
+        v2.audit_spec_contract(manifest)
+
+
 def test_full_contract_requires_exact_design_not_just_counts(monkeypatch):
     rows = [dict(catalog_id=f'v2-cat-{k:03d}', split='train' if k<420 else ('validation' if k<510 else 'test'),
                  n_targets=1000, n_stations=4, seed=k,

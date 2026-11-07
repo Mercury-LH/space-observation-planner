@@ -1,0 +1,15 @@
+{
+  "returncode": 0,
+  "wall_s": 0.32867025000450667,
+  "before": {
+    "manifest.json": "9a5be2d08e2fe65ef792829577c4f42a51957b10691cb9245491086967d2546e",
+    "events.jsonl": "592a306582bbde9793e2e84104d6e322bc331469b25ff8ee20776f570a7ac55f"
+  },
+  "after": {
+    "manifest.json": "9a5be2d08e2fe65ef792829577c4f42a51957b10691cb9245491086967d2546e",
+    "events.jsonl": "592a306582bbde9793e2e84104d6e322bc331469b25ff8ee20776f570a7ac55f"
+  },
+  "stdout": "{\"already_complete\": true, \"catalogs\": 10, \"scenes\": 10, \"unique_synthetic_targets\": 77217, \"target_instances\": 77217, \"candidate_rows\": 4225328, \"grid_tasks\": 62086, \"final_tasks\": 62086, \"repaired_tasks\": 0}\n",
+  "stderr": "",
+  "passed": true
+}

@@ -1,0 +1,820 @@
+{
+  "passed": true,
+  "dataset_version": "synthetic-v0.2",
+  "pilot": true,
+  "checksums": {
+    "verified_files": 180,
+    "verified_bytes": 160377009,
+    "manifest_sha256": "9a5be2d08e2fe65ef792829577c4f42a51957b10691cb9245491086967d2546e",
+    "events_sha256": "592a306582bbde9793e2e84104d6e322bc331469b25ff8ee20776f570a7ac55f",
+    "manifest_exclusions": [
+      "manifest.json",
+      "events.jsonl",
+      ".cache/**"
+    ]
+  },
+  "counts": {
+    "catalogs": 10,
+    "scenes": 10,
+    "unique_synthetic_targets": 77217,
+    "target_instances": 77217,
+    "candidate_rows": 4225328,
+    "grid_tasks": 62086,
+    "final_tasks": 62086,
+    "repaired_tasks": 0
+  },
+  "sampling_report": {
+    "passed": false,
+    "errors": [
+      "expected 600 independent catalogs",
+      "split counts differ from 420/90/90",
+      "expected 540 nominal and 60 separately labeled stress catalogs",
+      "train: incorrect nominal catalog count",
+      "train: month strata differ",
+      "train/n_targets: truncated-normal sampling contract failed",
+      "train/n_stations: truncated-normal sampling contract failed",
+      "train/leo_fraction: truncated-normal sampling contract failed",
+      "train/meo_remaining_fraction: truncated-normal sampling contract failed",
+      "train/high_priority_fraction: truncated-normal sampling contract failed",
+      "train/medium_remaining_fraction: truncated-normal sampling contract failed",
+      "train/leo_altitude_mean_km: truncated-normal sampling contract failed",
+      "train/leo_inclination_mean_deg: truncated-normal sampling contract failed",
+      "validation: incorrect nominal catalog count",
+      "validation: month strata differ",
+      "validation: fewer than nine nominal large catalogs",
+      "test: incorrect nominal catalog count",
+      "test: month strata differ",
+      "test: fewer than nine nominal large catalogs",
+      "test: malformed nominal controls (ValueError)",
+      "validation: stress-type counts differ",
+      "test: stress-type counts differ"
+    ],
+    "sampling_version": "synthetic-v0.2-sampling-1",
+    "specs_sha256": "ce7ecbdd527a92067a9b5051264a2716108a49879fa7f8a09d4c166f17fde3e7",
+    "counts": {
+      "catalogs": 10,
+      "core": 4,
+      "stress": 6,
+      "by_split": {
+        "train": 3,
+        "validation": 7
+      }
+    },
+    "core_distribution_checks": {
+      "train": {
+        "n_targets": {
+          "n": 3,
+          "params": [
+            7000.0,
+            3000.0,
+            1000.0,
+            16000.0
+          ],
+          "max_cdf_error": 0.63687644846302,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "n_stations": {
+          "n": 3,
+          "params": [
+            10.0,
+            2.5,
+            4.0,
+            16.0
+          ],
+          "max_cdf_error": 0.5594134946301879,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "leo_fraction": {
+          "n": 3,
+          "params": [
+            0.7,
+            0.1,
+            0.4,
+            0.92
+          ],
+          "max_cdf_error": 0.5344643023069993,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "meo_remaining_fraction": {
+          "n": 3,
+          "params": [
+            0.65,
+            0.12,
+            0.25,
+            0.9
+          ],
+          "max_cdf_error": 0.3870301576437193,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "high_priority_fraction": {
+          "n": 3,
+          "params": [
+            0.25,
+            0.1,
+            0.03,
+            0.55
+          ],
+          "max_cdf_error": 0.3358573284571378,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "medium_remaining_fraction": {
+          "n": 3,
+          "params": [
+            0.4,
+            0.1,
+            0.15,
+            0.75
+          ],
+          "max_cdf_error": 0.3485723603976751,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "leo_altitude_mean_km": {
+          "n": 3,
+          "params": [
+            1000.0,
+            180.0,
+            650.0,
+            1450.0
+          ],
+          "max_cdf_error": 0.39781374362950955,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        },
+        "leo_inclination_mean_deg": {
+          "n": 3,
+          "params": [
+            65.0,
+            20.0,
+            20.0,
+            105.0
+          ],
+          "max_cdf_error": 0.3336272803714959,
+          "limit": 0.3333333333343333,
+          "one_per_quantile_stratum": false,
+          "passed": false
+        }
+      },
+      "validation": {
+        "n_targets": {
+          "n": 1,
+          "params": [
+            7000.0,
+            3000.0,
+            1000.0,
+            16000.0
+          ],
+          "max_cdf_error": 0.5008255744418358,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "n_stations": {
+          "n": 1,
+          "params": [
+            10.0,
+            2.5,
+            4.0,
+            16.0
+          ],
+          "max_cdf_error": 0.9688496075081934,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "leo_fraction": {
+          "n": 1,
+          "params": [
+            0.7,
+            0.1,
+            0.4,
+            0.92
+          ],
+          "max_cdf_error": 0.7915448551164523,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "meo_remaining_fraction": {
+          "n": 1,
+          "params": [
+            0.65,
+            0.12,
+            0.25,
+            0.9
+          ],
+          "max_cdf_error": 0.6006881946787958,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "high_priority_fraction": {
+          "n": 1,
+          "params": [
+            0.25,
+            0.1,
+            0.03,
+            0.55
+          ],
+          "max_cdf_error": 0.5770494640482065,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "medium_remaining_fraction": {
+          "n": 1,
+          "params": [
+            0.4,
+            0.1,
+            0.15,
+            0.75
+          ],
+          "max_cdf_error": 0.6068375776772401,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "leo_altitude_mean_km": {
+          "n": 1,
+          "params": [
+            1000.0,
+            180.0,
+            650.0,
+            1450.0
+          ],
+          "max_cdf_error": 0.5837088860128777,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        },
+        "leo_inclination_mean_deg": {
+          "n": 1,
+          "params": [
+            65.0,
+            20.0,
+            20.0,
+            105.0
+          ],
+          "max_cdf_error": 0.8211641077903848,
+          "limit": 1.000000000001,
+          "one_per_quantile_stratum": true,
+          "passed": true
+        }
+      },
+      "test": {}
+    },
+    "coverage": {
+      "train": {
+        "core_catalogs": 3,
+        "size_bins": {
+          "small": 1,
+          "large": 2
+        },
+        "month_counts": {
+          "7": 1,
+          "9": 1,
+          "10": 1
+        },
+        "targets_ge_10000": 2,
+        "targets_le_3000": 1,
+        "total_targets": 29635
+      },
+      "validation": {
+        "core_catalogs": 1,
+        "size_bins": {
+          "medium": 1
+        },
+        "month_counts": {
+          "6": 1
+        },
+        "targets_ge_10000": 0,
+        "targets_le_3000": 0,
+        "total_targets": 7087
+      },
+      "test": {
+        "core_catalogs": 0,
+        "size_bins": {},
+        "month_counts": {},
+        "targets_ge_10000": 0,
+        "targets_le_3000": 0,
+        "total_targets": 0
+      }
+    },
+    "stress_counts": {
+      "validation": {
+        "high_load": 1,
+        "low_load": 1,
+        "leo_polar": 1,
+        "high_orbit": 1,
+        "high_priority": 1,
+        "regional_network": 1
+      },
+      "test": {}
+    },
+    "interpretation": "stratified truncated-normal scalar controls in core only; not IID normality, orbital-population fit or a Gaussian mixture claim for all scenes"
+  },
+  "v1_reference": {
+    "checked": true,
+    "manifest_sha256": "eae61447a9a2a5ada83d88809229b204ee3e1ba81f7c6bc760b1d0bfc52cd98c",
+    "catalogs": 30,
+    "targets": 103000,
+    "identity": "SGP4 mean elements, epoch and drag; identity fields excluded"
+  },
+  "plan_provenance": {
+    "passed": true,
+    "matched_final_tasks": 62086
+  },
+  "quality": {
+    "covered": {
+      "min": 1076.0,
+      "median": 3817.5,
+      "max": 9634.0
+    },
+    "coverage_rate": {
+      "min": 0.29827423909632883,
+      "median": 0.6853722465546839,
+      "max": 1.0
+    },
+    "score": {
+      "min": 9102.18,
+      "median": 19743.41333333333,
+      "max": 45949.05333333333
+    },
+    "combined": {
+      "min": 0.38002332307329034,
+      "median": 0.8407974802598517,
+      "max": 1.82762252042007
+    }
+  },
+  "groups": {
+    "split": {
+      "train": {
+        "scenes": 3,
+        "catalogs": 3,
+        "target_instances": 29635,
+        "candidate_rows": 1638344,
+        "grid_tasks": 21783,
+        "final_tasks": 21783,
+        "quality": {
+          "covered": {
+            "min": 1076.0,
+            "median": 4753.0,
+            "max": 9634.0
+          },
+          "coverage_rate": {
+            "min": 0.29827423909632883,
+            "median": 0.763149556400507,
+            "max": 1.0
+          },
+          "score": {
+            "min": 9102.18,
+            "median": 22985.183333333334,
+            "max": 45949.05333333333
+          },
+          "combined": {
+            "min": 0.38002332307329034,
+            "median": 0.9904457046218649,
+            "max": 1.82762252042007
+          }
+        }
+      },
+      "validation": {
+        "scenes": 7,
+        "catalogs": 7,
+        "target_instances": 47582,
+        "candidate_rows": 2586984,
+        "grid_tasks": 40303,
+        "final_tasks": 40303,
+        "quality": {
+          "covered": {
+            "min": 1745.0,
+            "median": 3614.0,
+            "max": 6048.0
+          },
+          "coverage_rate": {
+            "min": 0.34391183109812773,
+            "median": 0.6075949367088608,
+            "max": 1.0
+          },
+          "score": {
+            "min": 13804.936666666666,
+            "median": 19282.45333333333,
+            "max": 31009.06
+          },
+          "combined": {
+            "min": 0.4934573746251024,
+            "median": 0.6911492558978386,
+            "max": 1.7889763460939931
+          }
+        }
+      }
+    },
+    "distribution": {
+      "nominal_gaussian": {
+        "scenes": 4,
+        "catalogs": 4,
+        "target_instances": 36722,
+        "candidate_rows": 2036720,
+        "grid_tasks": 26676,
+        "final_tasks": 26676,
+        "quality": {
+          "covered": {
+            "min": 1076.0,
+            "median": 4142.5,
+            "max": 9634.0
+          },
+          "coverage_rate": {
+            "min": 0.29827423909632883,
+            "median": 0.6307634334845769,
+            "max": 1.0
+          },
+          "score": {
+            "min": 9102.18,
+            "median": 21133.818333333333,
+            "max": 45949.05333333333
+          },
+          "combined": {
+            "min": 0.38002332307329034,
+            "median": 0.8395452137437561,
+            "max": 1.82762252042007
+          }
+        }
+      },
+      "stress": {
+        "scenes": 6,
+        "catalogs": 6,
+        "target_instances": 40495,
+        "candidate_rows": 2188608,
+        "grid_tasks": 35410,
+        "final_tasks": 35410,
+        "quality": {
+          "covered": {
+            "min": 1745.0,
+            "median": 3817.5,
+            "max": 6048.0
+          },
+          "coverage_rate": {
+            "min": 0.34391183109812773,
+            "median": 0.6896998695937797,
+            "max": 1.0
+          },
+          "score": {
+            "min": 13804.936666666666,
+            "median": 19522.415,
+            "max": 31009.06
+          },
+          "combined": {
+            "min": 0.4934573746251024,
+            "median": 0.9016664960213032,
+            "max": 1.7889763460939931
+          }
+        }
+      }
+    },
+    "size_bin": {
+      "small": {
+        "scenes": 3,
+        "catalogs": 3,
+        "target_instances": 6454,
+        "candidate_rows": 364420,
+        "grid_tasks": 13836,
+        "final_tasks": 13836,
+        "quality": {
+          "covered": {
+            "min": 1076.0,
+            "median": 1745.0,
+            "max": 3614.0
+          },
+          "coverage_rate": {
+            "min": 0.9947701624002202,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "score": {
+            "min": 9102.18,
+            "median": 13804.936666666666,
+            "max": 20204.373333333333
+          },
+          "combined": {
+            "min": 1.4455020841721107,
+            "median": 1.7889763460939931,
+            "max": 1.82762252042007
+          }
+        }
+      },
+      "large": {
+        "scenes": 3,
+        "catalogs": 3,
+        "target_instances": 39736,
+        "candidate_rows": 2183099,
+        "grid_tasks": 24173,
+        "final_tasks": 24173,
+        "quality": {
+          "covered": {
+            "min": 4021.0,
+            "median": 4753.0,
+            "max": 9634.0
+          },
+          "coverage_rate": {
+            "min": 0.29827423909632883,
+            "median": 0.35975664310637917,
+            "max": 0.763149556400507
+          },
+          "score": {
+            "min": 18840.456666666665,
+            "median": 22985.183333333334,
+            "max": 45949.05333333333
+          },
+          "combined": {
+            "min": 0.38002332307329034,
+            "median": 0.4934573746251024,
+            "max": 0.9904457046218649
+          }
+        }
+      },
+      "medium": {
+        "scenes": 4,
+        "catalogs": 4,
+        "target_instances": 31027,
+        "candidate_rows": 1677809,
+        "grid_tasks": 24077,
+        "final_tasks": 24077,
+        "quality": {
+          "covered": {
+            "min": 2590.0,
+            "median": 4257.0,
+            "max": 6048.0
+          },
+          "coverage_rate": {
+            "min": 0.34391183109812773,
+            "median": 0.5529861236387538,
+            "max": 0.7718048024786986
+          },
+          "score": {
+            "min": 15047.93,
+            "median": 23808.796666666665,
+            "max": 31009.06
+          },
+          "combined": {
+            "min": 0.5028396395474807,
+            "median": 0.689896989381743,
+            "max": 1.112183736144768
+          }
+        }
+      }
+    },
+    "stress_type": {
+      "None": {
+        "scenes": 4,
+        "catalogs": 4,
+        "target_instances": 36722,
+        "candidate_rows": 2036720,
+        "grid_tasks": 26676,
+        "final_tasks": 26676,
+        "quality": {
+          "covered": {
+            "min": 1076.0,
+            "median": 4142.5,
+            "max": 9634.0
+          },
+          "coverage_rate": {
+            "min": 0.29827423909632883,
+            "median": 0.6307634334845769,
+            "max": 1.0
+          },
+          "score": {
+            "min": 9102.18,
+            "median": 21133.818333333333,
+            "max": 45949.05333333333
+          },
+          "combined": {
+            "min": 0.38002332307329034,
+            "median": 0.8395452137437561,
+            "max": 1.82762252042007
+          }
+        }
+      },
+      "high_load": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 11177,
+        "candidate_rows": 606845,
+        "grid_tasks": 5245,
+        "final_tasks": 5245,
+        "quality": {
+          "covered": {
+            "min": 4021.0,
+            "median": 4021.0,
+            "max": 4021.0
+          },
+          "coverage_rate": {
+            "min": 0.35975664310637917,
+            "median": 0.35975664310637917,
+            "max": 0.35975664310637917
+          },
+          "score": {
+            "min": 18840.456666666665,
+            "median": 18840.456666666665,
+            "max": 18840.456666666665
+          },
+          "combined": {
+            "min": 0.4934573746251024,
+            "median": 0.4934573746251024,
+            "max": 0.4934573746251024
+          }
+        }
+      },
+      "low_load": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 1745,
+        "candidate_rows": 98150,
+        "grid_tasks": 4454,
+        "final_tasks": 4454,
+        "quality": {
+          "covered": {
+            "min": 1745.0,
+            "median": 1745.0,
+            "max": 1745.0
+          },
+          "coverage_rate": {
+            "min": 1.0,
+            "median": 1.0,
+            "max": 1.0
+          },
+          "score": {
+            "min": 13804.936666666666,
+            "median": 13804.936666666666,
+            "max": 13804.936666666666
+          },
+          "combined": {
+            "min": 1.7889763460939931,
+            "median": 1.7889763460939931,
+            "max": 1.7889763460939931
+          }
+        }
+      },
+      "leo_polar": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 3633,
+        "candidate_rows": 204180,
+        "grid_tasks": 6527,
+        "final_tasks": 6527,
+        "quality": {
+          "covered": {
+            "min": 3614.0,
+            "median": 3614.0,
+            "max": 3614.0
+          },
+          "coverage_rate": {
+            "min": 0.9947701624002202,
+            "median": 0.9947701624002202,
+            "max": 0.9947701624002202
+          },
+          "score": {
+            "min": 20204.373333333333,
+            "median": 20204.373333333333,
+            "max": 20204.373333333333
+          },
+          "combined": {
+            "min": 1.4455020841721107,
+            "median": 1.4455020841721107,
+            "max": 1.4455020841721107
+          }
+        }
+      },
+      "high_orbit": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 6455,
+        "candidate_rows": 378958,
+        "grid_tasks": 8550,
+        "final_tasks": 8550,
+        "quality": {
+          "covered": {
+            "min": 4982.0,
+            "median": 4982.0,
+            "max": 4982.0
+          },
+          "coverage_rate": {
+            "min": 0.7718048024786986,
+            "median": 0.7718048024786986,
+            "max": 0.7718048024786986
+          },
+          "score": {
+            "min": 28335.14,
+            "median": 28335.14,
+            "max": 28335.14
+          },
+          "combined": {
+            "min": 1.112183736144768,
+            "median": 1.112183736144768,
+            "max": 1.112183736144768
+          }
+        }
+      },
+      "high_priority": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 9954,
+        "candidate_rows": 518900,
+        "grid_tasks": 7038,
+        "final_tasks": 7038,
+        "quality": {
+          "covered": {
+            "min": 6048.0,
+            "median": 6048.0,
+            "max": 6048.0
+          },
+          "coverage_rate": {
+            "min": 0.6075949367088608,
+            "median": 0.6075949367088608,
+            "max": 0.6075949367088608
+          },
+          "score": {
+            "min": 31009.06,
+            "median": 31009.06,
+            "max": 31009.06
+          },
+          "combined": {
+            "min": 0.6911492558978386,
+            "median": 0.6911492558978386,
+            "max": 0.6911492558978386
+          }
+        }
+      },
+      "regional_network": {
+        "scenes": 1,
+        "catalogs": 1,
+        "target_instances": 7531,
+        "candidate_rows": 381575,
+        "grid_tasks": 3596,
+        "final_tasks": 3596,
+        "quality": {
+          "covered": {
+            "min": 2590.0,
+            "median": 2590.0,
+            "max": 2590.0
+          },
+          "coverage_rate": {
+            "min": 0.34391183109812773,
+            "median": 0.34391183109812773,
+            "max": 0.34391183109812773
+          },
+          "score": {
+            "min": 15047.93,
+            "median": 15047.93,
+            "max": 15047.93
+          },
+          "combined": {
+            "min": 0.5028396395474807,
+            "median": 0.5028396395474807,
+            "max": 0.5028396395474807
+          }
+        }
+      }
+    }
+  },
+  "timings": {
+    "catalog_geometry_wall_s": 622.0983759560113,
+    "teacher_wall_s": 79.64349958301318,
+    "validation_wall_s": 203.58648033101053,
+    "scene_wall_s": 295.37447458301176,
+    "elapsed_first_start_to_last_complete_s": 264.845131,
+    "interpretation": "production costs; concurrent stage sums overlap and are not algorithm speed rankings"
+  },
+  "events": {
+    "counts": {
+      "build_start": 1,
+      "catalog_scene_complete": 10,
+      "build_complete": 1
+    },
+    "failures": 0,
+    "failure_events": 0,
+    "timeouts": 0,
+    "scenes_with_repairs": 0,
+    "repaired_tasks": 0,
+    "retained_attempts": 0,
+    "retained_files": 0,
+    "recorded_failures": 0,
+    "recorded_timeouts": 0,
+    "ledger_entries_without_event": 0,
+    "attempts": []
+  },
+  "evidence_scope": "saved one-second grid/final evidence checked; Skyfield was not rerun",
+  "split_isolation": "frozen catalog specs plus full orbital hashes, including the v0.1 reference",
+  "memory_policy": "one catalog at a time; exact orbital identities in temporary SQLite"
+}
