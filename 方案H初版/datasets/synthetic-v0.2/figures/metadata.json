@@ -13,8 +13,8 @@
   "curve_notes": "Core continuous controls: normalized truncated-normal density; integer station count: integrated rounded truncated-normal PMF; independent plotting from frozen JSON only.",
   "files": {
     "core-distributions.png": "e37caad4706c3bda57e801d3d74a847c63ed985bcdf6873b5c58baf5e970d162",
-    "core-distributions.svg": "0e87336faf5933a99b867fb3d604927da0d19559e7ca3955ea12a8f201a2e418",
+    "core-distributions.svg": "75dd27f339f7b06acd220ab8cd1fe82991b2f8e6497fbff88a08b0fa8e45e528",
     "scenario-coverage.png": "ef6c56fb245d36081db7b010c6944c8aaecfda7c4cd248fd5990cfdcf4d44e52",
-    "scenario-coverage.svg": "63eeba6b443083a52b3602e6cc975f3b1c42b09a05361577f1a3e93bd212078a"
+    "scenario-coverage.svg": "8c1a348bf3e6025472705bfacce376d1731bbbdd1bd4e59e644575bb8e441638"
   }
 }
