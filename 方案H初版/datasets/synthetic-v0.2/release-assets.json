@@ -1,0 +1,1352 @@
+{
+  "dataset_version": "synthetic-v0.2",
+  "release_tag": "synthetic-data-v0.2",
+  "repository": "Mercury-LH/space-observation-planner",
+  "group_size": 10,
+  "summary": {
+    "catalogs": 600,
+    "scenes": 600,
+    "unique_synthetic_targets": 4334032,
+    "target_instances": 4334032,
+    "candidate_rows": 233961952,
+    "grid_tasks": 4707694,
+    "final_tasks": 4707694,
+    "repaired_tasks": 2
+  },
+  "assets": [
+    {
+      "name": "synthetic-v0.2-group-000.tar.gz",
+      "bytes": 146273587,
+      "sha256": "bec274736dbc30381d0016bc4e069cf3b567b55714d4800944b14a9119edd7ee",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-000.tar.gz",
+      "group_id": 0,
+      "catalog_ids": [
+        "v2-cat-000",
+        "v2-cat-001",
+        "v2-cat-002",
+        "v2-cat-003",
+        "v2-cat-004",
+        "v2-cat-005",
+        "v2-cat-006",
+        "v2-cat-007",
+        "v2-cat-008",
+        "v2-cat-009"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-001.tar.gz",
+      "bytes": 132006848,
+      "sha256": "541da5df4820253260d6c23f66a8524cc72d46de82a9882710ced4f757f4737d",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-001.tar.gz",
+      "group_id": 1,
+      "catalog_ids": [
+        "v2-cat-010",
+        "v2-cat-011",
+        "v2-cat-012",
+        "v2-cat-013",
+        "v2-cat-014",
+        "v2-cat-015",
+        "v2-cat-016",
+        "v2-cat-017",
+        "v2-cat-018",
+        "v2-cat-019"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-002.tar.gz",
+      "bytes": 141945952,
+      "sha256": "9b462cebd41cc7076c0f57c21348e6888383ed3b755ce9677d7d189d5c16229e",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-002.tar.gz",
+      "group_id": 2,
+      "catalog_ids": [
+        "v2-cat-020",
+        "v2-cat-021",
+        "v2-cat-022",
+        "v2-cat-023",
+        "v2-cat-024",
+        "v2-cat-025",
+        "v2-cat-026",
+        "v2-cat-027",
+        "v2-cat-028",
+        "v2-cat-029"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-003.tar.gz",
+      "bytes": 126825393,
+      "sha256": "337728a4dfb0bed96fa0a380e2e3b3edcf5b712a60eccb35dc3bfe7c475fb800",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-003.tar.gz",
+      "group_id": 3,
+      "catalog_ids": [
+        "v2-cat-030",
+        "v2-cat-031",
+        "v2-cat-032",
+        "v2-cat-033",
+        "v2-cat-034",
+        "v2-cat-035",
+        "v2-cat-036",
+        "v2-cat-037",
+        "v2-cat-038",
+        "v2-cat-039"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-004.tar.gz",
+      "bytes": 146686798,
+      "sha256": "70f44a673768951a9f279a21ab5f923afc2ec10fde1b65f800973820df18d4d4",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-004.tar.gz",
+      "group_id": 4,
+      "catalog_ids": [
+        "v2-cat-040",
+        "v2-cat-041",
+        "v2-cat-042",
+        "v2-cat-043",
+        "v2-cat-044",
+        "v2-cat-045",
+        "v2-cat-046",
+        "v2-cat-047",
+        "v2-cat-048",
+        "v2-cat-049"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-005.tar.gz",
+      "bytes": 158129486,
+      "sha256": "b61d70de4b21481ae7035e83fa13d3d04d0c72198e8418728885d7aabfca8429",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-005.tar.gz",
+      "group_id": 5,
+      "catalog_ids": [
+        "v2-cat-050",
+        "v2-cat-051",
+        "v2-cat-052",
+        "v2-cat-053",
+        "v2-cat-054",
+        "v2-cat-055",
+        "v2-cat-056",
+        "v2-cat-057",
+        "v2-cat-058",
+        "v2-cat-059"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-006.tar.gz",
+      "bytes": 165509310,
+      "sha256": "ff904b5b2c444fbe8ae9eba95927e7d4b5577416babece5039d884666321da19",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-006.tar.gz",
+      "group_id": 6,
+      "catalog_ids": [
+        "v2-cat-060",
+        "v2-cat-061",
+        "v2-cat-062",
+        "v2-cat-063",
+        "v2-cat-064",
+        "v2-cat-065",
+        "v2-cat-066",
+        "v2-cat-067",
+        "v2-cat-068",
+        "v2-cat-069"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-007.tar.gz",
+      "bytes": 154594200,
+      "sha256": "cff871ee9851d2e0fe63761f5b5d1a49947b9fc59bf5ea3c99ed4b2bc306fcc9",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-007.tar.gz",
+      "group_id": 7,
+      "catalog_ids": [
+        "v2-cat-070",
+        "v2-cat-071",
+        "v2-cat-072",
+        "v2-cat-073",
+        "v2-cat-074",
+        "v2-cat-075",
+        "v2-cat-076",
+        "v2-cat-077",
+        "v2-cat-078",
+        "v2-cat-079"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "bytes": 170089272,
+      "sha256": "fdea42ca84db237677ebbcdf583061d7c6321e43bee429357b0fe9ae5f803f84",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-008.tar.gz",
+      "group_id": 8,
+      "catalog_ids": [
+        "v2-cat-080",
+        "v2-cat-081",
+        "v2-cat-082",
+        "v2-cat-083",
+        "v2-cat-084",
+        "v2-cat-085",
+        "v2-cat-086",
+        "v2-cat-087",
+        "v2-cat-088",
+        "v2-cat-089"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-009.tar.gz",
+      "bytes": 136195387,
+      "sha256": "0d06f5a39ea72d224ce5d102acc305674206c0e44b825c43b5384052393e13cd",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-009.tar.gz",
+      "group_id": 9,
+      "catalog_ids": [
+        "v2-cat-090",
+        "v2-cat-091",
+        "v2-cat-092",
+        "v2-cat-093",
+        "v2-cat-094",
+        "v2-cat-095",
+        "v2-cat-096",
+        "v2-cat-097",
+        "v2-cat-098",
+        "v2-cat-099"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-010.tar.gz",
+      "bytes": 145135076,
+      "sha256": "d8b29695b47c08f74a5b526654c49296e3a2dcad4e2e46a7334b80cb49f22a4f",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-010.tar.gz",
+      "group_id": 10,
+      "catalog_ids": [
+        "v2-cat-100",
+        "v2-cat-101",
+        "v2-cat-102",
+        "v2-cat-103",
+        "v2-cat-104",
+        "v2-cat-105",
+        "v2-cat-106",
+        "v2-cat-107",
+        "v2-cat-108",
+        "v2-cat-109"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-011.tar.gz",
+      "bytes": 147533707,
+      "sha256": "abc8fcd73594c30fa682e583d2d76729da076210e92ba7c37cff88747cd09313",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-011.tar.gz",
+      "group_id": 11,
+      "catalog_ids": [
+        "v2-cat-110",
+        "v2-cat-111",
+        "v2-cat-112",
+        "v2-cat-113",
+        "v2-cat-114",
+        "v2-cat-115",
+        "v2-cat-116",
+        "v2-cat-117",
+        "v2-cat-118",
+        "v2-cat-119"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-012.tar.gz",
+      "bytes": 146260273,
+      "sha256": "9738a7520d085b66240f0db298613c60bc740841a0391366b578438788a29c13",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-012.tar.gz",
+      "group_id": 12,
+      "catalog_ids": [
+        "v2-cat-120",
+        "v2-cat-121",
+        "v2-cat-122",
+        "v2-cat-123",
+        "v2-cat-124",
+        "v2-cat-125",
+        "v2-cat-126",
+        "v2-cat-127",
+        "v2-cat-128",
+        "v2-cat-129"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-013.tar.gz",
+      "bytes": 154634811,
+      "sha256": "56d8c8fd5881000a3a97811c5fcfb7cb13ad26a20a046559b1d521c4a855ccc1",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-013.tar.gz",
+      "group_id": 13,
+      "catalog_ids": [
+        "v2-cat-130",
+        "v2-cat-131",
+        "v2-cat-132",
+        "v2-cat-133",
+        "v2-cat-134",
+        "v2-cat-135",
+        "v2-cat-136",
+        "v2-cat-137",
+        "v2-cat-138",
+        "v2-cat-139"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-014.tar.gz",
+      "bytes": 160387038,
+      "sha256": "de53f0c6ff5a03d3573e03954777705a1cb7b8116f4c6e265a03621583fdeedf",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-014.tar.gz",
+      "group_id": 14,
+      "catalog_ids": [
+        "v2-cat-140",
+        "v2-cat-141",
+        "v2-cat-142",
+        "v2-cat-143",
+        "v2-cat-144",
+        "v2-cat-145",
+        "v2-cat-146",
+        "v2-cat-147",
+        "v2-cat-148",
+        "v2-cat-149"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-015.tar.gz",
+      "bytes": 129520975,
+      "sha256": "8bde7ea686b16c39ff5a2dea4a9778c16152cb49ae6c84c0525b8deb8bdb6ee7",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-015.tar.gz",
+      "group_id": 15,
+      "catalog_ids": [
+        "v2-cat-150",
+        "v2-cat-151",
+        "v2-cat-152",
+        "v2-cat-153",
+        "v2-cat-154",
+        "v2-cat-155",
+        "v2-cat-156",
+        "v2-cat-157",
+        "v2-cat-158",
+        "v2-cat-159"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-016.tar.gz",
+      "bytes": 116904422,
+      "sha256": "300c05ec4faf114d2b56d44e9c69d6cc26cda62b11438a110b75bf8c2ee511c9",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-016.tar.gz",
+      "group_id": 16,
+      "catalog_ids": [
+        "v2-cat-160",
+        "v2-cat-161",
+        "v2-cat-162",
+        "v2-cat-163",
+        "v2-cat-164",
+        "v2-cat-165",
+        "v2-cat-166",
+        "v2-cat-167",
+        "v2-cat-168",
+        "v2-cat-169"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-017.tar.gz",
+      "bytes": 152863306,
+      "sha256": "298f165cd2cdc7cf56cbaff82afcb383716812d72081de0a05dff3d28c176b4a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-017.tar.gz",
+      "group_id": 17,
+      "catalog_ids": [
+        "v2-cat-170",
+        "v2-cat-171",
+        "v2-cat-172",
+        "v2-cat-173",
+        "v2-cat-174",
+        "v2-cat-175",
+        "v2-cat-176",
+        "v2-cat-177",
+        "v2-cat-178",
+        "v2-cat-179"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-018.tar.gz",
+      "bytes": 153419106,
+      "sha256": "37126ef2450055a43f19aaaf9e1a0a47d033be33ba536330d7ad1a34dd0967de",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-018.tar.gz",
+      "group_id": 18,
+      "catalog_ids": [
+        "v2-cat-180",
+        "v2-cat-181",
+        "v2-cat-182",
+        "v2-cat-183",
+        "v2-cat-184",
+        "v2-cat-185",
+        "v2-cat-186",
+        "v2-cat-187",
+        "v2-cat-188",
+        "v2-cat-189"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-019.tar.gz",
+      "bytes": 190859371,
+      "sha256": "0edc3c2ef42e7b68b7f2165fa8821b108bf38b510d54b91f615e9b841fa4d9c4",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-019.tar.gz",
+      "group_id": 19,
+      "catalog_ids": [
+        "v2-cat-190",
+        "v2-cat-191",
+        "v2-cat-192",
+        "v2-cat-193",
+        "v2-cat-194",
+        "v2-cat-195",
+        "v2-cat-196",
+        "v2-cat-197",
+        "v2-cat-198",
+        "v2-cat-199"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-020.tar.gz",
+      "bytes": 125816125,
+      "sha256": "2971187e5413470c63d1ea22a629548c5b7825dc59e1e7865c826c2a775f6758",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-020.tar.gz",
+      "group_id": 20,
+      "catalog_ids": [
+        "v2-cat-200",
+        "v2-cat-201",
+        "v2-cat-202",
+        "v2-cat-203",
+        "v2-cat-204",
+        "v2-cat-205",
+        "v2-cat-206",
+        "v2-cat-207",
+        "v2-cat-208",
+        "v2-cat-209"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-021.tar.gz",
+      "bytes": 170013598,
+      "sha256": "079424f9b0bf3ca779502c6c913b4129e9e37b3debc0feaf013db04e905668ac",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-021.tar.gz",
+      "group_id": 21,
+      "catalog_ids": [
+        "v2-cat-210",
+        "v2-cat-211",
+        "v2-cat-212",
+        "v2-cat-213",
+        "v2-cat-214",
+        "v2-cat-215",
+        "v2-cat-216",
+        "v2-cat-217",
+        "v2-cat-218",
+        "v2-cat-219"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-022.tar.gz",
+      "bytes": 162591462,
+      "sha256": "45b607d8c44c74ccbd9347f30a81357446313400ef92915a91707383f428e3e3",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-022.tar.gz",
+      "group_id": 22,
+      "catalog_ids": [
+        "v2-cat-220",
+        "v2-cat-221",
+        "v2-cat-222",
+        "v2-cat-223",
+        "v2-cat-224",
+        "v2-cat-225",
+        "v2-cat-226",
+        "v2-cat-227",
+        "v2-cat-228",
+        "v2-cat-229"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-023.tar.gz",
+      "bytes": 142081239,
+      "sha256": "3bb071fc7f7e311753b99199bf26fc21842e9ac9777431dbed25476e0d7a6c86",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-023.tar.gz",
+      "group_id": 23,
+      "catalog_ids": [
+        "v2-cat-230",
+        "v2-cat-231",
+        "v2-cat-232",
+        "v2-cat-233",
+        "v2-cat-234",
+        "v2-cat-235",
+        "v2-cat-236",
+        "v2-cat-237",
+        "v2-cat-238",
+        "v2-cat-239"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-024.tar.gz",
+      "bytes": 162073081,
+      "sha256": "4cb948d558bc6f15e61ef47c6154ab2b31a4d3442a112dd1cec2ed3788494e00",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-024.tar.gz",
+      "group_id": 24,
+      "catalog_ids": [
+        "v2-cat-240",
+        "v2-cat-241",
+        "v2-cat-242",
+        "v2-cat-243",
+        "v2-cat-244",
+        "v2-cat-245",
+        "v2-cat-246",
+        "v2-cat-247",
+        "v2-cat-248",
+        "v2-cat-249"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-025.tar.gz",
+      "bytes": 149549107,
+      "sha256": "ca8dce4494238b92d30233ac08c67c9ded78b2804c2cf0d2b09e02093ca1560a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-025.tar.gz",
+      "group_id": 25,
+      "catalog_ids": [
+        "v2-cat-250",
+        "v2-cat-251",
+        "v2-cat-252",
+        "v2-cat-253",
+        "v2-cat-254",
+        "v2-cat-255",
+        "v2-cat-256",
+        "v2-cat-257",
+        "v2-cat-258",
+        "v2-cat-259"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-026.tar.gz",
+      "bytes": 174441879,
+      "sha256": "476b248039b7535311d45d2cfd5fcdc7dc4c4c4405fc3d30675d68c0c21aa53b",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-026.tar.gz",
+      "group_id": 26,
+      "catalog_ids": [
+        "v2-cat-260",
+        "v2-cat-261",
+        "v2-cat-262",
+        "v2-cat-263",
+        "v2-cat-264",
+        "v2-cat-265",
+        "v2-cat-266",
+        "v2-cat-267",
+        "v2-cat-268",
+        "v2-cat-269"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-027.tar.gz",
+      "bytes": 151747381,
+      "sha256": "6b7a508f37af3628107e8f9ec871676ec8a1d2344ecc1124717e84d61085f16c",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-027.tar.gz",
+      "group_id": 27,
+      "catalog_ids": [
+        "v2-cat-270",
+        "v2-cat-271",
+        "v2-cat-272",
+        "v2-cat-273",
+        "v2-cat-274",
+        "v2-cat-275",
+        "v2-cat-276",
+        "v2-cat-277",
+        "v2-cat-278",
+        "v2-cat-279"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-028.tar.gz",
+      "bytes": 139033531,
+      "sha256": "11f0eba817f1b18d175ca2bb4b1f53e1b650f7a69177504851745a26d96c6e0f",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-028.tar.gz",
+      "group_id": 28,
+      "catalog_ids": [
+        "v2-cat-280",
+        "v2-cat-281",
+        "v2-cat-282",
+        "v2-cat-283",
+        "v2-cat-284",
+        "v2-cat-285",
+        "v2-cat-286",
+        "v2-cat-287",
+        "v2-cat-288",
+        "v2-cat-289"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-029.tar.gz",
+      "bytes": 183443779,
+      "sha256": "f47744fdfa511ba3060e132a49ce4cb385d4c490f8de1ff8bafb3f1d0b47c4ae",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-029.tar.gz",
+      "group_id": 29,
+      "catalog_ids": [
+        "v2-cat-290",
+        "v2-cat-291",
+        "v2-cat-292",
+        "v2-cat-293",
+        "v2-cat-294",
+        "v2-cat-295",
+        "v2-cat-296",
+        "v2-cat-297",
+        "v2-cat-298",
+        "v2-cat-299"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-030.tar.gz",
+      "bytes": 155532513,
+      "sha256": "d07a2d5a6e9e51322fbc516f77d5a1c7069427dad857329f61837c5e01e23327",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-030.tar.gz",
+      "group_id": 30,
+      "catalog_ids": [
+        "v2-cat-300",
+        "v2-cat-301",
+        "v2-cat-302",
+        "v2-cat-303",
+        "v2-cat-304",
+        "v2-cat-305",
+        "v2-cat-306",
+        "v2-cat-307",
+        "v2-cat-308",
+        "v2-cat-309"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-031.tar.gz",
+      "bytes": 157098265,
+      "sha256": "25563fadb4c1d16d2c4386b43f7bcb9e844d882c01cdb00caf60a6e20d6c001d",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-031.tar.gz",
+      "group_id": 31,
+      "catalog_ids": [
+        "v2-cat-310",
+        "v2-cat-311",
+        "v2-cat-312",
+        "v2-cat-313",
+        "v2-cat-314",
+        "v2-cat-315",
+        "v2-cat-316",
+        "v2-cat-317",
+        "v2-cat-318",
+        "v2-cat-319"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-032.tar.gz",
+      "bytes": 138540336,
+      "sha256": "11a12a2a77dadc055bc4ebf3bd9e0a4d96c0144b44b3d54433ad9e39343c9081",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-032.tar.gz",
+      "group_id": 32,
+      "catalog_ids": [
+        "v2-cat-320",
+        "v2-cat-321",
+        "v2-cat-322",
+        "v2-cat-323",
+        "v2-cat-324",
+        "v2-cat-325",
+        "v2-cat-326",
+        "v2-cat-327",
+        "v2-cat-328",
+        "v2-cat-329"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-033.tar.gz",
+      "bytes": 133213049,
+      "sha256": "81d3d95ee06443b53f3340909c7ca1376d4a3eb6f617ca8d6e25953add73521a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-033.tar.gz",
+      "group_id": 33,
+      "catalog_ids": [
+        "v2-cat-330",
+        "v2-cat-331",
+        "v2-cat-332",
+        "v2-cat-333",
+        "v2-cat-334",
+        "v2-cat-335",
+        "v2-cat-336",
+        "v2-cat-337",
+        "v2-cat-338",
+        "v2-cat-339"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-034.tar.gz",
+      "bytes": 142985080,
+      "sha256": "0f24fd4097bee7dd7c9de0ad6cba3f21cdabef0b3c0bcf0b5670c24eece85ecd",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-034.tar.gz",
+      "group_id": 34,
+      "catalog_ids": [
+        "v2-cat-340",
+        "v2-cat-341",
+        "v2-cat-342",
+        "v2-cat-343",
+        "v2-cat-344",
+        "v2-cat-345",
+        "v2-cat-346",
+        "v2-cat-347",
+        "v2-cat-348",
+        "v2-cat-349"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-035.tar.gz",
+      "bytes": 152752025,
+      "sha256": "625a928b50544b843c96b815f59ae3abea250ad991369fd21dc2d46ee0320dcc",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-035.tar.gz",
+      "group_id": 35,
+      "catalog_ids": [
+        "v2-cat-350",
+        "v2-cat-351",
+        "v2-cat-352",
+        "v2-cat-353",
+        "v2-cat-354",
+        "v2-cat-355",
+        "v2-cat-356",
+        "v2-cat-357",
+        "v2-cat-358",
+        "v2-cat-359"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-036.tar.gz",
+      "bytes": 148685826,
+      "sha256": "dc32e1734f27646c51c7704b7c4c52f99251cd5e497ee90efb54f590e0c4167e",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-036.tar.gz",
+      "group_id": 36,
+      "catalog_ids": [
+        "v2-cat-360",
+        "v2-cat-361",
+        "v2-cat-362",
+        "v2-cat-363",
+        "v2-cat-364",
+        "v2-cat-365",
+        "v2-cat-366",
+        "v2-cat-367",
+        "v2-cat-368",
+        "v2-cat-369"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-037.tar.gz",
+      "bytes": 149512261,
+      "sha256": "70395a7768ae40399b306cf52fad297440df7d061c336602946ac152740aa26e",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-037.tar.gz",
+      "group_id": 37,
+      "catalog_ids": [
+        "v2-cat-370",
+        "v2-cat-371",
+        "v2-cat-372",
+        "v2-cat-373",
+        "v2-cat-374",
+        "v2-cat-375",
+        "v2-cat-376",
+        "v2-cat-377",
+        "v2-cat-378",
+        "v2-cat-379"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-038.tar.gz",
+      "bytes": 150589918,
+      "sha256": "92b54a73e252f7ff2a8750c03a62b07c7e155301e25cd257278e47b72300b82a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-038.tar.gz",
+      "group_id": 38,
+      "catalog_ids": [
+        "v2-cat-380",
+        "v2-cat-381",
+        "v2-cat-382",
+        "v2-cat-383",
+        "v2-cat-384",
+        "v2-cat-385",
+        "v2-cat-386",
+        "v2-cat-387",
+        "v2-cat-388",
+        "v2-cat-389"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-039.tar.gz",
+      "bytes": 169765693,
+      "sha256": "f6098e1e8a5d88ebb3a7863581a9bbed9d5581458fca2659447a7d24a64d0cfa",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-039.tar.gz",
+      "group_id": 39,
+      "catalog_ids": [
+        "v2-cat-390",
+        "v2-cat-391",
+        "v2-cat-392",
+        "v2-cat-393",
+        "v2-cat-394",
+        "v2-cat-395",
+        "v2-cat-396",
+        "v2-cat-397",
+        "v2-cat-398",
+        "v2-cat-399"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-040.tar.gz",
+      "bytes": 128422169,
+      "sha256": "2926046f3c3d5a3e32628ff35bdc4cca9be171be7ab09df754123541514276f6",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-040.tar.gz",
+      "group_id": 40,
+      "catalog_ids": [
+        "v2-cat-400",
+        "v2-cat-401",
+        "v2-cat-402",
+        "v2-cat-403",
+        "v2-cat-404",
+        "v2-cat-405",
+        "v2-cat-406",
+        "v2-cat-407",
+        "v2-cat-408",
+        "v2-cat-409"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-041.tar.gz",
+      "bytes": 142418110,
+      "sha256": "ef124bcb7351e8c713dedba463e61e32d7b5a9278fe86050e40d5be2bb95422e",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-041.tar.gz",
+      "group_id": 41,
+      "catalog_ids": [
+        "v2-cat-410",
+        "v2-cat-411",
+        "v2-cat-412",
+        "v2-cat-413",
+        "v2-cat-414",
+        "v2-cat-415",
+        "v2-cat-416",
+        "v2-cat-417",
+        "v2-cat-418",
+        "v2-cat-419"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-042.tar.gz",
+      "bytes": 145616513,
+      "sha256": "feb2d80738fd8f9688c14eff9d7b42ca2d7d508a6c04b0cec50425944ab8097a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-042.tar.gz",
+      "group_id": 42,
+      "catalog_ids": [
+        "v2-cat-420",
+        "v2-cat-421",
+        "v2-cat-422",
+        "v2-cat-423",
+        "v2-cat-424",
+        "v2-cat-425",
+        "v2-cat-426",
+        "v2-cat-427",
+        "v2-cat-428",
+        "v2-cat-429"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-043.tar.gz",
+      "bytes": 143090328,
+      "sha256": "aa7a55243fc3587e2cb1207333db57dd90774b8357f4c5a2082add6ebb58966a",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-043.tar.gz",
+      "group_id": 43,
+      "catalog_ids": [
+        "v2-cat-430",
+        "v2-cat-431",
+        "v2-cat-432",
+        "v2-cat-433",
+        "v2-cat-434",
+        "v2-cat-435",
+        "v2-cat-436",
+        "v2-cat-437",
+        "v2-cat-438",
+        "v2-cat-439"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "bytes": 185862539,
+      "sha256": "67769857f8b41357dea90bdf6c0bb10a4face1249b8438ab5227c2fcab8b9ed0",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-044.tar.gz",
+      "group_id": 44,
+      "catalog_ids": [
+        "v2-cat-440",
+        "v2-cat-441",
+        "v2-cat-442",
+        "v2-cat-443",
+        "v2-cat-444",
+        "v2-cat-445",
+        "v2-cat-446",
+        "v2-cat-447",
+        "v2-cat-448",
+        "v2-cat-449"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-045.tar.gz",
+      "bytes": 133948614,
+      "sha256": "406e4b3265c130d94b2e0a57ddc064f926cac58b5107a8385f3596559d14ef2b",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-045.tar.gz",
+      "group_id": 45,
+      "catalog_ids": [
+        "v2-cat-450",
+        "v2-cat-451",
+        "v2-cat-452",
+        "v2-cat-453",
+        "v2-cat-454",
+        "v2-cat-455",
+        "v2-cat-456",
+        "v2-cat-457",
+        "v2-cat-458",
+        "v2-cat-459"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-046.tar.gz",
+      "bytes": 139803913,
+      "sha256": "47f78553c960caee2bda380e41ead65aa3918220269fc40e951779a8b2520f11",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-046.tar.gz",
+      "group_id": 46,
+      "catalog_ids": [
+        "v2-cat-460",
+        "v2-cat-461",
+        "v2-cat-462",
+        "v2-cat-463",
+        "v2-cat-464",
+        "v2-cat-465",
+        "v2-cat-466",
+        "v2-cat-467",
+        "v2-cat-468",
+        "v2-cat-469"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-047.tar.gz",
+      "bytes": 137573531,
+      "sha256": "6e3b5fe95fe97b9b1d80fd5af9627a920ee7ad632ca4d0c6325af15444070d90",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-047.tar.gz",
+      "group_id": 47,
+      "catalog_ids": [
+        "v2-cat-470",
+        "v2-cat-471",
+        "v2-cat-472",
+        "v2-cat-473",
+        "v2-cat-474",
+        "v2-cat-475",
+        "v2-cat-476",
+        "v2-cat-477",
+        "v2-cat-478",
+        "v2-cat-479"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-048.tar.gz",
+      "bytes": 168033555,
+      "sha256": "1559076d3f5b42217cb59c81e2c669cca5f4de6828a790b36e58433ca2559db2",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-048.tar.gz",
+      "group_id": 48,
+      "catalog_ids": [
+        "v2-cat-480",
+        "v2-cat-481",
+        "v2-cat-482",
+        "v2-cat-483",
+        "v2-cat-484",
+        "v2-cat-485",
+        "v2-cat-486",
+        "v2-cat-487",
+        "v2-cat-488",
+        "v2-cat-489"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-049.tar.gz",
+      "bytes": 175008063,
+      "sha256": "e01b70caa53e56fd8e1d2b808da2814c5a5506abe1c26503d0043ca4a2575d55",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-049.tar.gz",
+      "group_id": 49,
+      "catalog_ids": [
+        "v2-cat-490",
+        "v2-cat-491",
+        "v2-cat-492",
+        "v2-cat-493",
+        "v2-cat-494",
+        "v2-cat-495",
+        "v2-cat-496",
+        "v2-cat-497",
+        "v2-cat-498",
+        "v2-cat-499"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-050.tar.gz",
+      "bytes": 151451989,
+      "sha256": "1ca8aec88b7175c730e30d94cd8cbdb078317ba0e2fe06b89de6fd8908299785",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-050.tar.gz",
+      "group_id": 50,
+      "catalog_ids": [
+        "v2-cat-500",
+        "v2-cat-501",
+        "v2-cat-502",
+        "v2-cat-503",
+        "v2-cat-504",
+        "v2-cat-505",
+        "v2-cat-506",
+        "v2-cat-507",
+        "v2-cat-508",
+        "v2-cat-509"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-051.tar.gz",
+      "bytes": 141180991,
+      "sha256": "e2d3460068c4879306df15e5336180ae5b075dc325b8d4ed3a96a229456cfa77",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-051.tar.gz",
+      "group_id": 51,
+      "catalog_ids": [
+        "v2-cat-510",
+        "v2-cat-511",
+        "v2-cat-512",
+        "v2-cat-513",
+        "v2-cat-514",
+        "v2-cat-515",
+        "v2-cat-516",
+        "v2-cat-517",
+        "v2-cat-518",
+        "v2-cat-519"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-052.tar.gz",
+      "bytes": 118961228,
+      "sha256": "ce5ae90c36ac492acdb6284bbf663ced035191d7568d6574258fd1a1f66a1438",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-052.tar.gz",
+      "group_id": 52,
+      "catalog_ids": [
+        "v2-cat-520",
+        "v2-cat-521",
+        "v2-cat-522",
+        "v2-cat-523",
+        "v2-cat-524",
+        "v2-cat-525",
+        "v2-cat-526",
+        "v2-cat-527",
+        "v2-cat-528",
+        "v2-cat-529"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-053.tar.gz",
+      "bytes": 145653101,
+      "sha256": "908448aa9617cd2056d206326c300e860c2b684466b6100366b823963d0ed800",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-053.tar.gz",
+      "group_id": 53,
+      "catalog_ids": [
+        "v2-cat-530",
+        "v2-cat-531",
+        "v2-cat-532",
+        "v2-cat-533",
+        "v2-cat-534",
+        "v2-cat-535",
+        "v2-cat-536",
+        "v2-cat-537",
+        "v2-cat-538",
+        "v2-cat-539"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-054.tar.gz",
+      "bytes": 119395885,
+      "sha256": "9c8fb21599d76191299a9c2b2ff08a43f830cf878f2e4cfcf95e78c0c8a57516",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-054.tar.gz",
+      "group_id": 54,
+      "catalog_ids": [
+        "v2-cat-540",
+        "v2-cat-541",
+        "v2-cat-542",
+        "v2-cat-543",
+        "v2-cat-544",
+        "v2-cat-545",
+        "v2-cat-546",
+        "v2-cat-547",
+        "v2-cat-548",
+        "v2-cat-549"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-055.tar.gz",
+      "bytes": 116362305,
+      "sha256": "840b467f0a433643a20ce53a5c56040a4f3577fc59b1f421b732ead2220a6b4d",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-055.tar.gz",
+      "group_id": 55,
+      "catalog_ids": [
+        "v2-cat-550",
+        "v2-cat-551",
+        "v2-cat-552",
+        "v2-cat-553",
+        "v2-cat-554",
+        "v2-cat-555",
+        "v2-cat-556",
+        "v2-cat-557",
+        "v2-cat-558",
+        "v2-cat-559"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-056.tar.gz",
+      "bytes": 168293330,
+      "sha256": "69ce77019b50e2ac02f30c8dedb29746e25d3ed99ff79b801f4199f14ec61738",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-056.tar.gz",
+      "group_id": 56,
+      "catalog_ids": [
+        "v2-cat-560",
+        "v2-cat-561",
+        "v2-cat-562",
+        "v2-cat-563",
+        "v2-cat-564",
+        "v2-cat-565",
+        "v2-cat-566",
+        "v2-cat-567",
+        "v2-cat-568",
+        "v2-cat-569"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-057.tar.gz",
+      "bytes": 127070947,
+      "sha256": "42146405e2ad79f0e6cebd8f45401d4671993d4f52f81a45c71bc0cdfa4cf305",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-057.tar.gz",
+      "group_id": 57,
+      "catalog_ids": [
+        "v2-cat-570",
+        "v2-cat-571",
+        "v2-cat-572",
+        "v2-cat-573",
+        "v2-cat-574",
+        "v2-cat-575",
+        "v2-cat-576",
+        "v2-cat-577",
+        "v2-cat-578",
+        "v2-cat-579"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-058.tar.gz",
+      "bytes": 166608112,
+      "sha256": "5082de19187c2cf3c1fe0b55a6268fc1dfd77038ab2edc96135f81ee6d4708ba",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-058.tar.gz",
+      "group_id": 58,
+      "catalog_ids": [
+        "v2-cat-580",
+        "v2-cat-581",
+        "v2-cat-582",
+        "v2-cat-583",
+        "v2-cat-584",
+        "v2-cat-585",
+        "v2-cat-586",
+        "v2-cat-587",
+        "v2-cat-588",
+        "v2-cat-589"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-group-059.tar.gz",
+      "bytes": 140817906,
+      "sha256": "3756dced82c3a1c44a118eaa8c53b0aca87db9a2cc10d252d44f077e13775271",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-059.tar.gz",
+      "group_id": 59,
+      "catalog_ids": [
+        "v2-cat-590",
+        "v2-cat-591",
+        "v2-cat-592",
+        "v2-cat-593",
+        "v2-cat-594",
+        "v2-cat-595",
+        "v2-cat-596",
+        "v2-cat-597",
+        "v2-cat-598",
+        "v2-cat-599"
+      ],
+      "splits": [
+        "test"
+      ]
+    },
+    {
+      "name": "synthetic-v0.2-metadata.tar.gz",
+      "bytes": 1600196,
+      "sha256": "cc2a110ad0c630a041b250b21b6ba8d2e6b7011397d27fa9a3c98173ee45e427",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-metadata.tar.gz",
+      "group_id": null,
+      "catalog_ids": [],
+      "splits": [
+        "all"
+      ]
+    }
+  ],
+  "total_bytes": 8932413791,
+  "manifest_sha256": "532e4c33b77411d547e9a9913515ed2656d00f82630bec194e3a489fe18321ec",
+  "events_sha256": "2e0d4dcb22d35809b4e5c4750f4db45abc9205a2a406a50f29e6d75fad94a777"
+}

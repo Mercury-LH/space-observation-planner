@@ -1,0 +1,48 @@
+{
+  "passed": true,
+  "mode": "fit_train_only_then_smoke",
+  "train_rows": 163183161,
+  "train_manifest_sha256": "8404269526d8ecf07ebc68db0c1523ada0deb8ff2d165c33b7a8407434ebc6e8",
+  "batch_shuffle": true,
+  "batch_seed": 2026,
+  "splits": {
+    "train": {
+      "scenes": 420,
+      "candidate_rows": 163183161,
+      "sampled_scene": "v2-cat-419-v0",
+      "read_rows": 8192,
+      "read_selected": 140,
+      "dtype": "float32",
+      "shape": [
+        8192,
+        20
+      ]
+    },
+    "validation": {
+      "scenes": 90,
+      "candidate_rows": 34681991,
+      "sampled_scene": "v2-cat-545-v0",
+      "read_rows": 8192,
+      "read_selected": 360,
+      "dtype": "float32",
+      "shape": [
+        8192,
+        20
+      ]
+    },
+    "test": {
+      "scenes": 90,
+      "candidate_rows": 36096800,
+      "sampled_scene": "v2-cat-575-v0",
+      "read_rows": 8192,
+      "read_selected": 381,
+      "dtype": "float32",
+      "shape": [
+        8192,
+        20
+      ]
+    }
+  },
+  "fit_or_load_s": 18.57266016700305,
+  "scope": "interface verification; no model training or generalization evaluation"
+}

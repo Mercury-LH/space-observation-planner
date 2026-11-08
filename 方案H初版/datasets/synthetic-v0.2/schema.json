@@ -3,7 +3,7 @@
   "schema_kind": "artifact_dictionary",
   "dataset_version": "synthetic-v0.2",
   "description": "NPZ/JSON 数据字典，不是二进制 NPZ 的 JSON Schema；完整一致性检查由 obsplan.training_data.v2_audit 执行。",
-  "generation_commit": "{{V2_GENERATION_COMMIT}}",
+  "generation_commit": "ca55d6af1e47b31334763af6c80aab7c15cef512",
   "release_tag": "synthetic-data-v0.2",
   "license": "CC-BY-4.0",
   "serialization": {
@@ -648,7 +648,7 @@
   },
   "validation_scope": "发布门槛：全部600 scene的grid/final共1200计划独立Skyfield 1秒及端点校验。是否完成以正式audit为准；audit只复核保存证据和文件/标签一致性，不重跑Skyfield，不证明每个未选候选逐秒合法或计划最优。",
   "learning_scope": "静态排序预训练、规则蒸馏、离线模仿和RL环境实例；没有完整动态state/action/reward/next_state/done/legal_action_mask。价值网络需中间状态及后续回报，最终Q不能直接视为所有候选/中间状态价值。",
-  "production_status": "{{V2_PRODUCTION_STATE}}",
+  "production_status": "正式 600/600 个独立目录与场景已完成并通过完整审计；独立目标 4,334,032、候选行 233,961,952。公开发布与匿名下载状态见后文证据。",
   "sampling_contract": {
     "source": "PROTOCOL.sampling.md",
     "frozen_specs": "catalog-specs.json",
