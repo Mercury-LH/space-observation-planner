@@ -1,0 +1,432 @@
+{
+  "passed": true,
+  "errors": [],
+  "sampling_version": "synthetic-v0.2-sampling-1",
+  "specs_sha256": "52f2b3af32c95aa8769dfb24cb7691ae586db33008ea515c80c63a4cab04d4a3",
+  "counts": {
+    "catalogs": 600,
+    "core": 540,
+    "stress": 60,
+    "by_split": {
+      "train": 420,
+      "validation": 90,
+      "test": 90
+    }
+  },
+  "core_distribution_checks": {
+    "train": {
+      "n_targets": {
+        "n": 420,
+        "params": [
+          7000.0,
+          3000.0,
+          1000.0,
+          16000.0
+        ],
+        "max_cdf_error": 0.0023796424604175526,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "n_stations": {
+        "n": 420,
+        "params": [
+          10.0,
+          2.5,
+          4.0,
+          16.0
+        ],
+        "max_cdf_error": 0.0023783211963934736,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_fraction": {
+        "n": 420,
+        "params": [
+          0.7,
+          0.1,
+          0.4,
+          0.92
+        ],
+        "max_cdf_error": 0.0023793287606980185,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "meo_remaining_fraction": {
+        "n": 420,
+        "params": [
+          0.65,
+          0.12,
+          0.25,
+          0.9
+        ],
+        "max_cdf_error": 0.0023789526815145706,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "high_priority_fraction": {
+        "n": 420,
+        "params": [
+          0.25,
+          0.1,
+          0.03,
+          0.55
+        ],
+        "max_cdf_error": 0.002380909064116199,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "medium_remaining_fraction": {
+        "n": 420,
+        "params": [
+          0.4,
+          0.1,
+          0.15,
+          0.75
+        ],
+        "max_cdf_error": 0.0023796486379725756,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_altitude_mean_km": {
+        "n": 420,
+        "params": [
+          1000.0,
+          180.0,
+          650.0,
+          1450.0
+        ],
+        "max_cdf_error": 0.0023805098954049475,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_inclination_mean_deg": {
+        "n": 420,
+        "params": [
+          65.0,
+          20.0,
+          20.0,
+          105.0
+        ],
+        "max_cdf_error": 0.002377147620985842,
+        "limit": 0.002380952381952381,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      }
+    },
+    "validation": {
+      "n_targets": {
+        "n": 60,
+        "params": [
+          7000.0,
+          3000.0,
+          1000.0,
+          16000.0
+        ],
+        "max_cdf_error": 0.01662971313855477,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "n_stations": {
+        "n": 60,
+        "params": [
+          10.0,
+          2.5,
+          4.0,
+          16.0
+        ],
+        "max_cdf_error": 0.01657271630696522,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_fraction": {
+        "n": 60,
+        "params": [
+          0.7,
+          0.1,
+          0.4,
+          0.92
+        ],
+        "max_cdf_error": 0.016648562829700952,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "meo_remaining_fraction": {
+        "n": 60,
+        "params": [
+          0.65,
+          0.12,
+          0.25,
+          0.9
+        ],
+        "max_cdf_error": 0.0166524011873605,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "high_priority_fraction": {
+        "n": 60,
+        "params": [
+          0.25,
+          0.1,
+          0.03,
+          0.55
+        ],
+        "max_cdf_error": 0.016620905408469278,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "medium_remaining_fraction": {
+        "n": 60,
+        "params": [
+          0.4,
+          0.1,
+          0.15,
+          0.75
+        ],
+        "max_cdf_error": 0.01663184389710229,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_altitude_mean_km": {
+        "n": 60,
+        "params": [
+          1000.0,
+          180.0,
+          650.0,
+          1450.0
+        ],
+        "max_cdf_error": 0.016559569696965037,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_inclination_mean_deg": {
+        "n": 60,
+        "params": [
+          65.0,
+          20.0,
+          20.0,
+          105.0
+        ],
+        "max_cdf_error": 0.01588964588053804,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      }
+    },
+    "test": {
+      "n_targets": {
+        "n": 60,
+        "params": [
+          7000.0,
+          3000.0,
+          1000.0,
+          16000.0
+        ],
+        "max_cdf_error": 0.01664705916579401,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "n_stations": {
+        "n": 60,
+        "params": [
+          10.0,
+          2.5,
+          4.0,
+          16.0
+        ],
+        "max_cdf_error": 0.016603575481879185,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_fraction": {
+        "n": 60,
+        "params": [
+          0.7,
+          0.1,
+          0.4,
+          0.92
+        ],
+        "max_cdf_error": 0.016603157298129112,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "meo_remaining_fraction": {
+        "n": 60,
+        "params": [
+          0.65,
+          0.12,
+          0.25,
+          0.9
+        ],
+        "max_cdf_error": 0.016093966493872125,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "high_priority_fraction": {
+        "n": 60,
+        "params": [
+          0.25,
+          0.1,
+          0.03,
+          0.55
+        ],
+        "max_cdf_error": 0.01666228572625117,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "medium_remaining_fraction": {
+        "n": 60,
+        "params": [
+          0.4,
+          0.1,
+          0.15,
+          0.75
+        ],
+        "max_cdf_error": 0.016520984413442852,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_altitude_mean_km": {
+        "n": 60,
+        "params": [
+          1000.0,
+          180.0,
+          650.0,
+          1450.0
+        ],
+        "max_cdf_error": 0.016656628484273295,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      },
+      "leo_inclination_mean_deg": {
+        "n": 60,
+        "params": [
+          65.0,
+          20.0,
+          20.0,
+          105.0
+        ],
+        "max_cdf_error": 0.01664923412660918,
+        "limit": 0.016666666667666665,
+        "one_per_quantile_stratum": true,
+        "passed": true
+      }
+    }
+  },
+  "coverage": {
+    "train": {
+      "core_catalogs": 420,
+      "size_bins": {
+        "medium": 294,
+        "large": 67,
+        "small": 59
+      },
+      "month_counts": {
+        "1": 35,
+        "2": 35,
+        "3": 35,
+        "4": 35,
+        "5": 35,
+        "6": 35,
+        "7": 35,
+        "8": 35,
+        "9": 35,
+        "10": 35,
+        "11": 35,
+        "12": 35
+      },
+      "targets_ge_10000": 67,
+      "targets_le_3000": 30,
+      "total_targets": 3004421
+    },
+    "validation": {
+      "core_catalogs": 60,
+      "size_bins": {
+        "small": 9,
+        "large": 10,
+        "medium": 41
+      },
+      "month_counts": {
+        "1": 5,
+        "2": 5,
+        "3": 5,
+        "4": 5,
+        "5": 5,
+        "6": 5,
+        "7": 5,
+        "8": 5,
+        "9": 5,
+        "10": 5,
+        "11": 5,
+        "12": 5
+      },
+      "targets_ge_10000": 10,
+      "targets_le_3000": 4,
+      "total_targets": 431796
+    },
+    "test": {
+      "core_catalogs": 60,
+      "size_bins": {
+        "small": 9,
+        "medium": 41,
+        "large": 10
+      },
+      "month_counts": {
+        "1": 5,
+        "2": 5,
+        "3": 5,
+        "4": 5,
+        "5": 5,
+        "6": 5,
+        "7": 5,
+        "8": 5,
+        "9": 5,
+        "10": 5,
+        "11": 5,
+        "12": 5
+      },
+      "targets_ge_10000": 10,
+      "targets_le_3000": 4,
+      "total_targets": 428785
+    }
+  },
+  "stress_counts": {
+    "validation": {
+      "high_load": 5,
+      "low_load": 5,
+      "leo_polar": 5,
+      "high_orbit": 5,
+      "high_priority": 5,
+      "regional_network": 5
+    },
+    "test": {
+      "high_load": 5,
+      "low_load": 5,
+      "leo_polar": 5,
+      "high_orbit": 5,
+      "high_priority": 5,
+      "regional_network": 5
+    }
+  },
+  "interpretation": "stratified truncated-normal scalar controls in core only; not IID normality, orbital-population fit or a Gaussian mixture claim for all scenes"
+}

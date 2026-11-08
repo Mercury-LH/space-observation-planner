@@ -61,7 +61,9 @@ def _verify_sources(root: Path, expected: dict[str, dict]) -> None:
             raise ValueError(f"source checksum mismatch: {name}")
 
 
-def _catalog_payload(root: Path, manifest: dict, catalog_id: str) -> tuple[dict, dict[str, dict]]:
+def _catalog_payload(root: Path, manifest: dict, catalog_id: str, *,
+                     variants: tuple[int, ...] = (0, 1, 2, 3),
+                     include_failures: bool = False) -> tuple[dict, dict[str, dict]]:
     if len(_relative_path(catalog_id).parts) != 1:
         raise ValueError("catalog_id must be a single path component")
     if manifest.get("identity", {}).get("pilot") is not False:
@@ -71,9 +73,12 @@ def _catalog_payload(root: Path, manifest: dict, catalog_id: str) -> tuple[dict,
         raise ValueError(f"catalog is not uniquely complete in the manifest: {catalog_id}")
     catalog = catalogs[0]
     scenes = [s for s in manifest.get("scenes", []) if s["catalog_id"] == catalog_id]
-    if len(scenes) != 4 or {s.get("variant") for s in scenes} != set(range(4)):
-        raise ValueError(f"catalog must have four complete variants: {catalog_id}")
+    if len(scenes) != len(variants) or {s.get("variant") for s in scenes} != set(variants):
+        count = "four" if variants == (0, 1, 2, 3) else str(len(variants))
+        raise ValueError(f"catalog must have {count} complete variants: {catalog_id}")
     prefixes = [f"catalogs/{catalog_id}/"]
+    if include_failures:
+        prefixes.append(f"failures/{catalog_id}/")
     for scene in scenes:
         name = f"{catalog_id}-v{scene['variant']}"
         if (scene.get("scene_id") != name or scene.get("path") != f"scenes/{name}"

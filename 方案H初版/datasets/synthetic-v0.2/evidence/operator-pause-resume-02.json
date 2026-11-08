@@ -1,0 +1,58 @@
+{
+  "scope": "second operator-requested pause and same-identity resume; not algorithm failure",
+  "paused_utc": "2026-11-08T00:16:39.286475+00:00",
+  "verified_stopped_utc": "2026-11-08T00:17:01.230541+00:00",
+  "resumed_utc": "2026-11-08T00:23:23.280855+00:00",
+  "completed_at_resume": 86,
+  "verified_uploaded_groups_at_pause": 8,
+  "identity_sha256": "d8a0a434f1fea608e0ba8a102215dde5c8e5d20f6730b84d8481f3a5e2c37407",
+  "same_generation_sources_verified": true,
+  "generation_source_file_count": 38,
+  "same_protocols_verified": true,
+  "same_dependencies_verified": true,
+  "workers": 4,
+  "process_exit_codes": {
+    "producer": 130,
+    "upload_watcher": 130,
+    "postproduction": 130
+  },
+  "retained_interruptions": [
+    {
+      "catalog_id": "v2-cat-085",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "time_utc": "2026-11-08T00:16:40.419942+00:00",
+      "path": "failures/v2-cat-085/attempt-001",
+      "failure_json_sha256": "ac7377164e6ccd2597b5e82676f53f2a0580aecf0364b510865d27fc7a1a7b6f"
+    },
+    {
+      "catalog_id": "v2-cat-086",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "time_utc": "2026-11-08T00:16:40.361526+00:00",
+      "path": "failures/v2-cat-086/attempt-001",
+      "failure_json_sha256": "4f67c44f5a01082308edf5dcde770f9ace959d3522bce4be69a290dfa7dfa6ae"
+    },
+    {
+      "catalog_id": "v2-cat-088",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "time_utc": "2026-11-08T00:16:42.991662+00:00",
+      "path": "failures/v2-cat-088/attempt-001",
+      "failure_json_sha256": "d611649f8c7bb045e32f86085d33fa48d5e672c3990b9878e71394e9b36575ef"
+    },
+    {
+      "catalog_id": "v2-cat-089",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "time_utc": "2026-11-08T00:16:42.806845+00:00",
+      "path": "failures/v2-cat-089/attempt-001",
+      "failure_json_sha256": "ed4e3a12316dddd9059baf0f1e08fe2bc0e648a68d62f1ccbfaa7f7c64ad933f"
+    }
+  ],
+  "timing_note": "first-start-to-final-completion elapsed includes both operator pauses; stage sums overlap under concurrent production and are not an algorithm speed ranking"
+}

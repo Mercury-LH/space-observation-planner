@@ -1,0 +1,90 @@
+{
+  "scope": "full-plan equivalence and observational production-cost check; not a controlled solver ranking",
+  "profile_enabled": false,
+  "started_utc": "2026-11-07T22:29:43.817902+00:00",
+  "python": "3.12.13",
+  "power_start": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=7733347)\t43%; discharging; 5:15 remaining present: true",
+  "source_sha256": {
+    "obsplan/validator.py": "91ac258d8e2a450aa12480e024d1133fa3aa0da2f2555d00de7bf2c1218223ff",
+    "obsplan/validator_cache.py": "7ad1112e4295e76521931c24b3376a3083d2708d2efb0b05075ce5384068bc67"
+  },
+  "cases": [
+    {
+      "scene_id": "cat-000-v0",
+      "targets": 1000,
+      "tasks": {
+        "grid": 2545,
+        "final": 2545
+      },
+      "reference_wall_s": {
+        "grid": 15.775810416998866,
+        "final": 17.201269249999314
+      },
+      "cached_wall_s": {
+        "grid": 5.206382958000177,
+        "final": 2.821060624999518
+      },
+      "max_abs_per_task_error_deg": {
+        "grid": 2.842170943040401e-14,
+        "final": 2.842170943040401e-14
+      },
+      "all_classifications_equal": true,
+      "reference_total_s": 32.97707966699818,
+      "cached_total_s": 8.027443582999695,
+      "observed_ratio": 4.108042532598567,
+      "cache_stats": {
+        "backend": "skyfield_exact_orientation_cache_v1",
+        "skyfield_version": "1.55",
+        "chunk_size": 4096,
+        "max_points": 1000000,
+        "cached_points": 368525,
+        "computed_points": 368525,
+        "reused_points": 311248,
+        "computed_chunks": 91,
+        "optimized_calls": 2,
+        "reference_fallbacks": 0,
+        "fallback_reasons": {}
+      }
+    },
+    {
+      "scene_id": "cat-017-v0",
+      "targets": 10000,
+      "tasks": {
+        "grid": 9374,
+        "final": 9374
+      },
+      "reference_wall_s": {
+        "grid": 68.12197608299903,
+        "final": 70.8422765840005
+      },
+      "cached_wall_s": {
+        "grid": 14.046194791000744,
+        "final": 10.194825583996135
+      },
+      "max_abs_per_task_error_deg": {
+        "grid": 2.842170943040401e-14,
+        "final": 2.842170943040401e-14
+      },
+      "all_classifications_equal": true,
+      "reference_total_s": 138.96425266699953,
+      "cached_total_s": 24.24102037499688,
+      "observed_ratio": 5.73260739512156,
+      "cache_stats": {
+        "backend": "skyfield_exact_orientation_cache_v1",
+        "skyfield_version": "1.55",
+        "chunk_size": 4096,
+        "max_points": 1000000,
+        "cached_points": 518161,
+        "computed_points": 518161,
+        "reused_points": 514980,
+        "computed_chunks": 127,
+        "optimized_calls": 2,
+        "reference_fallbacks": 0,
+        "fallback_reasons": {}
+      }
+    }
+  ],
+  "power_end": "Now drawing from 'Battery Power'\n -InternalBattery-0 (id=7733347)\t41%; discharging; 4:35 remaining present: true",
+  "finished_utc": "2026-11-07T22:33:08.190087+00:00",
+  "passed": true
+}

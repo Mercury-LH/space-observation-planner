@@ -1,0 +1,111 @@
+{
+  "scope": "upload infrastructure failure and verified cleanup; dataset generation kept running",
+  "repository": "Mercury-LH/space-observation-planner",
+  "release_id": 437891349,
+  "release_tag": "synthetic-data-v0.2",
+  "events": [
+    {
+      "time_utc": "2026-11-08T00:40:31.966368+00:00",
+      "kind": "upload_error",
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "attempt": 1,
+      "error": "command timed out after 900 seconds",
+      "transient": true
+    },
+    {
+      "time_utc": "2026-11-08T00:40:39.647616+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "attempt": 2,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T00:40:46.271669+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "attempt": 3,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T00:40:56.344052+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "attempt": 4,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T00:41:15.585717+00:00",
+      "kind": "github_read_error",
+      "attempt": 1,
+      "error": "Get \"[URL] EOF\n",
+      "transient": false
+    },
+    {
+      "time_utc": "2026-11-08T00:41:15.586591+00:00",
+      "kind": "watcher_failed",
+      "error_type": "CommandFailure",
+      "error": "Get \"[URL] EOF\n",
+      "publication_performed": false
+    }
+  ],
+  "stub_recovery": {
+    "scope": "remove only own terminal timed-out upload stub; preserve local archive and failure evidence",
+    "repository": "Mercury-LH/space-observation-planner",
+    "release_id": 437891349,
+    "release_tag": "synthetic-data-v0.2",
+    "asset": {
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "bytes": 170089272,
+      "sha256": "fdea42ca84db237677ebbcdf583061d7c6321e43bee429357b0fe9ae5f803f84",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-008.tar.gz",
+      "group_id": 8,
+      "catalog_ids": [
+        "v2-cat-080",
+        "v2-cat-081",
+        "v2-cat-082",
+        "v2-cat-083",
+        "v2-cat-084",
+        "v2-cat-085",
+        "v2-cat-086",
+        "v2-cat-087",
+        "v2-cat-088",
+        "v2-cat-089"
+      ],
+      "splits": [
+        "train"
+      ]
+    },
+    "remote_stub": {
+      "id": 722398664,
+      "name": "synthetic-v0.2-group-008.tar.gz",
+      "state": "starter",
+      "size": 170089272,
+      "digest": null,
+      "created_at": "2026-11-08T00:31:02Z",
+      "updated_at": "2026-11-08T00:31:02Z"
+    },
+    "uploader": "Mercury-LH",
+    "retained_archive_verified": true,
+    "archive_payload_files": 222,
+    "github_documentation": "https://docs.github.com/en/rest/releases/assets#upload-a-release-asset",
+    "before_utc": "2026-11-08T00:43:13.898916+00:00",
+    "deleted_stub_verified_absent": true,
+    "other_assets_unchanged": 8,
+    "verified_utc": "2026-11-08T00:43:16.698990+00:00"
+  },
+  "generation_identity_unchanged": true,
+  "identity_sha256": "d8a0a434f1fea608e0ba8a102215dde5c8e5d20f6730b84d8481f3a5e2c37407",
+  "producer_restarted": false,
+  "helper_fix": "Classify standalone EOF as a transient network failure with the existing bounded retries. No automatic DELETE or clobber was added.",
+  "helper_sha256_before": "d18e0427795cce51b327853b288b838f4342189cf8c224d7cb87261d27a2a7a4",
+  "helper_sha256_after": "3f0a36f72cd13ace3860f0619665ef4bfd2053092441fd589c7dd13b564e5685",
+  "tests": {
+    "passed": 29,
+    "duration_s": 0.51,
+    "scope": "upload watcher and postproduction controls; includes bare EOF retry and permission rejection"
+  },
+  "watcher_restarted": true,
+  "postproduction_monitor_restarted": true,
+  "retry_upload_verified": false,
+  "note": "This records successful cleanup and restart, not a successful re-upload. Later upload ledger/server proof establishes completion."
+}

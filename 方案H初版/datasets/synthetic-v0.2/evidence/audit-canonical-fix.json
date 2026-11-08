@@ -1,0 +1,50 @@
+{
+  "time_utc": "2026-11-07T22:43:44.787660+00:00",
+  "scope": "audit-tool correction only; frozen producer, protocol and dataset unchanged",
+  "initial_failure": "AuditError: frozen spec fingerprint differs",
+  "cause": "Auditor recomputed a compact sampler-spec fingerprint using default JSON separators. Transaction identity fingerprints use the default separator convention and remain distinct.",
+  "correction": "audit_spec_contract calls v2_sampling.specs_sha256 directly",
+  "recorded_specs_sha256": "ce7ecbdd527a92067a9b5051264a2716108a49879fa7f8a09d4c166f17fde3e7",
+  "canonical_specs_sha256": "ce7ecbdd527a92067a9b5051264a2716108a49879fa7f8a09d4c166f17fde3e7",
+  "previous_default_separator_sha256": "e87eec81b041d1e1ccb59447f1fdcf39cbd74c0ce559c8b5023d118e8933f9fd",
+  "tests": {
+    "command": "python -m pytest tests/test_training_v2_audit.py -q",
+    "passed": 14,
+    "exit_code": 0
+  },
+  "actual_pilot_audit": {
+    "passed": true,
+    "pilot": true,
+    "counts": {
+      "catalogs": 10,
+      "scenes": 10,
+      "unique_synthetic_targets": 77217,
+      "target_instances": 77217,
+      "candidate_rows": 4225328,
+      "grid_tasks": 62086,
+      "final_tasks": 62086,
+      "repaired_tasks": 0
+    },
+    "checksums": {
+      "verified_files": 180,
+      "verified_bytes": 160377009,
+      "manifest_sha256": "9a5be2d08e2fe65ef792829577c4f42a51957b10691cb9245491086967d2546e",
+      "events_sha256": "592a306582bbde9793e2e84104d6e322bc331469b25ff8ee20776f570a7ac55f",
+      "manifest_exclusions": [
+        "manifest.json",
+        "events.jsonl",
+        ".cache/**"
+      ]
+    },
+    "v1_reference": {
+      "checked": true,
+      "manifest_sha256": "eae61447a9a2a5ada83d88809229b204ee3e1ba81f7c6bc760b1d0bfc52cd98c",
+      "catalogs": 30,
+      "targets": 103000,
+      "identity": "SGP4 mean elements, epoch and drag; identity fields excluded"
+    },
+    "report_sha256": "593172896fe175263ae0b5b7172d608b3ef3be3c9f54386aaa895c0ae8176c45",
+    "sampling_report_passed": false,
+    "sampling_scope": "subset pilot does not claim the formal 600-catalog distribution contract"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "frozen_preproduction_specifications_not_generation_or_model_results",
+  "dataset_version": "synthetic-v0.2",
+  "catalog_specs_file_sha256": "ac29b23f8e93166ac15acc4c009e5e9178e94bb6c3b50d4fcad5ee88eb07f2c7",
+  "catalog_specs_canonical_sha256": "52f2b3af32c95aa8769dfb24cb7691ae586db33008ea515c80c63a4cab04d4a3",
+  "core_count": 540,
+  "stress_count": 60,
+  "matplotlib_version": "3.11.2",
+  "source_files": [
+    "catalog-specs.json",
+    "sampling-report.json"
+  ],
+  "curve_notes": "Core continuous controls: normalized truncated-normal density; integer station count: integrated rounded truncated-normal PMF; independent plotting from frozen JSON only.",
+  "files": {
+    "core-distributions.png": "e37caad4706c3bda57e801d3d74a847c63ed985bcdf6873b5c58baf5e970d162",
+    "core-distributions.svg": "75dd27f339f7b06acd220ab8cd1fe82991b2f8e6497fbff88a08b0fa8e45e528",
+    "scenario-coverage.png": "ef6c56fb245d36081db7b010c6944c8aaecfda7c4cd248fd5990cfdcf4d44e52",
+    "scenario-coverage.svg": "8c1a348bf3e6025472705bfacce376d1731bbbdd1bd4e59e644575bb8e441638"
+  }
+}

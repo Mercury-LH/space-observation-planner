@@ -113,13 +113,13 @@ def audit_windows(win: Windows, n_targets: int, n_stations: int, name: str) -> N
             previous_end = b
 
 
-def audit_orbits(table: dict, cat: dict, orbit_owner: dict) -> None:
+def audit_orbits(table: dict, cat: dict, orbit_owner, *, n_stations: int = 10) -> None:
     n, name = cat["n_targets"], cat["catalog_id"]
     for key in ("satnum", "target_id", "line1", "line2", "family", "names"):
         require(table[key].shape == (n,), f"{name}: wrong target table shape for {key}")
     require(np.array_equal(table["target_id"], np.arange(n)), f"{name}: target IDs are not zero based")
     require(len(np.unique(table["satnum"])) == n, f"{name}: duplicate synthetic target number")
-    require(table["stations"].shape == (10, 3) and np.isfinite(table["stations"]).all(),
+    require(table["stations"].shape == (n_stations, 3) and np.isfinite(table["stations"]).all(),
             f"{name}: invalid station table")
     require(((table["stations"][:, 0] >= -180) & (table["stations"][:, 0] < 180)).all()
             and (np.abs(table["stations"][:, 1]) <= 90).all(), f"{name}: invalid station coordinates")
@@ -227,6 +227,93 @@ def group_summary(records: list[dict]) -> dict:
     }
 
 
+def audit_scene(root: Path, reader: DatasetReader, record: dict, cat: dict,
+                table: dict, full: Windows, *, catalog_n_stations: int = 10,
+                window_budget: int = 12) -> int:
+    """Shared single-scene checks; caller controls catalog streaming lifetime."""
+    scene_id, cat_id = record["scene_id"], record["catalog_id"]
+    require(record["split"] == cat["split"] and record["distribution"] == cat["distribution"],
+            f"{scene_id}: catalog split/distribution mismatch")
+    path = root / record["path"]
+    require(read_json(path / "scene.json") == record, f"{scene_id}: scene manifest mismatch")
+    cfg = Config(**record["config"]).with_(data_dir=str(path / "input"))
+    for key, expected in dict(days=6., cell_s=30, obs_min_s=120, obs_max_s=240,
+                              switch_s=30, repeat_gap_h=48., use_sun=True, use_sunlit=True,
+                              elev_min=10., elev_max=85., sun_max=-6., moon_sep_deg=0.).items():
+        require(getattr(cfg, key) == expected, f"{scene_id}: changed rule {key}")
+    require(cfg.start_utc == cat["start_utc"], f"{scene_id}: planning epoch mismatch")
+    ds = load(cfg)
+    require(not ds.issues and ds.n_targets == record["n_targets"] == cat["n_targets"]
+            and ds.n_stations == record["n_stations"], f"{scene_id}: native input mismatch/issues")
+    for actual, expected in [(ds.satnum, table["satnum"]), (ds.line1, table["line1"]),
+                             (ds.line2, table["line2"]), (ds.names, table["names"])]:
+        require(np.array_equal(actual, expected), f"{scene_id}: native orbit identity mismatch")
+    stations = np.asarray(record["base_station_indices"])
+    require(stations.ndim == 1 and len(stations) == ds.n_stations and len(np.unique(stations)) == len(stations)
+            and np.issubdtype(stations.dtype, np.integer) and ((stations >= 0) & (stations < catalog_n_stations)).all(),
+            f"{scene_id}: invalid station mapping")
+    require(np.allclose(np.column_stack([ds.st_lon, ds.st_lat, ds.st_alt_m]), table["stations"][stations],
+                        rtol=0, atol=5.1e-7), f"{scene_id}: native station coordinates differ")
+    pool = Windows.load(path / "pool_windows.npz", ds.n_stations)
+    audit_windows(pool, ds.n_targets, ds.n_stations, scene_id)
+    source = npz(path / "pool_source_indices.npz")["catalog_window_id"]
+    require(source.shape == (len(pool.k0),) and np.issubdtype(source.dtype, np.integer)
+            and len(np.unique(source)) == len(source) and ((source >= 0) & (source < len(full.k0))).all(),
+            f"{scene_id}: invalid catalog window mapping")
+    inverse = np.full(catalog_n_stations, -1, np.int16)
+    inverse[stations] = np.arange(len(stations))
+    for actual, expected in [(pool.station, inverse[full.station[source]]),
+                             (pool.target, full.target[source]), (pool.k0, full.k0[source]),
+                             (pool.k1, full.k1[source])]:
+        require(np.array_equal(actual, expected), f"{scene_id}: pool/catalog window mismatch")
+    require(pool.dark == [full.dark[s] for s in stations], f"{scene_id}: dark intervals mismatch")
+    require(np.bincount(pool.target, minlength=ds.n_targets).max(initial=0) <= window_budget,
+            f"{scene_id}: per-target pool budget exceeded")
+    require(record["pool_windows"] == len(pool.k0)
+            and record["full_variant_windows"] == int(np.isin(full.station, stations).sum()),
+            f"{scene_id}: window count mismatch")
+    actions = reader._load_actions(record)
+    cw, cm = actions["candidate_window"], actions["candidate_duration_cells"]
+    require(len(cw) == record["candidate_rows"] and (cw < len(pool.k0)).all(),
+            f"{scene_id}: invalid candidate window indices")
+    require((cm <= pool.k1[cw]-pool.k0[cw]).all(), f"{scene_id}: candidate duration cannot fit window")
+    require(len(np.unique(cw.astype(np.int64)*9+cm)) == len(cw), f"{scene_id}: duplicate candidate rows")
+    require(int(actions["grid_selected"].sum()) == record["grid_positive_candidates"],
+            f"{scene_id}: positive label count mismatch")
+    grid, grid_arrays = load_plan(path / "grid_plan.npz", cfg, ds, scene_id+"/grid")
+    final, _ = load_plan(path / "plan.npz", cfg, ds, scene_id+"/final")
+    ids = actions.get("grid_task_candidate")
+    require(ids is not None and ids.shape == (len(grid),)
+            and np.array_equal(ids, grid_arrays.get("candidate_id")), f"{scene_id}: missing task candidate mapping")
+    w = cw[ids]
+    require(np.array_equal(grid.station, pool.station[w]) and np.array_equal(grid.target, pool.target[w])
+            and np.array_equal(grid.dur_s, cm[ids]*30) and (grid.start_s % 30 == 0).all()
+            and (grid.start_s >= pool.k0[w]*30).all()
+            and (grid.start_s+grid.dur_s <= pool.k1[w]*30).all(), f"{scene_id}: grid task outside its candidate")
+    chosen = np.flatnonzero(actions["grid_selected"])
+    first = actions["grid_selection_rank"][chosen]
+    require(np.array_equal(actions["grid_start_s"][chosen], grid.start_s[first])
+            and np.array_equal(actions["grid_duration_s"][chosen], grid.dur_s[first]),
+            f"{scene_id}: first-selection times disagree with grid plan")
+    same(record["metrics"], evaluate(cfg, ds, final), scene_id+".metrics")
+    same(record["grid_metrics"], evaluate(cfg, ds, grid), scene_id+".grid_metrics")
+    require(record["grid_tasks"] == len(grid) and record["final_tasks"] == len(final),
+            f"{scene_id}: plan count mismatch")
+    reports = read_json(path / "validation.json")
+    repairs = audit_validation(path, "grid", grid, reports["grid"], cfg, ds)
+    repairs += audit_validation(path, "final", final, reports["final"], cfg, ds)
+    require(record["repairs"] == repairs and record["legal"] is True and record["geometry_checked"] is True,
+            f"{scene_id}: validation metadata mismatch")
+    for timing_name, timing_value in {**record["teacher_timings"],
+                                      "validation_wall_s": record["validation_wall_s"],
+                                      "scene_wall_s": record["scene_wall_s"]}.items():
+        require(isinstance(timing_value, (int, float)) and np.isfinite(timing_value) and timing_value >= 0,
+                f"{scene_id}: invalid timing {timing_name}")
+    same(record["validation_wall_s"], reports["grid"]["wall_s"]+reports["final"]["wall_s"],
+         scene_id+".validation_wall_s")
+    return repairs
+
+
 def audit_dataset(root: str | Path, *, allow_pilot: bool = False) -> dict:
     root = Path(root).resolve()
     reader = DatasetReader(root)
@@ -254,91 +341,11 @@ def audit_dataset(root: str | Path, *, allow_pilot: bool = False) -> dict:
     require(bool(reader.scenes), "no scenes")
     used_catalogs, repaired_tasks = set(), 0
     for record in reader.scenes:
-        scene_id, cat_id = record["scene_id"], record["catalog_id"]
-        require(cat_id in catalogs, f"{scene_id}: missing catalog")
+        cat_id = record["catalog_id"]
+        require(cat_id in catalogs, f"{record['scene_id']}: missing catalog")
         used_catalogs.add(cat_id)
-        cat = catalog_records[cat_id]
-        require(record["split"] == cat["split"] and record["distribution"] == cat["distribution"],
-                f"{scene_id}: catalog split/distribution mismatch")
-        path = root / record["path"]
-        require(read_json(path / "scene.json") == record, f"{scene_id}: scene manifest mismatch")
-        cfg = Config(**record["config"]).with_(data_dir=str(path / "input"))
-        for key, expected in dict(days=6., cell_s=30, obs_min_s=120, obs_max_s=240,
-                                  switch_s=30, repeat_gap_h=48., use_sun=True, use_sunlit=True,
-                                  elev_min=10., elev_max=85., sun_max=-6., moon_sep_deg=0.).items():
-            require(getattr(cfg, key) == expected, f"{scene_id}: changed rule {key}")
-        require(cfg.start_utc == cat["start_utc"], f"{scene_id}: planning epoch mismatch")
-        ds = load(cfg)
-        require(not ds.issues and ds.n_targets == record["n_targets"] == cat["n_targets"]
-                and ds.n_stations == record["n_stations"], f"{scene_id}: native input mismatch/issues")
         table, full = catalogs[cat_id]
-        for actual, expected in [(ds.satnum, table["satnum"]), (ds.line1, table["line1"]),
-                                 (ds.line2, table["line2"]), (ds.names, table["names"])]:
-            require(np.array_equal(actual, expected), f"{scene_id}: native orbit identity mismatch")
-        stations = np.asarray(record["base_station_indices"])
-        require(stations.ndim == 1 and len(stations) == ds.n_stations and len(np.unique(stations)) == len(stations)
-                and np.issubdtype(stations.dtype, np.integer) and ((stations >= 0) & (stations < 10)).all(),
-                f"{scene_id}: invalid station mapping")
-        require(np.allclose(np.column_stack([ds.st_lon, ds.st_lat, ds.st_alt_m]), table["stations"][stations],
-                            rtol=0, atol=5.1e-7), f"{scene_id}: native station coordinates differ")
-        pool = Windows.load(path / "pool_windows.npz", ds.n_stations)
-        audit_windows(pool, ds.n_targets, ds.n_stations, scene_id)
-        source = npz(path / "pool_source_indices.npz")["catalog_window_id"]
-        require(source.shape == (len(pool.k0),) and np.issubdtype(source.dtype, np.integer)
-                and len(np.unique(source)) == len(source) and ((source >= 0) & (source < len(full.k0))).all(),
-                f"{scene_id}: invalid catalog window mapping")
-        inverse = np.full(10, -1, np.int16)
-        inverse[stations] = np.arange(len(stations))
-        for actual, expected in [(pool.station, inverse[full.station[source]]),
-                                 (pool.target, full.target[source]), (pool.k0, full.k0[source]),
-                                 (pool.k1, full.k1[source])]:
-            require(np.array_equal(actual, expected), f"{scene_id}: pool/catalog window mismatch")
-        require(pool.dark == [full.dark[s] for s in stations], f"{scene_id}: dark intervals mismatch")
-        require(np.bincount(pool.target, minlength=ds.n_targets).max(initial=0) <= 12,
-                f"{scene_id}: per-target pool budget exceeded")
-        require(record["pool_windows"] == len(pool.k0)
-                and record["full_variant_windows"] == int(np.isin(full.station, stations).sum()),
-                f"{scene_id}: window count mismatch")
-        actions = reader._load_actions(record)
-        cw, cm = actions["candidate_window"], actions["candidate_duration_cells"]
-        require(len(cw) == record["candidate_rows"] and (cw < len(pool.k0)).all(),
-                f"{scene_id}: invalid candidate window indices")
-        require((cm <= pool.k1[cw]-pool.k0[cw]).all(), f"{scene_id}: candidate duration cannot fit window")
-        require(len(np.unique(cw.astype(np.int64)*9+cm)) == len(cw), f"{scene_id}: duplicate candidate rows")
-        require(int(actions["grid_selected"].sum()) == record["grid_positive_candidates"],
-                f"{scene_id}: positive label count mismatch")
-        grid, grid_arrays = load_plan(path / "grid_plan.npz", cfg, ds, scene_id+"/grid")
-        final, _ = load_plan(path / "plan.npz", cfg, ds, scene_id+"/final")
-        ids = actions.get("grid_task_candidate")
-        require(ids is not None and ids.shape == (len(grid),)
-                and np.array_equal(ids, grid_arrays.get("candidate_id")), f"{scene_id}: missing task candidate mapping")
-        w = cw[ids]
-        require(np.array_equal(grid.station, pool.station[w]) and np.array_equal(grid.target, pool.target[w])
-                and np.array_equal(grid.dur_s, cm[ids]*30) and (grid.start_s % 30 == 0).all()
-                and (grid.start_s >= pool.k0[w]*30).all()
-                and (grid.start_s+grid.dur_s <= pool.k1[w]*30).all(), f"{scene_id}: grid task outside its candidate")
-        chosen = np.flatnonzero(actions["grid_selected"])
-        first = actions["grid_selection_rank"][chosen]
-        require(np.array_equal(actions["grid_start_s"][chosen], grid.start_s[first])
-                and np.array_equal(actions["grid_duration_s"][chosen], grid.dur_s[first]),
-                f"{scene_id}: first-selection times disagree with grid plan")
-        same(record["metrics"], evaluate(cfg, ds, final), scene_id+".metrics")
-        same(record["grid_metrics"], evaluate(cfg, ds, grid), scene_id+".grid_metrics")
-        require(record["grid_tasks"] == len(grid) and record["final_tasks"] == len(final),
-                f"{scene_id}: plan count mismatch")
-        reports = read_json(path / "validation.json")
-        repairs = audit_validation(path, "grid", grid, reports["grid"], cfg, ds)
-        repairs += audit_validation(path, "final", final, reports["final"], cfg, ds)
-        require(record["repairs"] == repairs and record["legal"] is True and record["geometry_checked"] is True,
-                f"{scene_id}: validation metadata mismatch")
-        for timing_name, timing_value in {**record["teacher_timings"],
-                                          "validation_wall_s": record["validation_wall_s"],
-                                          "scene_wall_s": record["scene_wall_s"]}.items():
-            require(isinstance(timing_value, (int, float)) and np.isfinite(timing_value) and timing_value >= 0,
-                    f"{scene_id}: invalid timing {timing_name}")
-        same(record["validation_wall_s"], reports["grid"]["wall_s"]+reports["final"]["wall_s"],
-             scene_id+".validation_wall_s")
-        repaired_tasks += repairs
+        repaired_tasks += audit_scene(root, reader, record, catalog_records[cat_id], table, full)
     require(used_catalogs == set(catalogs), "catalogs without scenes")
     counts = dict(catalogs=len(catalogs), scenes=len(reader.scenes),
                   unique_synthetic_targets=sum(c["n_targets"] for c in manifest["catalogs"]),

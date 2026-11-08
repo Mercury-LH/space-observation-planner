@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "scope": "actual local group-005 full archive matches source manifest; retained pause attempts included; remote upload digest separately matched",
+  "asset": "synthetic-v0.2-group-005.tar.gz",
+  "asset_bytes": 158129486,
+  "asset_sha256": "b61d70de4b21481ae7035e83fa13d3d04d0c72198e8418728885d7aabfca8429",
+  "remote_asset_id": 722344684,
+  "remote_digest_matches_ledger": true,
+  "catalogs": 10,
+  "verified_payload_files": 222,
+  "retained_attempt_payload_files": 42,
+  "failure_records": [
+    {
+      "path": "failures/v2-cat-055/attempt-001/failure.json",
+      "sha256": "61599c19ab11147c8722a067386bd16c222dd1568edd7781853bcbc90df38d8e",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true
+    },
+    {
+      "path": "failures/v2-cat-056/attempt-001/failure.json",
+      "sha256": "506c72b13bfd6a5e297b5690f85eec769fecc703a80401df6f579f7a325eae0c",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true
+    },
+    {
+      "path": "failures/v2-cat-057/attempt-001/failure.json",
+      "sha256": "9ac37f87c0b0948f32f2168007540d90579f4129d1fa01b25798c6297ac270ac",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true
+    },
+    {
+      "path": "failures/v2-cat-058/attempt-001/failure.json",
+      "sha256": "85843ab9adf4d8047e18974961b8cf8ac8e4c9638176955eca54f3e46cba631b",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true
+    }
+  ],
+  "anonymous_download_performed": false
+}

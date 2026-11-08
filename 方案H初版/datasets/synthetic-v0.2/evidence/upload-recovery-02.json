@@ -1,0 +1,120 @@
+{
+  "scope": "HTTP 408 upload failure and verified cleanup; dataset generation continued unchanged",
+  "repository": "Mercury-LH/space-observation-planner",
+  "release_id": 437891349,
+  "release_tag": "synthetic-data-v0.2",
+  "events": [
+    {
+      "time_utc": "2026-11-08T03:55:05.410857+00:00",
+      "kind": "upload_error",
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "attempt": 1,
+      "error": "HTTP 408: Upload body timed out due to inactivity ([URL]\n",
+      "transient": true
+    },
+    {
+      "time_utc": "2026-11-08T03:55:11.795342+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "attempt": 2,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T03:55:18.798587+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "attempt": 3,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T03:55:28.387153+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "attempt": 4,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T03:55:48.291045+00:00",
+      "kind": "remote_asset_pending",
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "attempt": 5,
+      "state": "starter"
+    },
+    {
+      "time_utc": "2026-11-08T03:55:48.293732+00:00",
+      "kind": "watcher_failed",
+      "error_type": "RuntimeError",
+      "error": "upload/verification retry budget exhausted: synthetic-v0.2-group-044.tar.gz",
+      "publication_performed": false
+    }
+  ],
+  "stub_recovery": {
+    "scope": "verified cleanup of own terminal HTTP 408 upload stub; local data retained",
+    "repository": "Mercury-LH/space-observation-planner",
+    "release_id": 437891349,
+    "release_tag": "synthetic-data-v0.2",
+    "asset": {
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "bytes": 185862539,
+      "sha256": "67769857f8b41357dea90bdf6c0bb10a4face1249b8438ab5227c2fcab8b9ed0",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-044.tar.gz",
+      "group_id": 44,
+      "catalog_ids": [
+        "v2-cat-440",
+        "v2-cat-441",
+        "v2-cat-442",
+        "v2-cat-443",
+        "v2-cat-444",
+        "v2-cat-445",
+        "v2-cat-446",
+        "v2-cat-447",
+        "v2-cat-448",
+        "v2-cat-449"
+      ],
+      "splits": [
+        "validation"
+      ]
+    },
+    "remote_stub": {
+      "id": 722804634,
+      "name": "synthetic-v0.2-group-044.tar.gz",
+      "state": "starter",
+      "size": 185862539,
+      "digest": null,
+      "created_at": "2026-11-08T03:52:07Z",
+      "updated_at": "2026-11-08T03:52:07Z"
+    },
+    "uploader": "Mercury-LH",
+    "retained_archive_verified": true,
+    "archive_payload_files": 180,
+    "github_documentation": "https://docs.github.com/en/rest/releases/assets#upload-a-release-asset",
+    "before_utc": "2026-11-08T03:59:06.087802+00:00",
+    "deleted_stub_verified_absent": true,
+    "other_assets_unchanged": 44,
+    "verified_utc": "2026-11-08T03:59:07.764836+00:00"
+  },
+  "generation_identity_unchanged": true,
+  "identity_sha256": "d8a0a434f1fea608e0ba8a102215dde5c8e5d20f6730b84d8481f3a5e2c37407",
+  "generation_code_sha256": "f4ae4b10c0b3dfb863c090948dfceb51ef94101c127c173bbb87670296de888e",
+  "producer_restarted": false,
+  "helper_code_changed": false,
+  "helper_sha256_before": "3f0a36f72cd13ace3860f0619665ef4bfd2053092441fd589c7dd13b564e5685",
+  "helper_sha256_after": "3f0a36f72cd13ace3860f0619665ef4bfd2053092441fd589c7dd13b564e5685",
+  "watcher_exit_code": 2,
+  "stale_postproduction_monitor_exit_code": 130,
+  "watcher_restarted": true,
+  "postproduction_monitor_restarted": true,
+  "retry_upload_verified": false,
+  "local_preflight_errors": [
+    {
+      "stage": "local preflight before any remote mutation",
+      "error_type": "KeyError",
+      "error": "identity_sha256",
+      "cause": "preflight looked for identity fingerprint at manifest top level; inspect canonical identity helper before retry",
+      "producer_restarted": false,
+      "stale_postproduction_sigint_sent": true,
+      "remote_mutations": 0
+    }
+  ],
+  "note": "This preserves the upload failure and verified cleanup/restart. It does not establish successful re-upload or anonymous download."
+}

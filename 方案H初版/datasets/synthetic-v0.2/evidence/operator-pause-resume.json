@@ -1,0 +1,44 @@
+{
+  "scope": "operator-requested pause and same-identity resume; not algorithm failure",
+  "paused_utc": "2026-11-07T23:07:52.650200+00:00",
+  "resumed_utc": "2026-11-08T00:00:24.142182+00:00",
+  "completed_at_resume": 55,
+  "same_generation_sources_verified": true,
+  "same_protocols_verified": true,
+  "workers": 4,
+  "retained_interruptions": [
+    {
+      "catalog_id": "v2-cat-055",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "path": "failures/v2-cat-055/attempt-001",
+      "failure_json_sha256": "61599c19ab11147c8722a067386bd16c222dd1568edd7781853bcbc90df38d8e"
+    },
+    {
+      "catalog_id": "v2-cat-056",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "path": "failures/v2-cat-056/attempt-001",
+      "failure_json_sha256": "506c72b13bfd6a5e297b5690f85eec769fecc703a80401df6f579f7a325eae0c"
+    },
+    {
+      "catalog_id": "v2-cat-057",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "path": "failures/v2-cat-057/attempt-001",
+      "failure_json_sha256": "9ac37f87c0b0948f32f2168007540d90579f4129d1fa01b25798c6297ac270ac"
+    },
+    {
+      "catalog_id": "v2-cat-058",
+      "type": "KeyboardInterrupt",
+      "retry_allowed": true,
+      "attempt": 1,
+      "path": "failures/v2-cat-058/attempt-001",
+      "failure_json_sha256": "85843ab9adf4d8047e18974961b8cf8ac8e4c9638176955eca54f3e46cba631b"
+    }
+  ],
+  "timing_note": "first-start-to-final-completion elapsed time includes this pause; concurrent production cost sums are not an algorithm speed ranking"
+}

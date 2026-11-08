@@ -17,6 +17,7 @@ from sgp4.api import Satrec
 from .config import Config
 from .data import Dataset
 from .schedule import Schedule
+from .validator_cache import SkyfieldGeometryCache, _near_shadow_boundary
 
 
 @lru_cache(maxsize=1)
@@ -61,16 +62,25 @@ def _sample_times(start: float, duration: float, step_s: float) -> np.ndarray:
     return np.r_[samples[samples < end], end]
 
 
-def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> dict:
+def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, *,
+             geometry_cache: SkyfieldGeometryCache | None = None) -> dict:
     """Check structure first, then independent geometry on a <= 1-second mesh.
 
     Structurally invalid schedules return geometry_checked=False without
     indexing unknown IDs or loading ephemerides. Such a report must never be
     ranked as a partially validated plan. Endpoints are included; finite-step
     geometric sampling remains a numerical check, not an analytic proof.
+
+    ``geometry_cache`` opts into exact, scene-bound Skyfield rotation reuse.
+    The default path is the original reference. Unsupported conditions and
+    numerical boundaries fall back to that reference without relaxing rules.
     """
     if not math.isfinite(step_s) or not 0 < step_s <= 1.0:
         raise ValueError("Validation step_s must be finite and in (0, 1] seconds")
+    if geometry_cache is not None:
+        if not isinstance(geometry_cache, SkyfieldGeometryCache):
+            raise TypeError("geometry_cache must be a SkyfieldGeometryCache")
+        geometry_cache.assert_compatible(cfg, ds)
     bad = defaultdict(list)
     try:
         station, target, start, duration = [np.asarray(getattr(sch, field)) for field in
@@ -135,6 +145,9 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
     if bad:
         return _report(bad, per_task, cfg, geometry_checked=False)
 
+    if geometry_cache is not None and not geometry_cache.eligible(cfg, start, duration, step_s):
+        return validate(cfg, ds, sch, step_s=step_s)
+
     from skyfield.api import EarthSatellite, wgs84
     ts, eph = _sky(str(Path(cfg.cache_dir)))
     earth, sun, moon = eph["earth"], eph["sun"], eph["moon"]
@@ -144,6 +157,14 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
         return ts.utc(st0.year, st0.month, st0.day, st0.hour, st0.minute, st0.second + secs)
 
     task_secs = [_sample_times(start[i], duration[i], step_s) for i in range(n)]
+    if geometry_cache is not None:
+        raw_times = times
+        if not geometry_cache.prepare(task_secs, raw_times):
+            return validate(cfg, ds, sch, step_s=step_s)
+        def times(secs):
+            return geometry_cache.times(secs, raw_times)
+
+    boundary = False
     sites = [wgs84.latlon(float(ds.st_lat[j]), float(ds.st_lon[j]), elevation_m=float(ds.st_alt_m[j]))
              for j in range(ds.n_stations)]
 
@@ -174,13 +195,26 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
         rn = np.linalg.norm(geo.position.km, axis=0)
         implausible = ~np.isfinite(rn) | (rn < 0.9 * a_km * (1 - raw.ecco)) | (rn > 1.1 * a_km * (1 + raw.ecco))
         lit = geo.is_sunlit(eph) if cfg.use_sunlit else np.ones(len(secs), bool)
+        if geometry_cache is not None:
+            # Keep the same Time object: slicing it discards Skyfield's cached
+            # rotation matrices. Each target's geocentric position is reused.
+            alt_by_station = {int(j): (geo - sites[int(j)].at(tt)).altaz()[0].degrees
+                              for j in np.unique(station[idx])}
+            boundary |= bool((np.abs(rn - 0.9 * a_km * (1 - raw.ecco)) <= 1e-6).any()
+                             or (np.abs(rn - 1.1 * a_km * (1 + raw.ecco)) <= 1e-6).any())
+            if cfg.use_sunlit:
+                # Detect a near-tangent solar ray, without replacing Skyfield's
+                # is_sunlit decision. Such a plan is rechecked by the reference.
+                sun_m = (sun - earth).at(tt).position.m
+                boundary |= _near_shadow_boundary(geo.position.m, sun_m)
         pos = 0
         for i in idx:
             k = len(task_secs[i])
             sl = slice(pos, pos + k)
             pos += k
             j = int(station[i])
-            alt = (sat - sites[j]).at(tt[sl]).altaz()[0].degrees
+            alt = (alt_by_station[j][sl] if geometry_cache is not None else
+                   (sat - sites[j]).at(tt[sl]).altaz()[0].degrees)
             per_task[i, 0], per_task[i, 1] = alt.min(), alt.max()
             if not np.isfinite(alt).all():
                 bad["仰角计算非有限"].append(i)
@@ -205,4 +239,12 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
                 if np.any((malt > 0) & (sep < cfg.moon_sep_deg)):
                     bad["离月亮太近"].append(i)
 
+    if geometry_cache is not None:
+        boundary |= bool(not np.isfinite(per_task).all()
+                         or (np.abs(per_task[:, 0] - cfg.elev_min) <= 1e-8).any()
+                         or (np.abs(per_task[:, 1] - cfg.elev_max) <= 1e-8).any()
+                         or (cfg.use_sun and (np.abs(per_task[:, 2] - cfg.sun_max) <= 1e-8).any()))
+        if boundary:
+            geometry_cache.fallback("geometry_boundary_reference_backend")
+            return validate(cfg, ds, sch, step_s=step_s)
     return _report(bad, per_task, cfg, geometry_checked=True)

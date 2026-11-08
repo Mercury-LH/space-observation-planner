@@ -1,0 +1,11 @@
+{
+  "targeted_command": "python -m pytest tests/test_training_*.py tests/test_validator_cache.py tests/test_validator_contract.py -q",
+  "passed": 246,
+  "wall_s": 5.54,
+  "separate_reference_geometry_integration": {
+    "command": "python -m pytest tests/test_validator.py -q",
+    "passed": 1,
+    "wall_s": 23.73
+  },
+  "scope": "unit, corruption, transaction recovery and validator equivalence checks; not formal 600-scene generation"
+}

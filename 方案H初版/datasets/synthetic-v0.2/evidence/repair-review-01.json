@@ -1,0 +1,172 @@
+{
+  "scope": "targeted review of the first two repaired scenes, not the full 600-scene audit",
+  "dataset_version": "synthetic-v0.2",
+  "reviewed_utc": "2026-11-08T02:31:48.767826+00:00",
+  "production_completed_at_snapshot": 297,
+  "repairs_at_snapshot": 2,
+  "review_wall_s": 0.7160022500029299,
+  "generation_code_sha256": "f4ae4b10c0b3dfb863c090948dfceb51ef94101c127c173bbb87670296de888e",
+  "source_commit": "ca55d6af1e47b31334763af6c80aab7c15cef512",
+  "passed": true,
+  "scenes": [
+    {
+      "scene_id": "v2-cat-226-v0",
+      "phase_repaired": "grid",
+      "removed_tasks": 1,
+      "original_tasks": 5214,
+      "published_tasks": 5213,
+      "before_violations": {
+        "仰角高于上限": 1
+      },
+      "published_grid_legal": true,
+      "published_final_legal": true,
+      "published_geometry_evidence_passed": true,
+      "native_inputs_labels_windows_scores_audit_passed": true,
+      "original_task_provenance_matched_final_tasks": 5214,
+      "selection_count_and_labels_match_repaired_grid": true,
+      "final_rows_absent_from_repaired_grid": 1,
+      "reference_recheck": {
+        "scope": "only the one independently flagged original task; full published plans not rerun by this review",
+        "geometry_cache_enabled": false,
+        "step_s": 1.0,
+        "invalid_original_rows": [
+          1182
+        ],
+        "max_elevation_deg": 86.28189954071688,
+        "saved_cached_max_elevation_deg": 86.28189954071688,
+        "max_abs_geometry_difference_deg": 7.105427357601002e-15,
+        "violation_reproduced": true
+      },
+      "file_hashes_verified_against_production_inventory": {
+        "actions.npz": {
+          "bytes": 5460227,
+          "sha256": "3dc7963519dd85335d3fed1a9fa81e4fb14b76beb3ff96ca8a3c380a7f9f2d97"
+        },
+        "final_geometry.npz": {
+          "bytes": 119752,
+          "sha256": "94a2dfbcc66fabcf2a1a6aa054b84cf57bf9b8b5c264a7ef15bb5648df3fa39b"
+        },
+        "grid_before_repair.npz": {
+          "bytes": 31263,
+          "sha256": "bf157f35491e98357c1d344213ad27636f3a8e4e1145ca3d0cdc6dae9caf59b7"
+        },
+        "grid_before_repair_geometry.npz": {
+          "bytes": 119821,
+          "sha256": "48c22773c43630de9a754097b69f3090aa6e62fa116b0751b05faba2ecf12fcd"
+        },
+        "grid_before_repair_validation.json": {
+          "bytes": 223,
+          "sha256": "41cebb5c3099f344a76ab08240e879f3570c85fa5c92731174228ff1836c34fb"
+        },
+        "grid_geometry.npz": {
+          "bytes": 119789,
+          "sha256": "2bd25c95aa81600ee117f2473c220981ee0a544a78907decbc9ed73b8304ba67"
+        },
+        "grid_plan.npz": {
+          "bytes": 52867,
+          "sha256": "608460445bdbbd4820f5867fe066ed49c5b7fb3484c6735f90f1d0e9e582317f"
+        },
+        "plan.npz": {
+          "bytes": 54307,
+          "sha256": "f3d924f5369f1c8109345ef5837c123d4957cdab84df903e006681be1c14de31"
+        },
+        "pool_source_indices.npz": {
+          "bytes": 55050,
+          "sha256": "e8c16e9b92bb575e6a2d6d2fe99c7991d38af0855587eb53b6bf1ca75d0320af"
+        },
+        "pool_windows.npz": {
+          "bytes": 171021,
+          "sha256": "6feb75de542c4545c9458aa2dda13080a2576dde7c6e37f172b3aa3a04d5f159"
+        },
+        "scene.json": {
+          "bytes": 5495,
+          "sha256": "4f6d976ab6fab277b73dd91b1403620ba6cfd9e5a01b95c574ee861c7a8f41af"
+        },
+        "validation.json": {
+          "bytes": 1027,
+          "sha256": "38852b70a393672784c998959cd3def36791a43631cfaee55c87bd9bf2f68bee"
+        }
+      }
+    },
+    {
+      "scene_id": "v2-cat-292-v0",
+      "phase_repaired": "final",
+      "removed_tasks": 1,
+      "original_tasks": 7752,
+      "published_tasks": 7751,
+      "before_violations": {
+        "仰角高于上限": 1
+      },
+      "published_grid_legal": true,
+      "published_final_legal": true,
+      "published_geometry_evidence_passed": true,
+      "native_inputs_labels_windows_scores_audit_passed": true,
+      "original_task_provenance_matched_final_tasks": 7751,
+      "selection_count_and_labels_match_repaired_grid": true,
+      "final_rows_absent_from_repaired_grid": 0,
+      "reference_recheck": {
+        "scope": "only the one independently flagged original task; full published plans not rerun by this review",
+        "geometry_cache_enabled": false,
+        "step_s": 1.0,
+        "invalid_original_rows": [
+          1394
+        ],
+        "max_elevation_deg": 86.88211260701017,
+        "saved_cached_max_elevation_deg": 86.88211260701017,
+        "max_abs_geometry_difference_deg": 0.0,
+        "violation_reproduced": true
+      },
+      "file_hashes_verified_against_production_inventory": {
+        "actions.npz": {
+          "bytes": 5952871,
+          "sha256": "809745b573a8f6134b7472a00717077dfd9a15dd4bfc6c2f0b7c202314152eaf"
+        },
+        "final_before_repair.npz": {
+          "bytes": 50359,
+          "sha256": "00742dc5054f772ece55be1183078a77ffa5bf089866e0fb2f2c34a3f1d65579"
+        },
+        "final_before_repair_geometry.npz": {
+          "bytes": 177483,
+          "sha256": "dbc588d40890790d50f9faab07b70052131c7b444f28483cc15ee7729c9a31cc"
+        },
+        "final_before_repair_validation.json": {
+          "bytes": 222,
+          "sha256": "d02922373dea4159e00d33e1da63f9ccdd4f96aced6422e54a7c822b926dcc39"
+        },
+        "final_geometry.npz": {
+          "bytes": 177448,
+          "sha256": "6b52ba780cfe65df7ed2b2dfc8e555b53e6d62f2a0d0d32b9618e22b309f6b07"
+        },
+        "grid_geometry.npz": {
+          "bytes": 177809,
+          "sha256": "4808f45e698193338cc26b8e6ce80561fadec2ca0a93910f51869522448c2902"
+        },
+        "grid_plan.npz": {
+          "bytes": 80317,
+          "sha256": "bdd5d0bda2075d4b71c0cd88f91923d75e78bdc07f72391a5e3c63d7b260f81c"
+        },
+        "plan.npz": {
+          "bytes": 82865,
+          "sha256": "539f966bec832763f6d31a6c2029dbc68a8fcf28e26410d8fae7b6fb49fa808f"
+        },
+        "pool_source_indices.npz": {
+          "bytes": 61665,
+          "sha256": "8ce770af99de6d02e1602d05501de12153244257768f3a96f6ce5b045a748259"
+        },
+        "pool_windows.npz": {
+          "bytes": 209121,
+          "sha256": "0e9981d55bce403278a489e8b912cc08d9f0e8b3265c8e2dba4e32e17527663c"
+        },
+        "scene.json": {
+          "bytes": 5696,
+          "sha256": "78754a06750c80e8fd08b00ac223627810f98b9345b6817b1e9cef9adb3599d3"
+        },
+        "validation.json": {
+          "bytes": 1022,
+          "sha256": "ef6bcd65fd1bab0a2e2d49f3b8971c2195451c1ecd6533f290a18423bd78a2f6"
+        }
+      }
+    }
+  ],
+  "note": "Grid and final plans are independently checked. Labels describe the published grid plan; final plan provenance uses original teacher row IDs, so final and repaired-grid membership may differ. Before-repair plans, geometry and failed reports remain in the dataset."
+}
