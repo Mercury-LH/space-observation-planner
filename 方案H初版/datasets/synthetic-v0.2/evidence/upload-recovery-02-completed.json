@@ -1,0 +1,32 @@
+{
+  "scope": "completed retry of previously failed HTTP 408 upload; not anonymous download verification",
+  "dataset_version": "synthetic-v0.2",
+  "release_tag": "synthetic-data-v0.2",
+  "release_id": 437891349,
+  "prior_recovery_evidence": "upload-recovery-02.json",
+  "prior_recovery_evidence_sha256": "f02174adc98087f5cb755cf626bc9c25f09e1981faef77bd17fff56900145add",
+  "failed_stub_id": 722804634,
+  "successful_asset": {
+    "id": 722827151,
+    "name": "synthetic-v0.2-group-044.tar.gz",
+    "state": "uploaded",
+    "size": 185862539,
+    "digest": "sha256:67769857f8b41357dea90bdf6c0bb10a4face1249b8438ab5227c2fcab8b9ed0",
+    "created_at": "2026-11-08T04:02:05Z",
+    "updated_at": "2026-11-08T04:03:44Z"
+  },
+  "source_archive_unchanged": true,
+  "ledger_and_live_server_match": true,
+  "watcher_event": {
+    "time_utc": "2026-11-08T04:03:47.361812+00:00",
+    "kind": "group_verified",
+    "verified_groups": 45,
+    "group_id": 44,
+    "name": "synthetic-v0.2-group-044.tar.gz",
+    "bytes": 185862539,
+    "sha256": "67769857f8b41357dea90bdf6c0bb10a4face1249b8438ab5227c2fcab8b9ed0",
+    "remote_asset_id": 722827151
+  },
+  "verified_utc": "2026-11-08T04:06:03.802872+00:00",
+  "release_still_draft": true
+}
