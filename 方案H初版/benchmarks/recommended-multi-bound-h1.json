@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "repeats": 1,
+  "workers": 8,
+  "timeout_s": 3600,
+  "time_weight": 0.42857142857142855,
+  "time_scale_s": 120.0,
+  "weights": [
+    0,
+    0.1,
+    0.2,
+    0.4,
+    0.42857142857142855
+  ],
+  "config": {
+    "start_utc": "2026-08-01T00:00:00",
+    "days": 6.0,
+    "seed": 2026
+  },
+  "presets": [
+    "hplus_1_fast_multi_bound"
+  ],
+  "solvers": {
+    "hplus_1_fast_multi_bound": {
+      "entrypoint": "benchmarks.h_acceleration_bounds:solve",
+      "spec": {
+        "preset": "hplus_fast",
+        "sources": [
+          "H+"
+        ],
+        "h_iters": 1,
+        "h_fast": true,
+        "workers": 8,
+        "seed": 2026,
+        "fusion_seed": null,
+        "ga": {
+          "n_scen": 3,
+          "pop": 16,
+          "gens": 12
+        },
+        "g": {
+          "block_h": 4.0,
+          "commit_h": 3.0,
+          "time_limit_s": 10.0,
+          "k_win": 1,
+          "k_dur": 1
+        },
+        "fusion": {
+          "rounds": 0,
+          "durations": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ],
+          "shifts": [
+            -1,
+            1
+          ],
+          "block_h": 24.0,
+          "step_h": 12.0,
+          "time_limit_s": 30.0,
+          "budget_s": 300.0,
+          "passes": 1,
+          "local_search": true
+        },
+        "early_stop": {
+          "patience": 0,
+          "min_gain": 0.0,
+          "min_gain_per_s": 0.0
+        },
+        "finish_near": true,
+        "acceleration": "multi_bound"
+      }
+    }
+  }
+}

@@ -1,0 +1,456 @@
+{
+  "version": "neural-lns-features-v1",
+  "dtype": "float32",
+  "static_dim": 20,
+  "dynamic_dim": 24,
+  "static_names": [
+    "priority",
+    "duration_cells",
+    "task_score",
+    "cover_value",
+    "price_cost",
+    "price_per_cell",
+    "window_cells",
+    "slack_cells",
+    "target_windows",
+    "scarcity",
+    "urgency",
+    "conflict",
+    "night_pos",
+    "time_frac",
+    "max_obs",
+    "sub_pick",
+    "sub_pick_same_duration",
+    "sub_count",
+    "target_dual",
+    "window_demand"
+  ],
+  "dynamic_names": [
+    "covered",
+    "observation_count",
+    "previous_exists",
+    "previous_gap_margin_s",
+    "next_exists",
+    "next_gap_margin_s",
+    "station_occupancy_fraction",
+    "free_gap_before_s",
+    "free_gap_after_s",
+    "removed_tasks",
+    "removed_score",
+    "replacement_tasks",
+    "replacement_score",
+    "alternative_stations",
+    "alternative_windows",
+    "op_insert",
+    "op_migrate",
+    "op_trim",
+    "op_replace",
+    "local_targets",
+    "local_task_count",
+    "insertion_start_fraction",
+    "insertion_duration_s",
+    "covered_fraction"
+  ],
+  "static": [
+    {
+      "index": 0,
+      "name": "priority",
+      "unit": "raw score",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 1,
+      "name": "duration_cells",
+      "unit": "30-second cell",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 2,
+      "name": "task_score",
+      "unit": "raw score",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 3,
+      "name": "cover_value",
+      "unit": "raw score",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 4,
+      "name": "price_cost",
+      "unit": "raw score",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 5,
+      "name": "price_per_cell",
+      "unit": "raw score per occupied cell",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 6,
+      "name": "window_cells",
+      "unit": "30-second cell",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 7,
+      "name": "slack_cells",
+      "unit": "30-second cell",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 8,
+      "name": "target_windows",
+      "unit": "count",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 9,
+      "name": "scarcity",
+      "unit": "ratio",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 10,
+      "name": "urgency",
+      "unit": "ratio",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 11,
+      "name": "conflict",
+      "unit": "ratio",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 12,
+      "name": "night_pos",
+      "unit": "ratio",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 13,
+      "name": "time_frac",
+      "unit": "ratio",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 14,
+      "name": "max_obs",
+      "unit": "count",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 15,
+      "name": "sub_pick",
+      "unit": "binary",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 16,
+      "name": "sub_pick_same_duration",
+      "unit": "binary",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 17,
+      "name": "sub_count",
+      "unit": "count",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 18,
+      "name": "target_dual",
+      "unit": "raw score",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    },
+    {
+      "index": 19,
+      "name": "window_demand",
+      "unit": "mean resource demand",
+      "source": "obsplan.famou_h_eval.feature_rows",
+      "normalization": "selected-train scene-equal z-score; constant scale=1",
+      "mask": null
+    }
+  ],
+  "dynamic": [
+    {
+      "index": 0,
+      "name": "covered",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 1,
+      "name": "observation_count",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 2,
+      "name": "previous_exists",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 3,
+      "name": "previous_gap_margin_s",
+      "unit": "second",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": "previous_exists",
+      "missing_value": 0
+    },
+    {
+      "index": 4,
+      "name": "next_exists",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 5,
+      "name": "next_gap_margin_s",
+      "unit": "second",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": "next_exists",
+      "missing_value": 0
+    },
+    {
+      "index": 6,
+      "name": "station_occupancy_fraction",
+      "unit": "ratio",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 7,
+      "name": "free_gap_before_s",
+      "unit": "second",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 8,
+      "name": "free_gap_after_s",
+      "unit": "second",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 9,
+      "name": "removed_tasks",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 10,
+      "name": "removed_score",
+      "unit": "raw score",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 11,
+      "name": "replacement_tasks",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 12,
+      "name": "replacement_score",
+      "unit": "raw score",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 13,
+      "name": "alternative_stations",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 14,
+      "name": "alternative_windows",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 15,
+      "name": "op_insert",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 16,
+      "name": "op_migrate",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 17,
+      "name": "op_trim",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 18,
+      "name": "op_replace",
+      "unit": "binary",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 19,
+      "name": "local_targets",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 20,
+      "name": "local_task_count",
+      "unit": "count",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 21,
+      "name": "insertion_start_fraction",
+      "unit": "ratio",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 22,
+      "name": "insertion_duration_s",
+      "unit": "second",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    },
+    {
+      "index": 23,
+      "name": "covered_fraction",
+      "unit": "ratio",
+      "source": "current parent schedule and complete candidate operation; pre-outcome only",
+      "normalization": "train-only z-score; constant scale=1",
+      "mask": null,
+      "missing_value": null
+    }
+  ],
+  "static_pretrain_pool": "published at-most-12-windows-per-target teacher pool",
+  "dynamic_pool": "full-windows-v1; recompute static features in the actual complete pool",
+  "dynamic_price": "hplus-fixed-mu-v1; same fixed H+ mu in training and inference",
+  "pool_fingerprint": "full-window station/target/k0/k1 arrays, priorities, cell_s, n_samples and gap; dtype/shape/bytes",
+  "price_fingerprint": "mu dtype, shape and bytes",
+  "required_runtime_fingerprints": [
+    "feature_version",
+    "pool_version",
+    "pool_sha256",
+    "price_version",
+    "price_sha256"
+  ],
+  "forbidden_inputs": [
+    "future_gain",
+    "after_C",
+    "after_S",
+    "after_Q",
+    "teacher_selection",
+    "teacher_insertion_order",
+    "final_chosen"
+  ],
+  "missing_previous_next": "explicit exists mask and zero margin; no arbitrary huge sentinel"
+}

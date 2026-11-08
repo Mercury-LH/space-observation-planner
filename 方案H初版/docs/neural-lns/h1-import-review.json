@@ -1,0 +1,22 @@
+{
+  "source_head": "a5d7835b86af5342640e8e6b896d35edcbaf8d92",
+  "source_files_were_untracked": true,
+  "review": "Three bound exits preserve first-optimum for finite nonnegative objective; public solver and validation unchanged. Imported narrowly, tests required against current core. Historical timing is not current benchmark evidence.",
+  "files": [
+    {
+      "path": "benchmarks/h_acceleration_bounds.py",
+      "sha256": "10dc4cf0da0776afbb994055aff95957f87f903a78f079c0b5b4daac9bdc564a",
+      "source": "/Users/mercury/Downloads/\u8d5b\u9898/planner-auto-eval/\u65b9\u6848H\u521d\u7248/benchmarks/h_acceleration_bounds.py"
+    },
+    {
+      "path": "tests/test_h_acceleration_bounds.py",
+      "sha256": "d3c3a80533902c0125154eabe664eb407d7e196e9ae3f24400149caf19002fdf",
+      "source": "/Users/mercury/Downloads/\u8d5b\u9898/planner-auto-eval/\u65b9\u6848H\u521d\u7248/tests/test_h_acceleration_bounds.py"
+    },
+    {
+      "path": "benchmarks/recommended-multi-bound-h1.json",
+      "sha256": "c500498f2d3f15c94ef18b3d141871fd2a884f94cbc4c1699c10978089f499b2",
+      "source": "/Users/mercury/Downloads/\u8d5b\u9898/planner-auto-eval/\u65b9\u6848H\u521d\u7248/benchmarks/recommended-multi-bound-h1.json"
+    }
+  ]
+}

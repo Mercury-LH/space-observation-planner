@@ -1,0 +1,214 @@
+{
+  "date": "2026-11-08",
+  "base_commit": "1d03b9d920c43d20d8e1b46bd30dde9f3745bb4a",
+  "branch": "feat/neural-local-search-v1",
+  "source_hash": "cce70fe93d0529b5682ef86b74281f3c27a277ba18d7f23277bd72341f8c32ed",
+  "protocol_freeze_hash": "0198d989fcf286bf5b29dedcafca9b1a007a31098fdefd51f83921067f09e9e6",
+  "data_integrity": {
+    "passed": true,
+    "dataset_version": "synthetic-v0.2",
+    "files": 10891,
+    "bytes": 9816619027,
+    "manifest_sha256": "532e4c33b77411d547e9a9913515ed2656d00f82630bec194e3a489fe18321ec",
+    "index_sha256": "47f3f97350f2fd31a6ad56eca7c9e3f929229683cb41c0169f9f7d6943c8b29f",
+    "splits": {
+      "train": 420,
+      "validation": 90,
+      "test": 90
+    },
+    "failures": [],
+    "wall_s": 6.763627667001856,
+    "scope": "released payload identity; no geometry recomputation or model evaluation"
+  },
+  "tests": {
+    "full": {
+      "passed": 647,
+      "skipped": 1,
+      "log": "outputs/neural-preflight-v1/pytest-full.log"
+    },
+    "final_changed_protocol_campaign": {
+      "passed": 18,
+      "log": "outputs/neural-preflight-v1/pytest-final-targeted.log"
+    }
+  },
+  "models": {
+    "static-smoke": {
+      "steps": 202,
+      "checkpoint": "outputs/neural-preflight-v1/static-smoke/checkpoint-step-000202-0702e557d04f45e6aad04583af7c47db.pt",
+      "sha256": "a90f7d2e3948a62b0226ecf26a586d754b2bec4e2d77f914c1c8ee7d823c8f31",
+      "normalizer_sha256": "66bd305da9ddac822ab91bd7bf3f86470c63aa0cf27dedabfd780f728a03c23d",
+      "schema_sha256": "7e7171e26896aa871d184b9543b1641176abba99d6626fa376e5c0b583f42c82",
+      "parameters": 11009,
+      "attempt_wall_s": 1.8322457910107914,
+      "attempt_cpu_s": 1.440716,
+      "gpu_hours": 0,
+      "development_only": true
+    },
+    "dynamic-smoke": {
+      "steps": 202,
+      "checkpoint": "outputs/neural-preflight-v1/dynamic-smoke/checkpoint-step-000202-5c13abb74a7e4f5283e7ecf582c3b462.pt",
+      "sha256": "d6d8028c5ff7575012510ae122fed344d43d82754ac84826a81c619b7fd70ed8",
+      "normalizer_sha256": "66bd305da9ddac822ab91bd7bf3f86470c63aa0cf27dedabfd780f728a03c23d",
+      "schema_sha256": "7e7171e26896aa871d184b9543b1641176abba99d6626fa376e5c0b583f42c82",
+      "parameters": 16705,
+      "attempt_wall_s": 1.1595310409975355,
+      "attempt_cpu_s": 0.9910479999999999,
+      "gpu_hours": 0,
+      "development_only": true,
+      "dynamic_normalizer_sha256": "f10945fa8964dcff91cfbc7a0b05ed19d86e65021075d73c8a3d8904493c4c79"
+    },
+    "dynamic-random-smoke": {
+      "steps": 200,
+      "checkpoint": "outputs/neural-preflight-v1/dynamic-random-smoke/checkpoint-step-000200-e6187ffae6eb48d9a6f972eea2493052.pt",
+      "sha256": "9f17daa32ed5ab8a9561d62172bf851f7064ac9d5de9bce1c48dc5087810a936",
+      "normalizer_sha256": "56004a311cd79af9dca3aebc262e3bd24d5d5474ba8ac71b0c730f9910eb5f18",
+      "schema_sha256": "7e7171e26896aa871d184b9543b1641176abba99d6626fa376e5c0b583f42c82",
+      "parameters": 16705,
+      "attempt_wall_s": 0.5208100000018021,
+      "attempt_cpu_s": 0.509522,
+      "gpu_hours": 0,
+      "development_only": true,
+      "dynamic_normalizer_sha256": "f10945fa8964dcff91cfbc7a0b05ed19d86e65021075d73c8a3d8904493c4c79"
+    }
+  },
+  "search_smoke": {
+    "runs": [
+      {
+        "mode": "rule",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 1.1075575830036541,
+        "validation_s": 0.5937071660009678,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      },
+      {
+        "mode": "random",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 0.11382029199739918,
+        "validation_s": 0.4820922079961747,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      },
+      {
+        "mode": "static_only",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 0.14790479200019035,
+        "validation_s": 0.47666620800009696,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      }
+    ],
+    "all_plans_independently_legal": true,
+    "same_initial_plan": true,
+    "counterfactual_rows": 4,
+    "counterfactual_statuses": [
+      "completed",
+      "completed",
+      "completed",
+      "completed"
+    ],
+    "wall_s": 5.390648499997042,
+    "dev_smoke": true,
+    "quality_evidence": false,
+    "formal_100_operation_calibration_run": false,
+    "formal_1_percent_gate_passed": false
+  },
+  "dynamic_search_smoke": {
+    "runs": [
+      {
+        "mode": "rule",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 0.2561651249998249,
+        "validation_s": 0.9270147499992163,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      },
+      {
+        "mode": "random",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 0.20004162500117673,
+        "validation_s": 0.9317558749971795,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      },
+      {
+        "mode": "neural",
+        "metrics": {
+          "C": 32,
+          "S": 279.58,
+          "Q": 1.9411340206185566
+        },
+        "solve_s": 0.3091552500045509,
+        "validation_s": 0.9214502920003724,
+        "legal": true,
+        "over_budget": false,
+        "initial_plan_hash": "092f4137d8255ed34a3251ee9462cd9c2ba9a70491c6d8654281b31bafc15957",
+        "plan_sha256": "33c6459cf7d5ef2922dea48c1e1f3b513d3569b8cd88fe5d6f152fcee13dc11f",
+        "quality_evidence": false
+      }
+    ],
+    "all_plans_independently_legal": true,
+    "same_initial_plan": true,
+    "counterfactual_rows": 4,
+    "counterfactual_statuses": [
+      "completed",
+      "completed",
+      "completed",
+      "completed"
+    ],
+    "wall_s": 6.479320540995104,
+    "dev_smoke": true,
+    "quality_evidence": false,
+    "formal_100_operation_calibration_run": false,
+    "formal_1_percent_gate_passed": false
+  },
+  "formal_training_started": false,
+  "cloud_training_started": false,
+  "counterfactual_100_operation_calibration_complete": false,
+  "pilot_40_catalogs_complete": false,
+  "formal_test_run": false,
+  "adopt": false,
+  "decision": "development pipeline verified; insufficient evidence for quality adoption; keep existing platform algorithm",
+  "remaining": [
+    "user-provided cloud instance and finite paid budget",
+    "actual CUDA/driver check and one-hour throughput calibration",
+    "100-operation full-budget counterfactual calibration",
+    "40-catalog static/dynamic pilot and matched controls",
+    "three-seed locked final evaluation only if pilot gates pass"
+  ]
+}

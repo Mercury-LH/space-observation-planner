@@ -1,0 +1,9 @@
+{
+  "version": "neural-lns-v1",
+  "files": {
+    "protocol.json": "1b56dbeae54fb3a361c637707f5c63685a661952500fca81c6e56894285916f6",
+    "splits.json": "8f71542bfdefaf1c96bcf08b434be063014ca827677cd1ad635fd55cfdb9d6a7",
+    "feature_schema.json": "7e7171e26896aa871d184b9543b1641176abba99d6626fa376e5c0b583f42c82"
+  },
+  "freeze_hash": "0198d989fcf286bf5b29dedcafca9b1a007a31098fdefd51f83921067f09e9e6"
+}

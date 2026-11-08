@@ -13,6 +13,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+neural = [
+    "torch==2.15.0",
+]
 famou = [
     "famou-sdk==2.5.0",
 ]

@@ -1,0 +1,49 @@
+{
+  "version": "neural-lns-implementation-v1",
+  "registered_date": "2026-11-08",
+  "registration_scope": "implementation detail registered before quality experiments; original three-file protocol unchanged",
+  "candidate_generator": {
+    "target_source_mix": "fixed/scarcity/seeded-random round-robin, next unique target",
+    "primary_target_limit": 61,
+    "blocker_target_reserve": 3,
+    "total_target_limit": 64,
+    "per_target_operation_limit": "max(2, ceil(round_limit / selected_target_count))",
+    "windows_per_target_region_limit": 4,
+    "start_boundaries_per_window_limit": 8,
+    "single_blocker_migration_alternative_windows": 16,
+    "migration_starts_per_window": 3,
+    "revisit_policy": "rotate target, window, start and alternative lists by region visit index",
+    "enumeration": "bounded and incomplete; record unvisited counts and deferred policy; do not claim all feasible operations fit into 32",
+    "same_for_all_sorters": true
+  },
+  "formal_refinement": {
+    "registration_reason": "match the existing quality-hplus strong baseline; registered before any formal quality results",
+    "methods": [
+      "hplus_extended",
+      "h1_multi_bound",
+      "rule",
+      "random",
+      "neural",
+      "static_only",
+      "dynamic_random_init"
+    ],
+    "finish_near": true,
+    "near_windows_preparation": "prepare near_windows before the solve timer using the public benchmark procedure",
+    "near_windows_prepare_s": "measure and report separately; include in end_to_end_s, outside the registered solve budget just like public geometry preparation",
+    "refinement_s": "the common refinement itself remains inside the calibrated solve budget B; exceeding B is timeout even with a legal fallback",
+    "cache_isolation": "separate cache directory per catalog, including known application; same cache policy for all methods",
+    "local_development_smoke": {
+      "finish_near": false,
+      "geometry_policy": "no near-window geometry rebuild on the laptop",
+      "acceptance_scope": "development-only; cannot enter formal freeze or acceptance"
+    }
+  },
+  "inference_device": {
+    "allowed": [
+      "cpu",
+      "cuda"
+    ],
+    "default": "cpu",
+    "binding": "selected deployment device is part of runtime_freeze.identity and must match the evaluation campaign; device costs remain in full solve time"
+  }
+}

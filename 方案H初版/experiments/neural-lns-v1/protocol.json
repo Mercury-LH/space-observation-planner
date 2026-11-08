@@ -1,0 +1,263 @@
+{
+  "version": "neural-lns-v1",
+  "registered_date": "2026-11-08",
+  "status": "preregistered_before_quality_experiments",
+  "objective": "quality_first",
+  "dataset": {
+    "version": "synthetic-v0.2",
+    "release_tag": "synthetic-data-v0.2",
+    "release_commit": "1d03b9d920c43d20d8e1b46bd30dde9f3745bb4a",
+    "release_index": "datasets/synthetic-v0.2/release-assets.json",
+    "unselected_is_illegal": false
+  },
+  "seeds": [
+    2026,
+    2027,
+    2028
+  ],
+  "initial_plan": {
+    "preset": "hplus_fast",
+    "h_iters": 300,
+    "local_search": "full",
+    "stage": "grid_before_common_finish",
+    "same_plan_for": [
+      "hplus_extended",
+      "rule",
+      "random",
+      "neural",
+      "static_only",
+      "dynamic_random_init"
+    ],
+    "h1_exception": "independent strong h1_multi_bound baseline; its initial plan may differ",
+    "finish": "same integer-second refinement for all; included in solve budget",
+    "h_fast": false
+  },
+  "methods": [
+    "hplus_extended",
+    "h1_multi_bound",
+    "rule",
+    "random",
+    "neural",
+    "static_only",
+    "dynamic_random_init"
+  ],
+  "non_neural_methods": [
+    "hplus_extended",
+    "h1_multi_bound",
+    "rule",
+    "random"
+  ],
+  "model_methods": [
+    "neural",
+    "static_only",
+    "dynamic_random_init"
+  ],
+  "budget": {
+    "calibration_method": "original H+300 full, three complete solves per instance/environment",
+    "formula": "max(5.0, 1.25 * median(T0_1,T0_2,T0_3))",
+    "minimum_s": 5,
+    "multiplier": 1.25,
+    "allow_remaining_budget_original_search": true,
+    "includes": [
+      "initial_hplus",
+      "dynamic_features",
+      "model_load",
+      "model_inference",
+      "candidate_generation",
+      "state_copy",
+      "rollback",
+      "search",
+      "integer_second_refinement"
+    ],
+    "excludes_and_separately_reports": [
+      "data_preparation",
+      "full_windows",
+      "independent_validation"
+    ],
+    "overtime_policy": "keep latest legal fallback but mark timeout; cannot pass acceptance",
+    "finish_reserve": "max(0.05, 1.25 * median(three original H+ calibration finish-stage times)); search deadline=B-reserve; finish still inside B"
+  },
+  "acceptance": {
+    "test_core_catalogs": 60,
+    "test_stress_catalogs": 30,
+    "core_min_mean_relative_S": 0.01,
+    "core_bootstrap_confidence": 0.95,
+    "core_bootstrap_lower_strictly_positive": true,
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 20261108,
+    "aggregation": "equal catalog weight; mean across the three fixed seeds inside catalog, paired bootstrap over catalogs",
+    "comparator": "per catalog and seed maximum S of all completed validated non-neural methods within budget; conservative preregistered clarification",
+    "missing_or_failed_neural_S": 0,
+    "missing_or_failed_controls": "retain and fail completeness; do not drop or claim pass",
+    "coverage": "each completed neural plan C >= same initial C and original hplus_extended C",
+    "validation": {
+      "engine": "skyfield",
+      "step_s": 1,
+      "endpoints": true,
+      "required_for_all_seeds": true
+    },
+    "stress_min_mean_relative_S": 0.0,
+    "stress_types_reported_separately": true,
+    "application": {
+      "catalog_id": "known-competition-10000-10-6d",
+      "n_targets": 10000,
+      "n_stations": 10,
+      "days": 6,
+      "min_mean_relative_S": 0.01,
+      "coverage_non_decreasing": true,
+      "independent_test": false
+    },
+    "adopt_only_when_all_groups_pass": true,
+    "new_independent_validation_failure_veto": true
+  },
+  "static_training": {
+    "subsets": [
+      40,
+      100,
+      200,
+      420
+    ],
+    "encoder": [
+      20,
+      128,
+      64
+    ],
+    "head": [
+      64,
+      1
+    ],
+    "max_parameters": 1000000,
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "batch_size": 8192,
+    "smoke_steps": 200,
+    "steps": 10000,
+    "eval_every": 500,
+    "normalizer": "fit separately on each selected train subset; scene-equal moments; hash stored",
+    "scene_sampling": "shuffle scene order each cycle; 16 batches per scene; candidate-uniform sampling with replacement within scene; equal steps per scene",
+    "class_balance": "train-only weighted BCE",
+    "validation_distribution": "natural",
+    "selection": "all validation scene-mean natural-distribution average precision; planner pilot gate remains required",
+    "score_semantics": "ranking score, not calibrated probability",
+    "batches_per_scene": 16,
+    "positive_weight": "(1 - mean_scene_positive_rate) / mean_scene_positive_rate; selected train subset only"
+  },
+  "dynamic_training": {
+    "initial_train_catalogs": 40,
+    "max_states_per_catalog": 8,
+    "max_candidates_per_state": 16,
+    "max_counterfactual_evaluations": 5120,
+    "repair_attempt_limit": 64,
+    "repair_timeout_s": 2.0,
+    "calibration_operations": 100,
+    "label": "delta C/S/Q against repair of unchanged parent with identical attempt and time budget",
+    "loss": "within-parent-state pairwise logistic ranking; completed noncensored pairs only",
+    "auxiliary_huber_weight": 0.0,
+    "state_sampler_mixture": {
+      "rule": 0.5,
+      "random": 0.25,
+      "trained_ranker": 0.25
+    },
+    "before_ranker_available": {
+      "rule": 0.5,
+      "random": 0.5
+    },
+    "mixture_rounding": "8 states: 4 rule, 2 random, 2 trained; before ranker 4 rule, 4 random",
+    "train_only_new_samples": true,
+    "censored_policy": "persist timeouts with null gain; never convert timeout to zero training label",
+    "ablations": [
+      "static_only",
+      "dynamic_random_init"
+    ],
+    "head": [
+      88,
+      64,
+      1
+    ],
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "weight_decay": 0.0001,
+    "steps": 10000,
+    "sampling": "catalog-uniform then parent-state-uniform; all non-tied delta_Q pairs in state",
+    "pretrained_static_normalizer": "retain stage A coordinate system; dynamic normalizer train-only",
+    "random_init_normalizer": "fit static and dynamic normalizers on train dynamic samples only"
+  },
+  "search": {
+    "max_changed_existing_tasks": 3,
+    "max_local_targets": 64,
+    "local_window_s": 14400,
+    "max_candidates_per_round": 32,
+    "accept": "C nondecreasing and Q strictly increasing after complete operation",
+    "candidate_sources": [
+      "fixed_rule",
+      "scarcity",
+      "seeded_random_coverage"
+    ],
+    "same_candidates_across_rankers": true,
+    "no_neural_hard_pruning": true,
+    "deferred_candidates": "fixed round-robin continuation",
+    "global_target_history": "all stations, entire horizon; previous end to next start >=48h",
+    "rollback": "immutable parent or verified transaction; deadline returns last legal schedule"
+  },
+  "stop_conditions": {
+    "calibration_timeout_fraction": "report actual 100-operation rate; substantial timeouts require review before expansion (no invented numeric threshold)",
+    "pilot": "40 catalogs; fixed 12 validation scenes; stop if mean S gain vs rule <=0 or inference overhead removes gain",
+    "search": "stop expansion when same-budget new search loses to extended original local search",
+    "pilot_group_reporting": "report 6 core and 6 stress cases separately; registered pilot aggregate remains equal-weight all 12"
+  },
+  "report": {
+    "quality": [
+      "C",
+      "S",
+      "Q"
+    ],
+    "times": [
+      "data_preparation_s",
+      "full_windows_s",
+      "initial_hplus_s",
+      "dynamic_features_s",
+      "model_load_s",
+      "model_inference_s",
+      "candidate_search_s",
+      "integer_refinement_s",
+      "validation_s",
+      "solve_s",
+      "end_to_end_s"
+    ],
+    "internal_utility": "J=(4/7)*Q+(3/7)*120/(120+solve_s), not official score",
+    "failure_ledger_required": true,
+    "offline_costs_separate": true,
+    "pareto": "actual valid candidates, Q maximum and solve_s minimum, within instance/seed/environment",
+    "serial_formal_comparisons": true,
+    "environment": [
+      "CPU",
+      "GPU",
+      "RAM",
+      "instance_id",
+      "threads",
+      "cache",
+      "warmup",
+      "driver",
+      "CUDA",
+      "torch",
+      "resource_usage",
+      "nvidia_smi"
+    ],
+    "do_not_fake_macos_power_on_linux": true
+  },
+  "runtime_freeze": {
+    "before_test": [
+      "three checkpoints per model method",
+      "normalizer hashes",
+      "feature schema hash",
+      "solver config hashes",
+      "code/dependency hashes",
+      "all calibration budgets",
+      "environment identity"
+    ],
+    "test_use": "one frozen campaign; retain all attempts; no reselection from test"
+  },
+  "local_scope": "bounded CPU smoke only; no full geometry rebuild or long laptop training",
+  "cloud_authorization": "requires user-provided instance and explicit finite paid budget; no automatic purchase or Famou cloud experiment"
+}
