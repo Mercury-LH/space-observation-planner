@@ -1,0 +1,67 @@
+{
+  "dataset_version": "synthetic-v0.2",
+  "release_tag": "synthetic-data-v0.2",
+  "scope": "failed first anonymous full-download verification; not a generation or validation failure",
+  "passed": false,
+  "success_proof_written": false,
+  "started_utc": "2026-11-08T05:25:30.110026+00:00",
+  "stopped_utc": "2026-11-08T05:29:19.070038+00:00",
+  "download_returncode": 1,
+  "download_elapsed_s": 228.96120329199766,
+  "error": "TimeoutError: The read operation timed out",
+  "authorization_header_used": false,
+  "initial_state": {
+    "observed_utc": "2026-11-08T05:25:30.104841+00:00",
+    "all_paths_absent": true,
+    "cache_entries": 0,
+    "destination_entries": 0,
+    "paths": {
+      "destination": "outputs/synthetic-v0.2-anonymous-01",
+      "cache": "outputs/synthetic-v0.2-anonymous-cache-01",
+      "run": "outputs/v2-public-verify-01"
+    },
+    "authorization_header_used": false,
+    "environment_policy": "allowlist; no GitHub tokens or proxies"
+  },
+  "verified_assets_before_failure": [
+    {
+      "name": "synthetic-v0.2-group-000.tar.gz",
+      "bytes": 146273587,
+      "sha256": "bec274736dbc30381d0016bc4e069cf3b567b55714d4800944b14a9119edd7ee",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-000.tar.gz"
+    },
+    {
+      "name": "synthetic-v0.2-group-001.tar.gz",
+      "bytes": 132006848,
+      "sha256": "541da5df4820253260d6c23f66a8524cc72d46de82a9882710ced4f757f4737d",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-001.tar.gz"
+    },
+    {
+      "name": "synthetic-v0.2-group-002.tar.gz",
+      "bytes": 141945952,
+      "sha256": "9b462cebd41cc7076c0f57c21348e6888383ed3b755ce9677d7d189d5c16229e",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-002.tar.gz"
+    },
+    {
+      "name": "synthetic-v0.2-group-003.tar.gz",
+      "bytes": 126825393,
+      "sha256": "337728a4dfb0bed96fa0a380e2e3b3edcf5b712a60eccb35dc3bfe7c475fb800",
+      "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-003.tar.gz"
+    }
+  ],
+  "retained_partial_archives": [
+    {
+      "name": "synthetic-v0.2-group-004.tar.gz.part",
+      "bytes": 16318464,
+      "sha256": "d725238cb39ff885d95bb92d10d72675e2d3d8afa3a6c637b7ec8be23c745eba"
+    }
+  ],
+  "evidence_sha256": {
+    "initial-state.json": "7aaefd9074792b43445700218958eb814b1218e337db8daa476500c442517203",
+    "input-fingerprints.json": "c031198ef5928053d8c2854e9a8314690073b8cb0f9b511a5e196c7b42ea6353",
+    "events.jsonl": "6dcb0e4936d74c58b36321d5936f25dbe93caa7001d2e9fe0225b954834af26b",
+    "download.log": "89bd83f8d192163126f24f0de938b3e82097665cc44e11f56f2b687023541a19"
+  },
+  "recovery_policy": "Retain this failed run and its cache unchanged. A new independent verification run starts with absent cache/destination and does not reuse these archives.",
+  "record_created_utc": "2026-11-08T06:04:51.865685+00:00"
+}

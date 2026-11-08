@@ -1,0 +1,618 @@
+{
+  "dataset_version": "synthetic-v0.2",
+  "release_tag": "synthetic-data-v0.2",
+  "passed": true,
+  "verification_process_exit_code": 0,
+  "source_tag_commit": "1d03b9d920c43d20d8e1b46bd30dde9f3745bb4a",
+  "download_proof": {
+    "passed": true,
+    "dataset_version": "synthetic-v0.2",
+    "release_tag": "synthetic-data-v0.2",
+    "repository": "Mercury-LH/space-observation-planner",
+    "authorization_header_used": false,
+    "reused_download_cache": false,
+    "fresh_destination": true,
+    "assets": [
+      {
+        "name": "synthetic-v0.2-group-000.tar.gz",
+        "bytes": 146273587,
+        "sha256": "bec274736dbc30381d0016bc4e069cf3b567b55714d4800944b14a9119edd7ee",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-000.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-001.tar.gz",
+        "bytes": 132006848,
+        "sha256": "541da5df4820253260d6c23f66a8524cc72d46de82a9882710ced4f757f4737d",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-001.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-002.tar.gz",
+        "bytes": 141945952,
+        "sha256": "9b462cebd41cc7076c0f57c21348e6888383ed3b755ce9677d7d189d5c16229e",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-002.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-003.tar.gz",
+        "bytes": 126825393,
+        "sha256": "337728a4dfb0bed96fa0a380e2e3b3edcf5b712a60eccb35dc3bfe7c475fb800",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-003.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-004.tar.gz",
+        "bytes": 146686798,
+        "sha256": "70f44a673768951a9f279a21ab5f923afc2ec10fde1b65f800973820df18d4d4",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-004.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-005.tar.gz",
+        "bytes": 158129486,
+        "sha256": "b61d70de4b21481ae7035e83fa13d3d04d0c72198e8418728885d7aabfca8429",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-005.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-006.tar.gz",
+        "bytes": 165509310,
+        "sha256": "ff904b5b2c444fbe8ae9eba95927e7d4b5577416babece5039d884666321da19",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-006.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-007.tar.gz",
+        "bytes": 154594200,
+        "sha256": "cff871ee9851d2e0fe63761f5b5d1a49947b9fc59bf5ea3c99ed4b2bc306fcc9",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-007.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-008.tar.gz",
+        "bytes": 170089272,
+        "sha256": "fdea42ca84db237677ebbcdf583061d7c6321e43bee429357b0fe9ae5f803f84",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-008.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-009.tar.gz",
+        "bytes": 136195387,
+        "sha256": "0d06f5a39ea72d224ce5d102acc305674206c0e44b825c43b5384052393e13cd",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-009.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-010.tar.gz",
+        "bytes": 145135076,
+        "sha256": "d8b29695b47c08f74a5b526654c49296e3a2dcad4e2e46a7334b80cb49f22a4f",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-010.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-011.tar.gz",
+        "bytes": 147533707,
+        "sha256": "abc8fcd73594c30fa682e583d2d76729da076210e92ba7c37cff88747cd09313",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-011.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-012.tar.gz",
+        "bytes": 146260273,
+        "sha256": "9738a7520d085b66240f0db298613c60bc740841a0391366b578438788a29c13",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-012.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-013.tar.gz",
+        "bytes": 154634811,
+        "sha256": "56d8c8fd5881000a3a97811c5fcfb7cb13ad26a20a046559b1d521c4a855ccc1",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-013.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-014.tar.gz",
+        "bytes": 160387038,
+        "sha256": "de53f0c6ff5a03d3573e03954777705a1cb7b8116f4c6e265a03621583fdeedf",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-014.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-015.tar.gz",
+        "bytes": 129520975,
+        "sha256": "8bde7ea686b16c39ff5a2dea4a9778c16152cb49ae6c84c0525b8deb8bdb6ee7",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-015.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-016.tar.gz",
+        "bytes": 116904422,
+        "sha256": "300c05ec4faf114d2b56d44e9c69d6cc26cda62b11438a110b75bf8c2ee511c9",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-016.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-017.tar.gz",
+        "bytes": 152863306,
+        "sha256": "298f165cd2cdc7cf56cbaff82afcb383716812d72081de0a05dff3d28c176b4a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-017.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-018.tar.gz",
+        "bytes": 153419106,
+        "sha256": "37126ef2450055a43f19aaaf9e1a0a47d033be33ba536330d7ad1a34dd0967de",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-018.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-019.tar.gz",
+        "bytes": 190859371,
+        "sha256": "0edc3c2ef42e7b68b7f2165fa8821b108bf38b510d54b91f615e9b841fa4d9c4",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-019.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-020.tar.gz",
+        "bytes": 125816125,
+        "sha256": "2971187e5413470c63d1ea22a629548c5b7825dc59e1e7865c826c2a775f6758",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-020.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-021.tar.gz",
+        "bytes": 170013598,
+        "sha256": "079424f9b0bf3ca779502c6c913b4129e9e37b3debc0feaf013db04e905668ac",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-021.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-022.tar.gz",
+        "bytes": 162591462,
+        "sha256": "45b607d8c44c74ccbd9347f30a81357446313400ef92915a91707383f428e3e3",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-022.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-023.tar.gz",
+        "bytes": 142081239,
+        "sha256": "3bb071fc7f7e311753b99199bf26fc21842e9ac9777431dbed25476e0d7a6c86",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-023.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-024.tar.gz",
+        "bytes": 162073081,
+        "sha256": "4cb948d558bc6f15e61ef47c6154ab2b31a4d3442a112dd1cec2ed3788494e00",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-024.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-025.tar.gz",
+        "bytes": 149549107,
+        "sha256": "ca8dce4494238b92d30233ac08c67c9ded78b2804c2cf0d2b09e02093ca1560a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-025.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-026.tar.gz",
+        "bytes": 174441879,
+        "sha256": "476b248039b7535311d45d2cfd5fcdc7dc4c4c4405fc3d30675d68c0c21aa53b",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-026.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-027.tar.gz",
+        "bytes": 151747381,
+        "sha256": "6b7a508f37af3628107e8f9ec871676ec8a1d2344ecc1124717e84d61085f16c",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-027.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-028.tar.gz",
+        "bytes": 139033531,
+        "sha256": "11f0eba817f1b18d175ca2bb4b1f53e1b650f7a69177504851745a26d96c6e0f",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-028.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-029.tar.gz",
+        "bytes": 183443779,
+        "sha256": "f47744fdfa511ba3060e132a49ce4cb385d4c490f8de1ff8bafb3f1d0b47c4ae",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-029.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-030.tar.gz",
+        "bytes": 155532513,
+        "sha256": "d07a2d5a6e9e51322fbc516f77d5a1c7069427dad857329f61837c5e01e23327",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-030.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-031.tar.gz",
+        "bytes": 157098265,
+        "sha256": "25563fadb4c1d16d2c4386b43f7bcb9e844d882c01cdb00caf60a6e20d6c001d",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-031.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-032.tar.gz",
+        "bytes": 138540336,
+        "sha256": "11a12a2a77dadc055bc4ebf3bd9e0a4d96c0144b44b3d54433ad9e39343c9081",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-032.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-033.tar.gz",
+        "bytes": 133213049,
+        "sha256": "81d3d95ee06443b53f3340909c7ca1376d4a3eb6f617ca8d6e25953add73521a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-033.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-034.tar.gz",
+        "bytes": 142985080,
+        "sha256": "0f24fd4097bee7dd7c9de0ad6cba3f21cdabef0b3c0bcf0b5670c24eece85ecd",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-034.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-035.tar.gz",
+        "bytes": 152752025,
+        "sha256": "625a928b50544b843c96b815f59ae3abea250ad991369fd21dc2d46ee0320dcc",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-035.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-036.tar.gz",
+        "bytes": 148685826,
+        "sha256": "dc32e1734f27646c51c7704b7c4c52f99251cd5e497ee90efb54f590e0c4167e",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-036.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-037.tar.gz",
+        "bytes": 149512261,
+        "sha256": "70395a7768ae40399b306cf52fad297440df7d061c336602946ac152740aa26e",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-037.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-038.tar.gz",
+        "bytes": 150589918,
+        "sha256": "92b54a73e252f7ff2a8750c03a62b07c7e155301e25cd257278e47b72300b82a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-038.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-039.tar.gz",
+        "bytes": 169765693,
+        "sha256": "f6098e1e8a5d88ebb3a7863581a9bbed9d5581458fca2659447a7d24a64d0cfa",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-039.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-040.tar.gz",
+        "bytes": 128422169,
+        "sha256": "2926046f3c3d5a3e32628ff35bdc4cca9be171be7ab09df754123541514276f6",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-040.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-041.tar.gz",
+        "bytes": 142418110,
+        "sha256": "ef124bcb7351e8c713dedba463e61e32d7b5a9278fe86050e40d5be2bb95422e",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-041.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-042.tar.gz",
+        "bytes": 145616513,
+        "sha256": "feb2d80738fd8f9688c14eff9d7b42ca2d7d508a6c04b0cec50425944ab8097a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-042.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-043.tar.gz",
+        "bytes": 143090328,
+        "sha256": "aa7a55243fc3587e2cb1207333db57dd90774b8357f4c5a2082add6ebb58966a",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-043.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-044.tar.gz",
+        "bytes": 185862539,
+        "sha256": "67769857f8b41357dea90bdf6c0bb10a4face1249b8438ab5227c2fcab8b9ed0",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-044.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-045.tar.gz",
+        "bytes": 133948614,
+        "sha256": "406e4b3265c130d94b2e0a57ddc064f926cac58b5107a8385f3596559d14ef2b",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-045.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-046.tar.gz",
+        "bytes": 139803913,
+        "sha256": "47f78553c960caee2bda380e41ead65aa3918220269fc40e951779a8b2520f11",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-046.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-047.tar.gz",
+        "bytes": 137573531,
+        "sha256": "6e3b5fe95fe97b9b1d80fd5af9627a920ee7ad632ca4d0c6325af15444070d90",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-047.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-048.tar.gz",
+        "bytes": 168033555,
+        "sha256": "1559076d3f5b42217cb59c81e2c669cca5f4de6828a790b36e58433ca2559db2",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-048.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-049.tar.gz",
+        "bytes": 175008063,
+        "sha256": "e01b70caa53e56fd8e1d2b808da2814c5a5506abe1c26503d0043ca4a2575d55",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-049.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-050.tar.gz",
+        "bytes": 151451989,
+        "sha256": "1ca8aec88b7175c730e30d94cd8cbdb078317ba0e2fe06b89de6fd8908299785",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-050.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-051.tar.gz",
+        "bytes": 141180991,
+        "sha256": "e2d3460068c4879306df15e5336180ae5b075dc325b8d4ed3a96a229456cfa77",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-051.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-052.tar.gz",
+        "bytes": 118961228,
+        "sha256": "ce5ae90c36ac492acdb6284bbf663ced035191d7568d6574258fd1a1f66a1438",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-052.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-053.tar.gz",
+        "bytes": 145653101,
+        "sha256": "908448aa9617cd2056d206326c300e860c2b684466b6100366b823963d0ed800",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-053.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-054.tar.gz",
+        "bytes": 119395885,
+        "sha256": "9c8fb21599d76191299a9c2b2ff08a43f830cf878f2e4cfcf95e78c0c8a57516",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-054.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-055.tar.gz",
+        "bytes": 116362305,
+        "sha256": "840b467f0a433643a20ce53a5c56040a4f3577fc59b1f421b732ead2220a6b4d",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-055.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-056.tar.gz",
+        "bytes": 168293330,
+        "sha256": "69ce77019b50e2ac02f30c8dedb29746e25d3ed99ff79b801f4199f14ec61738",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-056.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-057.tar.gz",
+        "bytes": 127070947,
+        "sha256": "42146405e2ad79f0e6cebd8f45401d4671993d4f52f81a45c71bc0cdfa4cf305",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-057.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-058.tar.gz",
+        "bytes": 166608112,
+        "sha256": "5082de19187c2cf3c1fe0b55a6268fc1dfd77038ab2edc96135f81ee6d4708ba",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-058.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-group-059.tar.gz",
+        "bytes": 140817906,
+        "sha256": "3756dced82c3a1c44a118eaa8c53b0aca87db9a2cc10d252d44f077e13775271",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-group-059.tar.gz",
+        "http_downloaded": true
+      },
+      {
+        "name": "synthetic-v0.2-metadata.tar.gz",
+        "bytes": 1600196,
+        "sha256": "cc2a110ad0c630a041b250b21b6ba8d2e6b7011397d27fa9a3c98173ee45e427",
+        "url": "https://github.com/Mercury-LH/space-observation-planner/releases/download/synthetic-data-v0.2/synthetic-v0.2-metadata.tar.gz",
+        "http_downloaded": true
+      }
+    ],
+    "total_downloaded_bytes": 8932413791,
+    "manifest_sha256": "532e4c33b77411d547e9a9913515ed2656d00f82630bec194e3a489fe18321ec",
+    "events_sha256": "2e0d4dcb22d35809b4e5c4750f4db45abc9205a2a406a50f29e6d75fad94a777",
+    "verified_utc": "2026-11-08T06:10:22.006640+00:00",
+    "tag_commit": "1d03b9d920c43d20d8e1b46bd30dde9f3745bb4a",
+    "index_sha256": "47f3f97350f2fd31a6ad56eca7c9e3f929229683cb41c0169f9f7d6943c8b29f",
+    "within_run_download_attempts": [
+      {
+        "attempt": 1,
+        "passed": true,
+        "log": "download-attempt-01.log",
+        "verified_before": [],
+        "returncode": 0,
+        "elapsed_s": 1902.4693097080017,
+        "log_sha256": "5ab7b2a3e6c93119019b77867f6c51f8d8c3c185b0d3cf98eda157fb49b314fb"
+      }
+    ],
+    "reused_external_or_prior_run_cache": false,
+    "cache_policy": "fresh at run start; only this run anonymous verified downloads reused on transient retries",
+    "evidence_sha256": {
+      "initial-state.json": "8d174739632412c9621792e068ba92b3e6a9596ee963de612de65be6826eec29",
+      "audit.json": "ba1b9b7970a54e4cd7afd2379c840870568c45b02acf057ee8e3defbfa9c09de",
+      "loader-smoke.json": "e8412fb2becdaefcd69c360b5b0fbe4e4dcfa8202aa636bbd2b6fed4ae599b57",
+      "server_verification": "75430b402862a7e6e2e795479a36a1c99def1bf80e3d11b3f4ab5db7fc79858b",
+      "normalizer": "2302ffef66edc27e5aa7c84675878ac8604fda97503e150e201b3054d1635b5f"
+    }
+  },
+  "initial_state": {
+    "observed_utc": "2026-11-08T05:35:39.112667+00:00",
+    "all_paths_absent": true,
+    "cache_entries": 0,
+    "destination_entries": 0,
+    "paths": {
+      "destination": "outputs/synthetic-v0.2-anonymous-02",
+      "cache": "outputs/synthetic-v0.2-anonymous-cache-02",
+      "run": "outputs/v2-public-verify-02"
+    },
+    "authorization_header_used": false,
+    "environment_policy": "allowlist; no GitHub tokens or proxies"
+  },
+  "steps": {
+    "download": {
+      "returncode": 0,
+      "elapsed_s": 1902.474560083996,
+      "log_sha256": "5ab7b2a3e6c93119019b77867f6c51f8d8c3c185b0d3cf98eda157fb49b314fb",
+      "successful_log": "download-attempt-01.log",
+      "attempts": [
+        {
+          "attempt": 1,
+          "passed": true,
+          "log": "download-attempt-01.log",
+          "verified_before": [],
+          "returncode": 0,
+          "elapsed_s": 1902.4693097080017,
+          "log_sha256": "5ab7b2a3e6c93119019b77867f6c51f8d8c3c185b0d3cf98eda157fb49b314fb"
+        }
+      ]
+    },
+    "audit": {
+      "returncode": 0,
+      "elapsed_s": 176.23232966700016,
+      "log_sha256": "ba1b9b7970a54e4cd7afd2379c840870568c45b02acf057ee8e3defbfa9c09de"
+    },
+    "loader": {
+      "returncode": 0,
+      "elapsed_s": 0.40791970799909905,
+      "log_sha256": "4cae1534fd181ca902868e46c6454fdf30556d65030a4687948773d9506506b0"
+    }
+  },
+  "loader_report": {
+    "passed": true,
+    "mode": "saved_train_normalizer_smoke",
+    "train_rows": 163183161,
+    "train_manifest_sha256": "8404269526d8ecf07ebc68db0c1523ada0deb8ff2d165c33b7a8407434ebc6e8",
+    "batch_shuffle": true,
+    "batch_seed": 2026,
+    "splits": {
+      "train": {
+        "scenes": 420,
+        "candidate_rows": 163183161,
+        "sampled_scene": "v2-cat-419-v0",
+        "read_rows": 8192,
+        "read_selected": 140,
+        "dtype": "float32",
+        "shape": [
+          8192,
+          20
+        ]
+      },
+      "validation": {
+        "scenes": 90,
+        "candidate_rows": 34681991,
+        "sampled_scene": "v2-cat-545-v0",
+        "read_rows": 8192,
+        "read_selected": 360,
+        "dtype": "float32",
+        "shape": [
+          8192,
+          20
+        ]
+      },
+      "test": {
+        "scenes": 90,
+        "candidate_rows": 36096800,
+        "sampled_scene": "v2-cat-575-v0",
+        "read_rows": 8192,
+        "read_selected": 381,
+        "dtype": "float32",
+        "shape": [
+          8192,
+          20
+        ]
+      }
+    },
+    "fit_or_load_s": 0.00014704199566040188,
+    "scope": "interface verification; no model training or generalization evaluation"
+  },
+  "full_audit": {
+    "passed": true,
+    "evidence_file": "../audit.json",
+    "sha256": "ba1b9b7970a54e4cd7afd2379c840870568c45b02acf057ee8e3defbfa9c09de",
+    "byte_identical_to_original_full_audit": true,
+    "counts": {
+      "catalogs": 600,
+      "scenes": 600,
+      "unique_synthetic_targets": 4334032,
+      "target_instances": 4334032,
+      "candidate_rows": 233961952,
+      "grid_tasks": 4707694,
+      "final_tasks": 4707694,
+      "repaired_tasks": 2
+    },
+    "checksums": {
+      "verified_files": 10890,
+      "verified_bytes": 9816426896,
+      "manifest_sha256": "532e4c33b77411d547e9a9913515ed2656d00f82630bec194e3a489fe18321ec",
+      "events_sha256": "2e0d4dcb22d35809b4e5c4750f4db45abc9205a2a406a50f29e6d75fad94a777",
+      "manifest_exclusions": [
+        "manifest.json",
+        "events.jsonl",
+        ".cache/**"
+      ]
+    },
+    "scope": "saved one-second grid/final evidence checked; Skyfield was not rerun"
+  },
+  "v1_preservation_check": {
+    "checked_utc": "2026-11-08T06:09:01.875635+00:00",
+    "release_tag": "synthetic-data-v0.1",
+    "release_id": 437733771,
+    "draft": false,
+    "asset_count": 31,
+    "total_bytes": 744282558,
+    "all_server_sizes_and_hashes_match_existing_v1_index": true,
+    "v1_index_sha256": "abaf48b3a795b4ebaa9bdc4ef24d08bdc9524697a0b6355d1b2732773d1a41a3",
+    "scope": "read-only comparison of the unchanged v0.1 sealed index with current public server assets; no v0.1 mutation"
+  },
+  "prior_failed_run": {
+    "evidence_file": "anonymous-download-failure-01.json",
+    "sha256": "688fbfb778c124da24c35a994bfb94f983a00b962519495fc46adf4444a51e53",
+    "cache_reused": false
+  },
+  "evidence_sha256": {
+    "download-proof.json": "a42c54b34a008989f379a4d74fb6a2202de896b931be391a931f7596baf39222",
+    "initial-state.json": "8d174739632412c9621792e068ba92b3e6a9596ee963de612de65be6826eec29",
+    "input-fingerprints.json": "c6210c2982b21ca56037ec5c1c2cad4351d16afba3a59b0e7e1a66dff1c9eeb1",
+    "events.jsonl": "1741b10699fd79328ada4b4bf2b67d2a4dd18ce9e88a22ee610bd5809014ef8f",
+    "steps.json": "de58dd2f359aba94e66e577fc93bd1d272231fe6a212fe5e95fef626172c8c36",
+    "audit.json": "ba1b9b7970a54e4cd7afd2379c840870568c45b02acf057ee8e3defbfa9c09de",
+    "loader-smoke.json": "e8412fb2becdaefcd69c360b5b0fbe4e4dcfa8202aa636bbd2b6fed4ae599b57",
+    "download-attempt-01.log": "5ab7b2a3e6c93119019b77867f6c51f8d8c3c185b0d3cf98eda157fb49b314fb",
+    "loader.log": "4cae1534fd181ca902868e46c6454fdf30556d65030a4687948773d9506506b0"
+  },
+  "record_created_utc": "2026-11-08T06:11:12.963264+00:00",
+  "scope": "Actual public anonymous HTTP download into an initially absent cache/destination, all 61 archive hashes, full re-audit and saved training-only normalizer loading. The independent Skyfield calculations were performed during generation; this re-audit checks their saved evidence."
+}

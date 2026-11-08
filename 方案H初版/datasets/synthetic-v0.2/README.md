@@ -66,7 +66,9 @@ for epoch in range(10):
 | [normalizer.json](normalizer.json) / [evidence/loader-smoke.json](evidence/loader-smoke.json) | 训练集标准化参数与三个划分的加载检查 |
 | [release-assets.json](release-assets.json) | 61 个分片的下载地址、大小与 SHA-256 |
 | [evidence/server-assets-before-publication.json](evidence/server-assets-before-publication.json) | 发布前的 GitHub 服务器资产核验；此记录不代表匿名下载已完成 |
+| [evidence/anonymous-download-verification.json](evidence/anonymous-download-verification.json) | 发布后从全新缓存匿名下载全部 61 片、完整复审与加载检查的通过证据 |
+| [evidence/anonymous-download-failure-01.json](evidence/anonymous-download-failure-01.json) | 首次匿名下载的网络超时及保留文件指纹；成功复核使用另一个全新目录 |
 
 发布资产记录：本地已封存 61 个分片，共 8,932,413,791 字节；全部上传资产已通过 GitHub 服务器大小与 SHA-256 核验。公开分发及完整匿名下载复核状态见 [Release 发布说明](https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.2)，服务器核验本身不代表匿名下载已完成。
 
-匿名下载、解压、审计及加载记录：完整匿名下载、全部分片哈希、解压、重新审计和加载检查的实际记录见 [Release 发布说明](https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.2)。该说明独立记录发布后的验证状态；本页不预先声明复核已通过。
+匿名下载、解压、审计及加载检查已于 **2026-11-08 06:10 UTC** 全部通过：从全新缓存与解压目录、无 Authorization 请求头下载全部 61 片，逐项大小与 SHA-256 一致；完整复审结果与原审计逐字节一致；使用原训练集标准化参数，三个划分均成功读取有限 `float32 [8192,20]` 批次。证据见上表与 [Release 发布说明](https://github.com/Mercury-LH/space-observation-planner/releases/tag/synthetic-data-v0.2)。首次下载在第 5 片发生网络读取超时，已保留失败记录及部分文件；成功复核没有复用首次下载的缓存。复审检查保存的逐秒证据，没有重新运行 Skyfield。
