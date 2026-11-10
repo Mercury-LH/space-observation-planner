@@ -13,11 +13,20 @@ from pathlib import Path
 import numpy as np
 
 
-def rule_from_module(module):
-    """把伐谋格式的 score(names, rows) 包装成 lagrange.recover 用的 rule(X) -> (u, c)。"""
+def rule_from_module(module, vectorized=None, n_check: int = 1000):
+    """把伐谋格式的 score(names, rows) 包装成 lagrange.recover 用的 rule(X) -> (u, c)。
+    vectorized：同一规则的 numpy 等价实现（evolved/vectorized.py）。给定时先用它整列计算，再均匀抽查
+    n_check 行与原始逐行实现比对，逐位相同才用；否则退回原始实现（例如原始文件被改过）。"""
     from ..famou_h_eval import FEATURES
 
     def rule(X: np.ndarray):
+        X = np.asarray(X, float)
+        if vectorized is not None and len(X):
+            u, c = vectorized(FEATURES, X)
+            idx = np.unique(np.linspace(0, len(X) - 1, min(len(X), n_check)).astype(np.int64))
+            u0, c0 = module.score(FEATURES, X[idx].tolist())
+            if np.array_equal(u[idx], np.asarray(u0, float)) and np.array_equal(c[idx], np.asarray(c0, float)):
+                return u, c
         u, c = module.score(FEATURES, X.tolist())
         return np.asarray(u, float), np.asarray(c, float)
     return rule
@@ -29,7 +38,8 @@ def load_rule(name: str = "recover_rule"):
         module = importlib.import_module(f".{name}", __name__)
     except ModuleNotFoundError:
         return None
-    return rule_from_module(module)
+    from .vectorized import VECTORIZED
+    return rule_from_module(module, VECTORIZED.get(name))
 
 
 def rule_from_file(path: str | Path):

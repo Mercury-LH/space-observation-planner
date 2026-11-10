@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import time
 
+import numba
 import numpy as np
 from numba import njit, prange
 
@@ -21,15 +22,44 @@ from .problem import Problem
 from .schedule import Schedule
 
 
-@njit(parallel=True, cache=True)
+def target_work(t_ptr, t_win, w_k0, w_k1) -> np.ndarray:
+    """每颗目标在价格子问题里的计算量（全部窗口的格数之和）。"""
+    n = len(t_ptr) - 1
+    cells = (np.asarray(w_k1) - np.asarray(w_k0) + 1)[t_win].astype(np.float64)
+    return np.bincount(np.repeat(np.arange(n), np.diff(t_ptr)), weights=cells, minlength=n)
+
+
+def balanced_order(work: np.ndarray, n_chunks: int | None = None) -> np.ndarray:
+    """并行循环按线程静态分块，每个线程处理连续一段编号。高轨目标窗口长、计算量集中在少数编号段，
+    原顺序下一个线程要干六成以上的活（10 线程只快 1.6 倍）。这里按计算量从大到小蛇形轮流分到各分块，
+    各线程工作量接近。每颗目标独立计算、只写自己的输出，顺序不影响结果（逐位相同）。"""
+    c_n = max(1, int(n_chunks or numba.get_num_threads()))
+    idx = np.argsort(-np.asarray(work, float), kind="stable")
+    k = np.arange(len(idx))
+    r = k // c_n
+    c = np.where(r % 2 == 0, k % c_n, c_n - 1 - k % c_n)
+    return np.concatenate([idx[c == j] for j in range(c_n)]).astype(np.int64)
+
+
 def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
-                out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
+                out_total, out_task, out_cnt, qpref, use_q, beta, max_k, order=None):
+    """价格子问题（见 _subproblem_kernel）。order：目标处理顺序，默认按计算量均衡分到各线程。"""
+    if order is None:
+        order = balanced_order(target_work(t_ptr, t_win, w_k0, w_k1))
+    _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
+                       out_total, out_task, out_cnt, qpref, use_q, beta, max_k)
+
+
+@njit(parallel=True, cache=True)
+def _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
+                       out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
     """每颗目标独立求解：窗口内最优 (开始, 时长)，再在窗口间做 ≤3 次、间隔 ≥48h 的链式 DP。
     窗口间隔用放松的判定（前一窗口最早结束 + 48h <= 后一窗口最晚开始），保证对偶值是合法上界。
     首次观测价值 = (覆盖奖励 + 得分) × q，重复观测价值 = (得分 + 覆盖奖励 × beta) × q；
     不考虑天气时 q = 1、beta = 0，即原问题。"""
     N = len(t_ptr) - 1
-    for i in prange(N):
+    for j in prange(N):
+        i = order[j]
         p0, p1 = t_ptr[i], t_ptr[i + 1]
         nw = p1 - p0
         out_cnt[i] = 0
@@ -234,6 +264,7 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     mu = np.zeros((S, T))
     cand = candidates(pb)
     N = pb.n_targets
+    order = balanced_order(target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
     out_total = np.zeros(N)
     out_task = np.zeros((N, 3, 3), np.int64)
     out_cnt = np.zeros(N, np.int64)
@@ -260,7 +291,7 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
                 best_lb, best_state, best_mu = lb, st, mu.copy()
         pref = np.concatenate([np.zeros((S, 1)), np.cumsum(mu, axis=1)], axis=1)
         _subproblem(pref, pb.t_ptr, pb.t_win, pb.w_st, pb.w_k0, pb.w_k1, Pv, pb.frac, vct, pb.gap,
-                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta, maxk)
+                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta, maxk, order=order)
         L = mu.sum() + out_total.sum()
         if L < best_ub - 1e-9:
             best_ub, stall = L, 0

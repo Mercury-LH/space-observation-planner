@@ -92,8 +92,12 @@ def _relocate_option(k, st, tg, a, m, w, owner, t_cnt, t_obs_a, t_obs_m, t_task,
 
 @njit(cache=True)
 def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
-                    w_st, w_k0, w_k1, t_ptr, t_win, P, frac, vc, vs, gap, m_min, max_pos):
-    """对每个未覆盖目标尝试一次最优插入。返回 (新任务数 n, 成功插入数)。"""
+                    w_st, w_k0, w_k1, t_ptr, t_win, P, frac, vc, vs, gap, m_min, max_pos, prune=True):
+    """对每个未覆盖目标尝试一次最优插入。返回 (新任务数 n, 成功插入数)。
+    剪枝（与逐个位置完整试探的结果逐位相同）：挡路任务的损失都 >= 0，插入收益不会超过 gain_base，
+    所以已找到收益 >= gain_base 的位置就停止扫描（后面不可能严格更好）；前面挡路任务的损失已使收益
+    <= 当前最好时，不再评估后面的挡路任务。被跳过的试探只会摘下再挂回挡路任务，改变的仅是观测记录的
+    排列顺序，而所有用到观测记录的判定都与顺序无关。prune=False 时不剪枝（测试用来核对结果相同）。"""
     T = owner.shape[1]
     inserted = 0
     cap = len(st)
@@ -105,6 +109,8 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
         best = (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
         # best = (w, a, b1, b1_action, b1_w, b1_a, b1_m, b2, b2_action, b2_w, b2_a, b2_m)
         for p in range(t_ptr[u], t_ptr[u + 1]):
+            if prune and best_gain >= gain_base:
+                break
             wu = t_win[p]
             s = w_st[wu]
             k0, k1 = w_k0[wu], w_k1[wu]
@@ -113,6 +119,8 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
                 continue
             step = 1 if L < max_pos else (L + max_pos - 1) // max_pos
             for au in range(k0, k1 - m_min + 1, step):
+                if prune and best_gain >= gain_base:
+                    break
                 if t_cnt[u] > 0 and not _sep_ok_excl(u, NO_TASK, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
                     continue
                 b1, b2, nb = -1, -1, 0
@@ -142,6 +150,9 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
                 ok = True
                 acts = np.full((2, 5), -1, np.int64)
                 for bi in range(nb):
+                    if prune and gain_base - loss <= best_gain:   # 后面的挡路任务只会再增加损失
+                        ok = False
+                        break
                     b = b1 if bi == 0 else b2
                     vb = _task_value(b, tg, m, t_cnt, P, frac, vc, vs)
                     _detach(b, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task)
