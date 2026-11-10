@@ -1,16 +1,19 @@
 """上界实验：任何合法计划的综合指标都不会超过上界，所以"上界 − 计划"就是这份计划离最优最多还差多少。
 
 两种上界（obsplan/bounds.py）：网络流上界（一次算完）和对偶上界（给每个站的每个 30 秒格定价，迭代收紧）。
-两个口径：
-  grid    起止都落在 30 秒格点上的计划（网格计划）；
-  second  按秒的计划（按秒精修、按秒补空之后的最终计划）——窗口两端各放宽一格并加入短窗口后的放宽问题。
+三个口径（后一个包含前一个，上界依次变大）：
+  grid     起止都落在 30 秒格点上的计划（网格计划）；
+  second   按秒的计划（按秒精修、按秒补空之后的最终计划）——窗口两端各放宽一格并加入短窗口后的放宽问题；
+  second0  同 second，但可见性判定不留安全余量（仰角、太阳高度、地影三个余量都取 0，窗口现算）——
+           本程序排的计划都留了余量，这个口径回答的是"别的程序不留余量、贴着阈值排，最多能到多少"。
 
-    uv run python scripts/bound_experiment.py --flow                      # 两个口径的网络流上界
+    uv run python scripts/bound_experiment.py --flow                      # 三个口径的网络流上界
     uv run python scripts/bound_experiment.py --dual grid --iters 4000    # 对偶上界；可中断，再跑从断点继续
     uv run python scripts/bound_experiment.py --dual second --iters 4000
+    uv run python scripts/bound_experiment.py --dual second0 --iters 500 --mu0 results/dual_prices_second.npz
     uv run python scripts/bound_experiment.py --verify                    # 用保存的价格重算对偶值，核对 bounds.json
 
-输出：results/bounds.json；价格证书 results/dual_prices_{grid,second}.npz（单精度；记录的对偶值就是用这份
+输出：results/bounds.json；价格证书 results/dual_prices_{grid,second,second0}.npz（单精度；记录的对偶值就是用这份
 存下来的价格重算的，任何非负价格都给出合法上界，所以舍入不影响合法性）；断点在 outputs/bounds/（不提交）。
 """
 from __future__ import annotations
@@ -29,14 +32,15 @@ from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.schedule import evaluate  # noqa: E402
-from obsplan.visibility import get_windows  # noqa: E402
+from obsplan.visibility import Windows, compute_windows, get_windows  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 RESULT = ROOT / "results" / "bounds.json"
 CKPT = ROOT / "outputs" / "bounds"
 PLANS = {"H+ 高质量（网格）": "plan_H+.csv", "H+ 高质量（按秒精修）": "plan_H+_refined.csv",
          "长跑优化（按秒精修）": "plan_longrun.csv"}
-LABEL = {"grid": "30 秒格点口径", "second": "按秒口径"}
+LABEL = {"grid": "30 秒格点口径", "second": "按秒口径", "second0": "按秒口径，可见性不留安全余量"}
+COVERS = {"grid": ("grid", "second", "second0"), "second": ("second", "second0"), "second0": ("second0",)}
 
 
 def up6(x: float) -> float:
@@ -48,11 +52,28 @@ def cert_path(mode: str) -> Path:
     return ROOT / "results" / f"dual_prices_{mode}.npz"
 
 
+def no_margin_problem(cfg, ds) -> Problem:
+    """可见性不留安全余量时的按秒放宽问题。余量不在场景键里，所以窗口不走公共缓存，存在 outputs/bounds/。"""
+    from dataclasses import replace
+    key = cfg.scenario_key()
+    wpath, spath = CKPT / f"windows_nomargin_{key}.npz", CKPT / f"short_nomargin_{key}.npz"
+    if wpath.exists() and spath.exists():
+        win, z = Windows.load(wpath, ds.n_stations), np.load(spath)
+        short = (z["station"], z["target"], z["k0"], z["k1"])
+    else:
+        win = compute_windows(replace(cfg, elev_margin=0.0, sun_margin=0.0, sunlit_margin_km=0.0), ds, keep_short=True)
+        short = win.short
+        CKPT.mkdir(parents=True, exist_ok=True)
+        win.save(wpath)
+        np.savez_compressed(spath, station=short[0], target=short[1], k0=short[2], k1=short[3])
+    return by_second_problem(Problem.build(cfg, ds, win), short=short)
+
+
 def problems(cfg, ds, modes):
     pb = Problem.build(cfg, ds, get_windows(cfg, ds))
     out = {}
     for m in modes:
-        out[m] = pb if m == "grid" else by_second_problem(pb)
+        out[m] = pb if m == "grid" else by_second_problem(pb) if m == "second" else no_margin_problem(cfg, ds)
     return pb, out
 
 
@@ -74,17 +95,50 @@ def plan_values(cfg, ds) -> dict:
     return out
 
 
+def recorded_values(cfg) -> dict:
+    """results/ 里已记录的各方案结果（同一场景才取），用来列"离上界最多差多少"。"""
+    out = {}
+
+    def add(name, row, scope, src):
+        out[name] = {"source": src, "scope": scope, "covered": int(row["covered"]),
+                     "score": round(float(row["score"]), 3), "combined": round(float(row["combined"]), 6)}
+
+    f = ROOT / "results" / "compare.json"
+    if f.exists():
+        d = json.loads(f.read_text(encoding="utf-8"))
+        if d.get("scenario") == cfg.scenario_key():
+            for r in d["rows"]:
+                add(r["algo"], r, "second" if r.get("grid_model") is False else "grid", "results/compare.json")
+    f = ROOT / "results" / "fusion_merge.json"
+    if f.exists():
+        d = json.loads(f.read_text(encoding="utf-8"))
+        add("H+、G+、E 解合并（网格）", d["grid_final"], "grid", "results/fusion_merge.json")
+        add("H+、G+、E 解合并 + 按秒精修", d["refined"], "second", "results/fusion_merge.json")
+    f = ROOT / "results" / "long_run.json"
+    if f.exists():
+        d = json.loads(f.read_text(encoding="utf-8"))["final"]
+        add("长跑优化（网格）", d["grid"], "grid", "results/long_run.json")
+        add("长跑优化 + 按秒精修", d["refined"], "second", "results/long_run.json")
+    return out
+
+
 def finalize(res: dict) -> None:
-    """每个口径取最紧的上界，算各计划离上界的相对差距。"""
+    """每个口径取最紧的上界（范围更大的口径的上界对它也成立），算各计划离上界的相对差距。"""
     for m in LABEL:
         r = res.get(m)
         if r:
-            r["best_ub"] = min(v for k, v in r.items() if k in ("flow_ub", "dual_ub"))
-    for p in res.get("plans", {}).values():
+            r["own_ub"] = min(v for k, v in r.items() if k in ("flow_ub", "dual_ub"))
+    for m in LABEL:
+        if res.get(m):
+            res[m]["best_ub"] = min(res[c]["own_ub"] for c in COVERS[m] if res.get(c))
+    no_margin = res.get("second0", {}).get("best_ub")
+    for p in list(res.get("plans", {}).values()) + list(res.get("recorded", {}).values()):
         r = res.get(p["scope"])
         if r and "best_ub" in r:
             p["ub"] = r["best_ub"]
             p["gap_pct"] = round(100 * (r["best_ub"] - p["combined"]) / r["best_ub"], 3)
+        if no_margin:
+            p["gap_no_margin_pct"] = round(100 * (no_margin - p["combined"]) / no_margin, 3)
     RESULT.write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
@@ -107,11 +161,19 @@ def main() -> int:
     ds = load(cfg)
     res = json.loads(RESULT.read_text(encoding="utf-8")) if RESULT.exists() else {}
     res["scenario"] = cfg.scenario_key()
-    res["说明"] = ("combined_ub：任何合法计划的综合指标都不超过它。grid = 起止在 30 秒格点上的计划；"
-                 "second = 按秒的计划（窗口两端各放宽一格 + 短窗口）。gap_pct = (上界 − 计划) / 上界。")
-    modes = list(LABEL) if (args.flow or args.verify) else [args.dual] if args.dual else []
+    res["说明"] = ("上界：任何合法计划的综合指标都不超过它。grid = 起止在 30 秒格点上的计划；"
+                 "second = 按秒的计划（窗口两端各放宽一格 + 短窗口）；second0 = 同 second、可见性不留安全余量。"
+                 "best_ub = 该口径可用的最小上界；gap_pct = (上界 − 计划) / 上界；gap_no_margin_pct 用 second0 的上界。"
+                 "plans 是按 results/ 里的计划文件现算的，recorded 取自各结果文件里记录的数。")
+    if args.flow:
+        modes = list(LABEL)
+    elif args.verify:
+        modes = [m for m in LABEL if cert_path(m).exists()]
+    else:
+        modes = [args.dual] if args.dual else []
     pb, pbs = problems(cfg, ds, modes)
-    res["plans"] = plan_values(cfg, ds)
+    res.setdefault("plans", {}).update(plan_values(cfg, ds))     # 计划文件不提交；缺文件时保留已记录的数
+    res["recorded"] = recorded_values(cfg)
 
     if args.flow:
         for m in modes:
@@ -131,7 +193,7 @@ def main() -> int:
             theta = float(z["theta"]) if "theta" in z.files else 1.0
         if args.theta:
             theta = args.theta
-        known = [p["combined"] for p in res["plans"].values() if p["scope"] == m]
+        known = [p["combined"] for p in res["plans"].values() if m in COVERS[p["scope"]]]
         target = args.target if args.target else max(known)
         print(f"[{LABEL[m]}] 窗口 {len(pbs[m].w_st)}，步长目标 {target:.6f}，起始步长系数 {theta:.4f}，"
               f"{'从 ' + str(src) + ' 继续' if src is not None else '从零价格开始'}", flush=True)

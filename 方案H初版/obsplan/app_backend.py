@@ -93,6 +93,39 @@ def scope_metrics(cfg: Config, ds: Dataset, run: Run) -> dict:
             "combined": float(cfg.w_cov * m["covered"] / max(n, 1) + cfg.w_score * m["score"] / max(ref, 1e-9))}
 
 
+BOUNDS_FILE = Path(__file__).resolve().parents[1] / "results" / "bounds.json"
+# 这些参数与算上界时（默认配置）一致，上界才适用；月光规避只会让可选的任务更少，上界仍然成立
+_BOUND_FIELDS = ("elev_margin", "sun_margin", "sunlit_margin_km", "obs_min_s", "obs_max_s", "switch_s",
+                 "repeat_gap_h", "priority_score", "w_cov", "w_score", "score_ref")
+
+
+def optimality_gap(cfg: Config, run: Run, path: Path | None = None) -> dict | None:
+    """全量结果离可证明上界还差多少（上界由 scripts/bound_experiment.py 算好，存在 results/bounds.json）。
+    没有上界文件、演示子集、或场景与规则参数和算上界时不同，返回 None。
+    网格计划用 30 秒格点口径的上界；按秒精修或插入过按秒任务的计划用按秒口径的上界（更大，对两种计划都成立）。"""
+    path = path or BOUNDS_FILE
+    if run.subset or not path.exists():
+        return None
+    try:
+        b = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    base = Config()
+    key = cfg.scenario_key().replace(f"_moon{cfg.moon_sep_deg:g}", "") if cfg.moon_sep_deg > 0 else cfg.scenario_key()
+    if b.get("scenario") != key or any(getattr(cfg, f) != getattr(base, f) for f in _BOUND_FIELDS):
+        return None
+    cell = cfg.cell_s
+    on_grid = bool((np.asarray(run.start_s) % cell == 0).all() and (np.asarray(run.dur_s) % cell == 0).all())
+    refined = bool(run.notes.get("refine", {}).get("refined")) or not on_grid
+    scope = "second" if refined else "grid"
+    ub = b.get(scope, {}).get("best_ub")
+    if not ub:
+        return None
+    value = float(run.metrics["combined"])
+    return {"scope": scope, "label": "按秒口径" if refined else "30 秒格点口径", "ub": float(ub),
+            "gap_pct": 100.0 * (float(ub) - value) / float(ub)}
+
+
 def list_runs(folder: Path) -> list[Path]:
     return sorted(folder.glob("*.npz"), key=lambda p: p.stat().st_mtime, reverse=True)
 

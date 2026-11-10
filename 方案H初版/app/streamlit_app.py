@@ -26,7 +26,8 @@ from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain
                                  load_problem, orbit_class, pass_profile, replan_changed, replan_run, replay_weather,
                                  run_name, run_planning, save_replan, schedule_csv_bytes, scope_metrics, simulate_days,
                                  station_nights, structural_check, subset_problem, summary_json, task_rows,
-                                 validate_replan, validate_run, weather_stats, status_csv_bytes, status_rows)
+                                 validate_replan, validate_run, weather_stats, status_csv_bytes, status_rows,
+                                 optimality_gap)
 from obsplan.replan import KINDS, MODES, STATUS_ORDER, Event, busiest_station, suggest_targets  # noqa: E402
 from obsplan.target_status import STATUS, describe, summarize  # noqa: E402
 from obsplan.config import Config  # noqa: E402
@@ -197,11 +198,13 @@ st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.da
 def page_overview():
     k = st.columns(6)
     v = run.validation
+    gap = optimality_gap(cfg, run)
     tiles = [
         ("覆盖目标", f"{m['covered']}", f"可观测 {(pb.max_obs > 0).sum()} / " +
          (f"全部 {ds.n_targets}" if not run.subset else f"本次参与 {n_scope}")),
         ("累计得分", f"{m['score']:.0f}", "含 48 小时后的重复观测"),
-        ("综合指标", f"{sc['combined']:.4f}", f"覆盖权重 {cfg.w_cov:g}（内部口径）" if not run.subset else
+        ("综合指标", f"{sc['combined']:.4f}", (f"离可证明的上界 {gap['ub']:.4f} 最多差 {gap['gap_pct']:.1f}%（{gap['label']}）"
+                                              if gap else f"覆盖权重 {cfg.w_cov:g}（内部口径）") if not run.subset else
          f"按本次参与的 {n_scope} 颗目标归一" + ("；目标少、站点有富余，重复观测多，所以超过 1" if sc["combined"] > 1 else "")),
         ("观测任务", f"{m['tasks']}", f"其中重复观测 {m['repeat_tasks']}"),
         ("求解用时", f"{run.runtime_s:.0f} 秒", "不含窗口预处理"),

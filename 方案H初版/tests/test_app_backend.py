@@ -38,6 +38,28 @@ def test_scope_metrics(cfg, ds, pb):
     assert np.isclose(ab.scope_metrics(cfg, ds, few)["combined"], few.metrics["combined"])
 
 
+def test_optimality_gap(cfg, pb, tmp_path):
+    import json
+    run = _run(pb)
+    run.cfg = json.loads(cfg.to_json())
+    path = tmp_path / "bounds.json"
+    assert ab.optimality_gap(cfg, run, path) is None                          # 没有上界文件
+    path.write_text(json.dumps({"scenario": cfg.scenario_key(), "grid": {"best_ub": 1.0027},
+                                "second": {"best_ub": 1.0058}}), encoding="utf-8")
+    g = ab.optimality_gap(cfg, run, path)                                     # 网格计划：格点口径的上界
+    assert g["scope"] == "grid" and g["ub"] == 1.0027
+    assert np.isclose(g["gap_pct"], 100 * (1.0027 - run.metrics["combined"]) / 1.0027) and g["gap_pct"] > 0
+    run.notes = {"refine": {"refined": True}}                                 # 按秒精修过：按秒口径的上界
+    assert ab.optimality_gap(cfg, run, path)["ub"] == 1.0058
+    run.notes, run.start_s = {}, run.start_s + 1                              # 起止不在格点上也算按秒计划
+    assert ab.optimality_gap(cfg, run, path)["scope"] == "second"
+    assert ab.optimality_gap(cfg.with_(moon_sep_deg=20.0), run, path)["scope"] == "second"   # 月光规避：上界仍成立
+    assert ab.optimality_gap(cfg.with_(w_cov=0.7, w_score=0.3), run, path) is None            # 计分口径不同
+    assert ab.optimality_gap(cfg.with_(days=3.0), run, path) is None                          # 场景不同
+    run.subset = {"target_frac": 0.2, "stations": [0, 1], "seed": 0}
+    assert ab.optimality_gap(cfg, run, path) is None                          # 演示子集
+
+
 def test_run_name(sub):
     assert ab.run_name(_run(sub, notes={"label": "H 高质量"})) == "H 高质量"
     assert ab.run_name(_run(sub, notes={"mode": "快速", "famou_rule": True})) == "H+ 快速 · 11-10 02:32"
