@@ -46,3 +46,13 @@ def test_lns_keeps_validity_and_never_worsens(sub):
     run_lns(sub, st, budget_s=8.0, time_limit=1.0)
     assert objective(sub, st) >= before - 1e-12
     assert structural_violations(sub, st.schedule(sub, "LNS", 0)) == {}
+
+
+def test_lagrange_recover_at_without_zero_keeps_prices_finite(sub):
+    """自定义恢复时机不含第 0 次迭代时，步长也必须有限（以前 best_lb = -inf 会把价格算成 NaN，得到退化计划）。"""
+    from obsplan import lagrange
+    base, _ = lagrange.solve(sub, iters=12, verbose=False, local_search=False, recover_at=(0, 11))
+    sch, info = lagrange.solve(sub, iters=12, verbose=False, local_search=False, recover_at=(5, 11))
+    assert np.isfinite(info["mu"]).all()
+    assert all(np.isfinite(h[2]) for h in info["history"][1:])      # 第 1 次迭代起就有可行解值
+    assert len(sch.station) > 0.8 * len(base.station)

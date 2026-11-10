@@ -284,7 +284,9 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     best_ub, best_lb, best_state, best_mu = np.inf, -np.inf, None, mu.copy()
     theta, stall, hist = 1.0, 0, []
     for it in range(iters):
-        if it in recover_at:
+        # 第一轮总要先恢复一次：步长 (L - best_lb) 需要一个有限的可行解值，否则价格变成 inf/NaN
+        # （默认 recover_at 含 0，这一条不改变默认结果；只防自定义 recover_at 不从 0 开始）
+        if it in recover_at or best_state is None:
             st = recover(pb, mu, cand, qw, beta if use_q else None, vct if vc_target is not None else None, init_state)
             lb = objective_weighted(pb, st, qw, beta, vct) if use_q else objective(pb, st)
             if lb > best_lb:

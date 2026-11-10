@@ -89,15 +89,15 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
     w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
     algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
-    mode = st.radio("模式", ["快速（全量约 1 分钟）", "高质量（全量约 2 分钟）"], horizontal=False)
+    mode = st.radio("模式", ["快速（全量约 40 秒）", "高质量（全量约 1 分钟）"], horizontal=False)
     fast = mode.startswith("快速")
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
                           help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
-                               "关闭则用人工的「价值 − 价格」。全量约多 15 秒，综合指标高约 0.8%")
+                               "关闭则用人工的「价值 − 价格」。全量只多约 2 秒，综合指标高约 0.8%")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
-                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 4 秒")
+                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -123,7 +123,7 @@ if go_btn:
 
 if choice is None:
     st.title("空间目标观测规划")
-    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 1 分钟、高质量模式约 2 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
+    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 40 秒、高质量模式约 1 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
     st.stop()
 
 run = Run.load(choice)
