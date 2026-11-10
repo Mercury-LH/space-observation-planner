@@ -97,6 +97,7 @@ def main() -> int:
     ap.add_argument("--target", type=float, help="步长用的目标值（已知最好计划的综合指标；默认取 results/ 里该口径最好的计划）")
     ap.add_argument("--mu0", type=Path, help="起始价格（npz，键 best_mu 或 mu）；默认从断点继续")
     ap.add_argument("--theta", type=float, help="起始步长系数（默认取断点里的，没有断点时 1.0）")
+    ap.add_argument("--patience", type=int, default=20, help="连续多少次迭代没有改进就缩小步长系数")
     ap.add_argument("--threads", type=int, default=0)
     args = ap.parse_args()
     if args.threads:
@@ -134,7 +135,8 @@ def main() -> int:
         target = args.target if args.target else max(known)
         print(f"[{LABEL[m]}] 窗口 {len(pbs[m].w_st)}，步长目标 {target:.6f}，起始步长系数 {theta:.4f}，"
               f"{'从 ' + str(src) + ' 继续' if src is not None else '从零价格开始'}", flush=True)
-        r = dual_upper_bound(pbs[m], target=target, iters=args.iters, mu0=mu0, theta=theta, checkpoint=ck)
+        r = dual_upper_bound(pbs[m], target=target, iters=args.iters, mu0=mu0, theta=theta,
+                             patience=args.patience, checkpoint=ck)
         mu32 = r["mu"].astype(np.float32)
         value = dual_value(pbs[m], mu32)                        # 证书：按存下来的（单精度）价格重算
         old = res.get(m, {}).get("dual_ub")

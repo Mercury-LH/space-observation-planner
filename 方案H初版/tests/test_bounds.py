@@ -3,7 +3,8 @@ import numpy as np
 import pytest
 
 from obsplan import lagrange
-from obsplan.bounds import _short_windows, by_second_problem, dual_upper_bound, dual_value, flow_upper_bound
+from obsplan.bounds import (_dual_eval, _dual_setup, _short_windows, by_second_problem, dual_upper_bound,
+                            dual_value, flow_upper_bound)
 from obsplan.refine import probe_bounds, refine
 from obsplan.schedule import evaluate
 
@@ -113,6 +114,47 @@ def test_bounds_hold_for_grid_and_refined_plans(cfg, ds, sub, ext, plans):
     assert r2["combined_ub"] <= dual_value(ext, r["mu"]) + 1e-9                         # 热启动后不会变差
     assert dual_value(ext, r2["mu"]) == pytest.approx(r2["combined_ub"], abs=1e-9)
     assert dual_value(ext, r2["mu"].astype(np.float32)) >= ref_obj - 1e-9               # 存成单精度仍是合法上界
+
+
+def test_dual_per_target_value_not_below_exact_enumeration(sub):
+    """上界合法的关键：对偶值里每颗目标的"最优出价"，不小于按精确规则（下一次开始 ≥ 上一次结束 + 48 小时）
+    在 1–3 次观测的所有组合里能取到的最大值。这里的精确算法是独立写的，不经过价格子问题的代码。"""
+    rng = np.random.default_rng(5)
+    S, T = sub.n_stations, sub.n_samples + 2
+    targets = rng.choice(np.unique(sub.w_tg), 40, replace=False)
+    scale = sub.vs * sub.P[targets].mean() / (sub.m_min + 1)                 # 价格与任务价值同一量级
+    mu = rng.exponential(scale, (S, T)) * (rng.random((S, T)) < 0.5)
+    setup = _dual_setup(sub)
+    _dual_eval(sub, mu, setup)
+    total = setup[1][0]
+    pref = np.concatenate([np.zeros((S, 1)), np.cumsum(mu, axis=1)], axis=1)
+    chains, tight = 0, 0
+    for i in targets:
+        a, e, r = [], [], []                                                 # 每个候选任务：开始格、结束格、价值 − 价格
+        for w in sub.t_win[sub.t_ptr[i]:sub.t_ptr[i + 1]]:
+            st, k0, k1 = sub.w_st[w], sub.w_k0[w], sub.w_k1[w]
+            for m in range(sub.m_min, sub.m_max + 1):
+                x = np.arange(k0, k1 - m + 1)
+                a.append(x)
+                e.append(x + m)
+                r.append(sub.vs * sub.P[i] * sub.frac[m] - (pref[st, x + m + 1] - pref[st, x]))
+        a, e, r = np.concatenate(a), np.concatenate(e), np.concatenate(r)
+        by_end = np.argsort(e, kind="stable")
+
+        def best_before(val):
+            """对每个任务 k：能排在它前面的任务（结束 + 间隔 ≤ k 的开始）里 val 的最大值，没有则 −inf。"""
+            run = np.maximum.accumulate(val[by_end])
+            n = np.searchsorted(e[by_end], a - sub.gap, side="right")
+            return np.where(n > 0, run[np.maximum(n - 1, 0)], -np.inf)
+
+        two = r + best_before(r)                                             # 以 k 结尾的两次观测
+        three = r + best_before(two)                                         # 以 k 结尾的三次观测
+        exact = max(max(r.max(), two.max(), three.max()) + sub.vc, 0.0)
+        assert total[i] >= exact - 1e-12
+        chains += two.max() > r.max()
+        tight += abs(total[i] - exact) <= 1e-12
+    assert chains >= 10                                                      # 确实检验到了多次观测的链
+    assert tight >= 30                                                       # 放松的间隔判定很少起作用，绝大多数相等
 
 
 def test_dual_rejects_bad_prices(sub):
