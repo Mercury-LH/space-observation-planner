@@ -6,32 +6,33 @@
   "score": 28013.3
  },
  "final": {
-  "round": 76,
+  "round": 100,
   "grid": {
    "covered": 9999,
-   "score": 29353.0,
-   "combined": 0.988158,
-   "tasks": 12717
+   "score": 29365.2,
+   "combined": 0.988361,
+   "tasks": 12719
   },
   "refined": {
    "covered": 9999,
-   "score": 29474.327,
-   "combined": 0.990176,
-   "tasks": 12717
+   "score": 29484.923,
+   "combined": 0.990352,
+   "tasks": 12719
   },
-  "time": "2026-11-10 06:23:14"
+  "time": "2026-11-10 12:27:59"
  },
  "validation": {
   "tool": "Skyfield 逐秒校验（obsplan validate）",
-  "tasks": 12717,
+  "tasks": 12719,
   "all_legal": true,
-  "seconds": 75,
+  "seconds": 77,
   "covered": 9999,
-  "score": 29474.3,
-  "repeat_tasks": 2718
+  "score": 29484.9,
+  "repeat_tasks": 2720
  },
  "notes": [
   "minutes 为各轮 生成+合并+局部搜索 的累计用时（不含每轮约 4 秒的按秒精修）；运行期间机器上同时在跑其他实验，用时偏大",
+  "第 77–100 轮是第二次续跑（--resume --hours 3），其中第 80、86、87、93、96、98 轮没有变好（不接受，最好计划不变）",
   "第 0–9 轮时价格迭代有一个首轮恢复的缺陷（7ec1242 已修），10 个设置里 7 个给出同一份退化的新计划",
   "计划明细 results/plan_longrun.csv 含目标编号，不提交"
  ],
@@ -1498,6 +1499,426 @@
     "tasks": 12717
    },
    "minutes": 272.7
+  },
+  {
+   "round": 77,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962414,
+   "pool": 500315,
+   "grid_best": 0.988159,
+   "refined": {
+    "covered": 9999,
+    "score": 29474.597,
+    "combined": 0.99018,
+    "tasks": 12717
+   },
+   "minutes": 280.5
+  },
+  {
+   "round": 78,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965641,
+   "pool": 615242,
+   "grid_best": 0.988186,
+   "refined": {
+    "covered": 9999,
+    "score": 29475.643,
+    "combined": 0.990198,
+    "tasks": 12717
+   },
+   "minutes": 288.8
+  },
+  {
+   "round": 79,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.956162,
+   "pool": 629742,
+   "grid_best": 0.988196,
+   "refined": {
+    "covered": 9999,
+    "score": 29476.55,
+    "combined": 0.990213,
+    "tasks": 12717
+   },
+   "minutes": 296.1
+  },
+  {
+   "round": 80,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964779,
+   "pool": 628139,
+   "grid_best": 0.988196,
+   "minutes": 303.9
+  },
+  {
+   "round": 81,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963573,
+   "pool": 611534,
+   "grid_best": 0.988206,
+   "refined": {
+    "covered": 9999,
+    "score": 29476.697,
+    "combined": 0.990215,
+    "tasks": 12717
+   },
+   "minutes": 312.0
+  },
+  {
+   "round": 82,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953705,
+   "pool": 627626,
+   "grid_best": 0.988221,
+   "refined": {
+    "covered": 9999,
+    "score": 29477.52,
+    "combined": 0.990229,
+    "tasks": 12718
+   },
+   "minutes": 319.5
+  },
+  {
+   "round": 83,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962619,
+   "pool": 629863,
+   "grid_best": 0.988224,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.38,
+    "combined": 0.990243,
+    "tasks": 12717
+   },
+   "minutes": 326.9
+  },
+  {
+   "round": 84,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.967856,
+   "pool": 612744,
+   "grid_best": 0.988233,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.38,
+    "combined": 0.990243,
+    "tasks": 12717
+   },
+   "minutes": 334.8
+  },
+  {
+   "round": 85,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962975,
+   "pool": 612363,
+   "grid_best": 0.988241,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.88,
+    "combined": 0.990251,
+    "tasks": 12718
+   },
+   "minutes": 342.0
+  },
+  {
+   "round": 86,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954001,
+   "pool": 632119,
+   "grid_best": 0.988241,
+   "minutes": 349.8
+  },
+  {
+   "round": 87,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96218,
+   "pool": 628561,
+   "grid_best": 0.988241,
+   "minutes": 357.5
+  },
+  {
+   "round": 88,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96759,
+   "pool": 610669,
+   "grid_best": 0.988244,
+   "refined": {
+    "covered": 9999,
+    "score": 29479.14,
+    "combined": 0.990256,
+    "tasks": 12718
+   },
+   "minutes": 365.3
+  },
+  {
+   "round": 89,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95337,
+   "pool": 626477,
+   "grid_best": 0.988256,
+   "refined": {
+    "covered": 9999,
+    "score": 29479.27,
+    "combined": 0.990258,
+    "tasks": 12717
+   },
+   "minutes": 372.8
+  },
+  {
+   "round": 90,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963403,
+   "pool": 630268,
+   "grid_best": 0.988271,
+   "refined": {
+    "covered": 9999,
+    "score": 29480.443,
+    "combined": 0.990277,
+    "tasks": 12716
+   },
+   "minutes": 380.2
+  },
+  {
+   "round": 91,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966469,
+   "pool": 613169,
+   "grid_best": 0.988287,
+   "refined": {
+    "covered": 9999,
+    "score": 29480.943,
+    "combined": 0.990286,
+    "tasks": 12717
+   },
+   "minutes": 387.7
+  },
+  {
+   "round": 92,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954015,
+   "pool": 628965,
+   "grid_best": 0.988322,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.097,
+    "combined": 0.990322,
+    "tasks": 12716
+   },
+   "minutes": 395.4
+  },
+  {
+   "round": 93,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962906,
+   "pool": 630593,
+   "grid_best": 0.988322,
+   "minutes": 403.0
+  },
+  {
+   "round": 94,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966387,
+   "pool": 613391,
+   "grid_best": 0.988331,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.597,
+    "combined": 0.99033,
+    "tasks": 12717
+   },
+   "minutes": 410.6
+  },
+  {
+   "round": 95,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962342,
+   "pool": 614134,
+   "grid_best": 0.988334,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.87,
+    "combined": 0.990334,
+    "tasks": 12717
+   },
+   "minutes": 418.1
+  },
+  {
+   "round": 96,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953634,
+   "pool": 630912,
+   "grid_best": 0.988334,
+   "minutes": 425.4
+  },
+  {
+   "round": 97,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962669,
+   "pool": 629665,
+   "grid_best": 0.988344,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.23,
+    "combined": 0.99034,
+    "tasks": 12718
+   },
+   "minutes": 433.5
+  },
+  {
+   "round": 98,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965246,
+   "pool": 612420,
+   "grid_best": 0.988344,
+   "minutes": 440.9
+  },
+  {
+   "round": 99,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954064,
+   "pool": 627850,
+   "grid_best": 0.988352,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.75,
+    "combined": 0.990349,
+    "tasks": 12719
+   },
+   "minutes": 448.4
+  },
+  {
+   "round": 100,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963626,
+   "pool": 629132,
+   "grid_best": 0.988361,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.923,
+    "combined": 0.990352,
+    "tasks": 12719
+   },
+   "minutes": 456.0
   }
  ]
 }
