@@ -16,7 +16,7 @@ from .data import Dataset
 from .greedy import MANUAL_WEIGHTS, algo_priority, algo_weighted
 from .local_search import improve
 from .problem import Problem
-from .schedule import Schedule, evaluate, export_csv
+from .schedule import Schedule, evaluate, export_csv, score_ref
 from .target_status import orbit_class  # noqa: F401（界面沿用 app_backend.orbit_class）
 from .visibility import Windows
 
@@ -68,6 +68,31 @@ class Run:
                    per_task=pt, **meta)
 
 
+def run_name(run: Run) -> str:
+    """结果的显示名称：有标签用标签，否则是"算法 模式 · 月-日 时:分"（H+ = 用伐谋放置规则的方案 H）。"""
+    if run.notes.get("label"):
+        return run.notes["label"]
+    algo = run.algo
+    if algo == "H":
+        algo = "H 按天气" if run.notes.get("weather_aware") else ("H+" if run.notes.get("famou_rule") else "H")
+    rid = run.run_id
+    when = f"{rid[4:6]}-{rid[6:8]} {rid[9:11]}:{rid[11:13]}" if len(rid) >= 15 and rid[8] == "-" else rid
+    return " ".join(x for x in (algo, run.notes.get("mode", "")) if x) + f" · {when}"
+
+
+def scope_metrics(cfg: Config, ds: Dataset, run: Run) -> dict:
+    """结果所在范围：参与规划的目标（mask，全量为 None）、目标数，以及按这个范围归一的综合指标。
+    演示结果只排了一部分目标，按全部目标归一的综合值会低得没有意义，所以改用参与目标的个数和满分参考。"""
+    m = run.metrics
+    if not run.subset:
+        return {"mask": None, "targets": ds.n_targets, "combined": float(m["combined"])}
+    mask = subset_mask(ds.n_targets, run.subset["target_frac"], run.subset.get("seed", 0))
+    n = int(mask.sum())
+    ref = score_ref(cfg, ds) * float(ds.priority[mask].sum()) / max(float(ds.priority.sum()), 1e-9)
+    return {"mask": mask, "targets": n,
+            "combined": float(cfg.w_cov * m["covered"] / max(n, 1) + cfg.w_score * m["score"] / max(ref, 1e-9))}
+
+
 def list_runs(folder: Path) -> list[Path]:
     return sorted(folder.glob("*.npz"), key=lambda p: p.stat().st_mtime, reverse=True)
 
@@ -87,10 +112,16 @@ def load_problem(cfg: Config) -> tuple[Dataset, Problem, dict]:
     return ds, pb, {"load_s": t1 - t0, "windows_s": t2 - t1, "windows_cached": cached, "build_s": t3 - t2}
 
 
+def subset_mask(n_targets: int, target_frac: float, seed: int = 0) -> np.ndarray:
+    """演示模式下参与规划的目标（固定种子，同一比例每次选到同一批）。"""
+    if target_frac >= 1:
+        return np.ones(n_targets, bool)
+    return np.random.default_rng(seed).random(n_targets) < target_frac
+
+
 def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: int = 0) -> Problem:
     """演示模式：只保留部分目标和指定站点。"""
-    rng = np.random.default_rng(seed)
-    keep_t = rng.random(pb.n_targets) < target_frac if target_frac < 1 else np.ones(pb.n_targets, bool)
+    keep_t = subset_mask(pb.n_targets, target_frac, seed)
     keep_s = np.zeros(pb.n_stations, bool)
     keep_s[list(stations)] = True
     sel = keep_t[pb.w_tg] & keep_s[pb.w_st]
