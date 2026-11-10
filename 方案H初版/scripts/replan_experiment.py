@@ -7,7 +7,7 @@
 - 新增必须观测的目标：推荐列表第 1 个（原计划没覆盖、事件之后还有窗口的目标）。
 输出 results/replan.json。
 
-    uv run python scripts/replan_experiment.py                  # 先规划 H+（约 2.5 分钟），再做 6 次重排（各约 20 秒）
+    uv run python scripts/replan_experiment.py                  # 先规划 H+（约 1 分钟），再做 6 次重排（各 6–10 秒）
     uv run python scripts/replan_experiment.py --plan plan.csv  # 在已有计划上做
 """
 from __future__ import annotations
