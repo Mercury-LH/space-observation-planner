@@ -249,14 +249,18 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
-          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None) -> tuple[Schedule, dict]:
+          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None,
+          portfolio: bool = False) -> tuple[Schedule, dict]:
     """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
     progress(fraction, text)：可选的进度回调（产品界面用）。
     cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。
     vc_target / max_obs_left / init_state：动态重规划用——每颗目标的覆盖奖励（已成功覆盖的为 0）、剩余可观测次数、
     返回预置了历史成功观测与过去时段占用的 State 的函数。
     rule：伐谋演化的放置规则（见 recover）：价格迭代照旧（用人工规则选最好一次），结束后用该价格按 rule 再恢复一次，
-    与伐谋评测的做法相同；None 时只用人工规则。"""
+    与伐谋评测的做法相同；None 时只用人工规则。
+    portfolio：稳健模式（需要 rule）。人工规则和伐谋规则各恢复一份计划，两份的局部搜索在两个线程里同时做
+    （局部搜索是单线程的 numba 代码，已放开 GIL），取目标值高的一份；一样高时取伐谋规则的。
+    伐谋规则是在赛题这一份数据上演化的，换了场景不保证更好，这样做在任何场景上都不会比人工规则差。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -313,16 +317,33 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
             break
         mu = np.maximum(0.0, mu + theta * (L - best_lb) / norm * g)
     lb_manual = best_lb
-    if rule is not None and not use_q and vc_target is None:
+    manual_state = best_state
+    use_rule = rule is not None and not use_q and vc_target is None
+    if use_rule:
         # 与伐谋评测一致：用最好一次可行解对应的价格，按演化出的放置规则重新恢复一次，再做局部搜索
         best_state = recover(pb, best_mu, cand, init_state=init_state, rule=rule)
         best_lb = objective(pb, best_state)
-    ls_stats = {}
+    ls_stats, pf = {}, None
     if progress is not None:
         progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
-    if local_search:
-        ls_stats = improve(pb, best_state, repeat_min_priority=3.0 if fast else None)
+    rmp = 3.0 if fast else None
+    if local_search and portfolio and use_rule:
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(2) as ex:
+            f_rule = ex.submit(improve, pb, best_state, repeat_min_priority=rmp)
+            f_manual = ex.submit(improve, pb, manual_state, repeat_min_priority=rmp)
+            stats = {"rule": f_rule.result(), "manual": f_manual.result()}
+        obj = {"rule": objective(pb, best_state), "manual": objective(pb, manual_state)}
+        picked = "rule" if obj["rule"] >= obj["manual"] else "manual"
+        pf = {"objective": obj, "picked": picked, "ls": stats}
+        ls_stats = stats[picked]
+        if picked == "manual":
+            best_state = manual_state
+    elif local_search:
+        ls_stats = improve(pb, best_state, repeat_min_priority=rmp)
     sch = best_state.schedule(pb, name, time.time() - t0)
     info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "lb_manual_rule": lb_manual, "history": hist,
             "ls": ls_stats, "mu": best_mu}
+    if pf is not None:
+        info["portfolio"] = pf
     return sch, info

@@ -21,7 +21,7 @@ NO_TASK = -9          # 不会出现在 t_task 里的编号：传给 _sep_ok_exc
 # t_task 为 -1 的观测记录是固定的（动态重规划里已执行或原样保留的观测），只参与次数与 48 小时间隔判定。
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _task_value(k, tg, m, t_cnt, P, frac, vc, vs):
     v = vs * P[tg[k]] * frac[m[k]]
     if t_cnt[tg[k]] == 1:
@@ -29,7 +29,7 @@ def _task_value(k, tg, m, t_cnt, P, frac, vc, vs):
     return v
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _detach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     """把任务 k 从站点占用和目标记录中摘下（不改 alive）。"""
     s = st[k]
@@ -48,7 +48,7 @@ def _detach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
             break
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _attach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     s = st[k]
     for c in range(a[k], a[k] + m[k] + 1):
@@ -61,7 +61,7 @@ def _attach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     t_cnt[i] = cnt + 1
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _sep_ok_excl(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task, gap):
     for x in range(t_cnt[i]):
         if t_task[i, x] == k:
@@ -72,7 +72,7 @@ def _sep_ok_excl(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task, gap):
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _relocate_option(k, st, tg, a, m, w, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                      w_st, w_k0, w_k1, t_ptr, t_win, gap, m_min, T):
     """任务 k 已被摘下。在它目标的所有窗口里找新位置，时长尽量不缩短。
@@ -90,7 +90,7 @@ def _relocate_option(k, st, tg, a, m, w, owner, t_cnt, t_obs_a, t_obs_m, t_task,
     return best_w, best_a, best_m
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                     w_st, w_k0, w_k1, t_ptr, t_win, P, frac, vc, vs, gap, m_min, max_pos, prune=True):
     """对每个未覆盖目标尝试一次最优插入。返回 (新任务数 n, 成功插入数)。
@@ -247,7 +247,7 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
     return n, inserted
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _set_obs(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task):
     for x in range(t_cnt[i]):
         if t_task[i, x] == k:
@@ -255,7 +255,7 @@ def _set_obs(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task):
             t_obs_m[i, x] = mm
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def extend_all(order, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                w_k0, w_k1, gap, m_max):
     """按给定顺序把任务向后、向前延长到最多 m_max 格。返回延长的总格数。"""
@@ -283,7 +283,7 @@ def extend_all(order, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m,
 
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_obs_m, t_task, w_k0, w_k1, gap):
     """同站任务按时间顺序整体左移（direction=-1）或右移（+1），把碎片空隙并到一起。返回移动的任务数。
     移动时不越过封锁的格（动态重规划中已过去、停机或固定任务占用的时段）。"""
@@ -327,7 +327,7 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
             bound = a[k] - 1
     return moved
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def swap_repeat_for_extension(st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                               w_k0, w_k1, P, frac, vs, gap, m_max):
     """删除一个重复观测 r，让同站前后相邻任务延长占用腾出的格子；收益为正才接受。"""

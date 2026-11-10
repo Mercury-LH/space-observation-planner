@@ -1,5 +1,6 @@
 """各规划器的输出必须满足全部结构约束；上界必须不小于任何可行解。"""
 import numpy as np
+import pytest
 
 from obsplan import cpsat, lagrange
 from obsplan.bounds import flow_upper_bound
@@ -56,3 +57,21 @@ def test_lagrange_recover_at_without_zero_keeps_prices_finite(sub):
     assert np.isfinite(info["mu"]).all()
     assert all(np.isfinite(h[2]) for h in info["history"][1:])      # 第 1 次迭代起就有可行解值
     assert len(sch.station) > 0.8 * len(base.station)
+
+
+def test_lagrange_portfolio_picks_better_rule(sub):
+    """稳健模式：两条放置规则各做一遍局部搜索（并发），结果与分别单独跑完全相同，取目标值高的一份。"""
+    from obsplan import lagrange
+    from obsplan.evolved import load_rule
+    rule = load_rule()
+    if rule is None:
+        pytest.skip("没有已采纳的伐谋规则")
+    both, info = lagrange.solve(sub, iters=30, verbose=False, rule=rule, portfolio=True)
+    alone = {"rule": lagrange.solve(sub, iters=30, verbose=False, rule=rule)[0],
+             "manual": lagrange.solve(sub, iters=30, verbose=False)[0]}
+    pf = info["portfolio"]
+    obj = pf["objective"]
+    assert pf["picked"] == ("rule" if obj["rule"] >= obj["manual"] else "manual")
+    for f in ("station", "target", "start_s", "dur_s"):
+        assert np.array_equal(getattr(both, f), getattr(alone[pf["picked"]], f))
+    assert structural_violations(sub, both) == {}

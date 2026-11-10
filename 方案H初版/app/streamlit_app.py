@@ -95,7 +95,8 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
                           help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
-                               "关闭则用人工的「价值 − 价格」。全量只多约 2 秒，综合指标高约 0.8%")
+                               "关闭则用人工的「价值 − 价格」。本赛题数据上综合指标高约 0.8%。"
+                               "勾选时人工规则也会同时排一份，自动取综合高的（稳健模式），换一份数据也不会比人工规则差，用时基本不变")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
                             help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
@@ -914,11 +915,16 @@ def page_demo():
               ("最拥挤的站", f"{busiest + 1} 号站" if busiest is not None else "—", "平均价格最高" if busiest is not None else "仅方案 H 有价格")],
              ["时间价格", "概览"])
 
-    flags = [run.notes.get("mode", "")] + (["伐谋放置规则"] if run.notes.get("famou_rule") else []) + \
-        (["按秒精修"] if run.notes.get("refine", {}).get("refined") else [])
+    pick = run.notes.get("rule_pick")
+    by_famou = bool(run.notes.get("famou_rule"))
+    rule_flag = ["伐谋放置规则"] if by_famou else (["人工放置规则（两条都排，这份数据上人工的更好）"] if pick else [])
+    flags = [run.notes.get("mode", "")] + rule_flag + (["按秒精修"] if run.notes.get("refine", {}).get("refined") else [])
+    place_text = ("按伐谋演化出的放置规则" if by_famou else "按「价值 − 价格」的放置规则") + "把任务排进各站时间线" + \
+        (f"（伐谋、人工两条规则各排一份，取综合高的：伐谋 {pick['objective']['rule']:.4f}，人工 {pick['objective']['manual']:.4f}）"
+         if pick else "")
     step_box(4, "任务规划",
              ("价格协调：每颗目标按当前价格独立挑选最划算的至多 3 次观测（间隔 48 小时），被争抢的时段涨价、没人要的降价，"
-              "反复迭代；收敛后按伐谋演化出的放置规则把任务排进各站时间线，再做局部搜索（挤让插入、压紧、补空、延长），"
+              f"反复迭代；收敛后{place_text}，再做局部搜索（挤让插入、压紧、补空、延长），"
               "最后按秒精修起止时间。" if run.algo == "H" else f"{ALGOS.get(run.algo, run.algo)}，之后按秒精修起止时间。"),
              f"{fmt_s(run.runtime_s)}（{'、'.join(f for f in flags if f)}）",
              [("观测任务", f"{m['tasks']:,}", f"其中重复观测 {m['repeat_tasks']:,}"),

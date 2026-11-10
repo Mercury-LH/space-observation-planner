@@ -161,8 +161,13 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
         elif evolved_rule:
             from .evolved import load_rule
             kw["rule"] = load_rule()
+            kw["portfolio"] = True          # 稳健模式：人工规则也排一份，取综合高的（两份局部搜索并发，用时基本不变）
             notes["famou_rule"] = kw["rule"] is not None
         sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, fast=fast, **kw)
+        if "portfolio" in info:
+            pf = info["portfolio"]
+            notes["famou_rule"] = pf["picked"] == "rule"
+            notes["rule_pick"] = {"picked": pf["picked"], "objective": {k: float(v) for k, v in pf["objective"].items()}}
         notes["mode"] = "快速" if fast else "高质量"
         mu = info["mu"].astype(np.float32)
         notes["ub_relaxed"] = float(info["ub_relaxed"])
@@ -404,7 +409,7 @@ def save_replan(run: Run, res: dict, folder: Path) -> Run:
     """把重排后的计划另存为一份结果，其他页签（甘特图、目标状态、校验、导出）都能直接查看。"""
     sch = res["schedule"]
     refined = bool(res["refine"].get("refined") or run.notes.get("refine", {}).get("refined"))
-    notes = {k: run.notes[k] for k in ("mode", "famou_rule") if k in run.notes}
+    notes = {k: run.notes[k] for k in ("mode", "famou_rule", "rule_pick") if k in run.notes}
     notes.update({"label": f"重排：{res['describe']}", "refine": {"refined": refined},
                   "replan": {"from": run.run_id, "mode": res["mode"], "event": res["describe"], "diff": res["diff"]}})
     new = Run(time.strftime("%Y%m%d-%H%M%S") + f"-{run.algo}R", run.algo, dict(run.cfg), dict(run.subset),

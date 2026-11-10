@@ -141,7 +141,11 @@ def cmd_plan(args) -> int:
     if not args.manual_rule and not args.weather:           # 默认用伐谋演化并已采纳的放置规则（obsplan/evolved/）
         from .evolved import load_rule
         kw["rule"] = load_rule()
+        kw["portfolio"] = not args.rule_only                # 稳健模式：人工规则也排一份，取综合高的
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
+    pf = info.get("portfolio")
+    placement = {"rule": "伐谋规则", "manual": "人工规则"}[pf["picked"]] if pf else \
+        ("伐谋规则" if kw.get("rule") is not None else "人工规则")
     rinfo = None
     if not args.no_refine:
         from .refine import finish
@@ -160,6 +164,8 @@ def cmd_plan(args) -> int:
     status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
     export_status(status_rows, out / "target_status.csv")
     summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
+               "placement_rule": placement,
+               "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
@@ -167,6 +173,9 @@ def cmd_plan(args) -> int:
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
+    if pf is not None:
+        o = pf["objective"]
+        print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
     if check is not None:
         print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
     print("目标状态：" + describe(summary["target_status"]))
@@ -221,6 +230,8 @@ def main(argv=None) -> int:
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
             p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
             p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
+            p.add_argument("--rule-only", action="store_true",
+                           help="只用伐谋规则排一份（默认是稳健模式：伐谋、人工两条规则各排一份，取综合高的，用时基本不变）")
             p.add_argument("--out", default="outputs/plan")
         elif name == "validate":
             p.add_argument("plan")

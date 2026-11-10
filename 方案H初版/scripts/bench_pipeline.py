@@ -54,6 +54,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--mode", choices=["fast", "quality"], default="fast")
     ap.add_argument("--manual-rule", action="store_true")
+    ap.add_argument("--portfolio", action="store_true", help="稳健模式：伐谋、人工两条规则各排一份，取综合高的（产品默认）")
     ap.add_argument("--profile", action="store_true")
     ap.add_argument("--out", help="把结果写成 JSON")
     ap.add_argument("--save", help="把最终计划存成 npz（逐位比对用）")
@@ -81,7 +82,8 @@ def main() -> int:
     prof = cProfile.Profile() if args.profile else None
     if prof:
         prof.enable()
-    sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, rule=rule)
+    sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, rule=rule,
+                               portfolio=args.portfolio and rule is not None)
     t4 = time.perf_counter()
     grid_digest = digest(sch)
     sch, rinfo = finish(pb, sch)
@@ -91,6 +93,7 @@ def main() -> int:
     ev = evaluate(cfg, ds, sch)
     res = {
         "mode": args.mode, "rule": "manual" if rule is None else "famou",
+        "portfolio": {k: info["portfolio"][k] for k in ("picked", "objective")} if "portfolio" in info else None,
         "seconds": {"数据读取": round(t1 - t0, 2), "可见窗口（缓存）": round(t2 - t1, 2), "建模": round(t3 - t2, 2),
                     "价格协调与局部搜索": round(t4 - t3, 2), "按秒精修": round(t5 - t4, 2),
                     "规划合计": round(t5 - t3, 2), "端到端": round(t5 - t0, 2)},

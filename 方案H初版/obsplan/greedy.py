@@ -19,7 +19,7 @@ FEATURES = ["优先级", "首次覆盖", "任务得分", "机会稀缺度", "窗
 
 
 # ---------------------------------------------------------------- 引擎
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _sep_ok(a, m, cnt, obs_a, obs_m, gap):
     for x in range(cnt):
         b, mb = obs_a[x], obs_m[x]
@@ -28,7 +28,7 @@ def _sep_ok(a, m, cnt, obs_a, obs_m, gap):
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _find_start(owner_row, k0, k1, m, cnt, obs_a, obs_m, gap, best_fit, T):
     """在窗口 [k0,k1] 内为 m 格观测找开始格，占用 [a, a+m]。找不到返回 -1。"""
     best_a, best_w = -1, 1 << 30
@@ -82,7 +82,7 @@ def _find_start(owner_row, k0, k1, m, cnt, obs_a, obs_m, gap, best_fit, T):
     return best_a
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _find_start_priced(owner_row, pref_row, k0, k1, m, cnt, obs_a, obs_m, gap, T):
     """价格感知放置：在窗口内所有可行位置中选占用格价格之和最小的，平局时选碎片少的。"""
     best_a, best_c = -1, 1e300
@@ -118,7 +118,7 @@ def _find_start_priced(owner_row, pref_row, k0, k1, m, cnt, obs_a, obs_m, gap, T
     return best_a
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def greedy_core(order1, order2, v1, v2, c_win, c_m, w_st, w_tg, w_k0, w_k1,
                 owner, t_cnt, t_obs_a, t_obs_m, t_task, gap, best_fit, out_st, out_tg, out_a, out_m, out_w, n_out,
                 cutoff, pref, use_price):
