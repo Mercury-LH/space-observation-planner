@@ -94,6 +94,18 @@ def test_must_observe_target_gets_scheduled(sub, plan):
     assert np.any((new.target == x) & (new.start_s >= T_EVENT)) and res["target"]["ok"]
 
 
+@pytest.mark.parametrize("target,mode", [(3730, "full"), (3730, "minimal"), (7877, "full")])
+def test_must_observe_survives_local_repair(sub, plan, target, mode):
+    """回归：这几个目标 t 之前已有观测，强行插入的那一次按正常价值很便宜，曾在随后的修补里被别的目标挤掉
+    （结果里 forced 为真，计划里却没有它）。"""
+    ev = Event("must", T_EVENT, target=target)
+    res = replan(sub, plan, ev, mode=mode, iters=15)
+    _check_common(sub, plan, ev, res)
+    new = res["schedule"]
+    assert res["target"]["forced"] and res["target"]["ok"]
+    assert np.any((new.target == target) & (new.start_s >= T_EVENT))
+
+
 @pytest.mark.parametrize("when", ["start", "end"])
 def test_event_at_horizon_edges(sub, plan, when):
     t = 0 if when == "start" else int(sub.cfg.days * 86400) - 1800

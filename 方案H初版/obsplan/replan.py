@@ -266,17 +266,25 @@ def _force(pr: Problem, st, x: int, after_cell: int, fixed_info: dict, protect) 
     return ok, gone
 
 
-def _local_repair(pr: Problem, st, focus: np.ndarray, n_keep: int, snap: dict):
-    """扰动最小的修补：只为未覆盖的目标和受事件影响的目标挤让少量任务，再往空档里补任务，最后只延长新增和改动过的任务。"""
+def _local_repair(pr: Problem, st, focus: np.ndarray, n_keep: int, snap: dict, must: int = -1):
+    """扰动最小的修补：只为未覆盖的目标和受事件影响的目标挤让少量任务，再往空档里补任务，最后只延长新增和改动过的任务。
+    must >= 0：已经排上的必须观测目标。给别的目标挤位置时，它的任务按极高的价值算，不会再被挤掉或缩短
+    （否则刚强行插入的观测可能又被删掉：它已有冻结观测时，多出来的这一次按正常价值很便宜）。"""
+    P = pr.P
+    if must >= 0:
+        P = pr.P.copy()
+        P[must] = MUST_P
     has_win = np.diff(pr.t_ptr) > 0
     unc = np.nonzero((st.t_cnt == 0) & has_win)[0]
     unc = unc[np.argsort(-pr.P[unc], kind="stable")]
     st.n, _ = repair_coverage(unc, *_repair_args(st), pr.w_st, pr.w_k0, pr.w_k1, pr.t_ptr, pr.t_win,
-                              pr.P, pr.frac, pr.vc, pr.vs, pr.gap, pr.m_min, 40)
+                              P, pr.frac, pr.vc, pr.vs, pr.gap, pr.m_min, 40)
     rep = focus[(st.t_cnt[focus] > 0) & (st.t_cnt[focus] < 3)]
     rep = rep[np.argsort(-pr.P[rep], kind="stable")]
-    st.n, _ = repair_coverage(rep, *_repair_args(st), pr.w_st, pr.w_k0, pr.w_k1, pr.t_ptr, pr.t_win,
-                              pr.P, pr.frac, pr.vc, pr.vs, pr.gap, pr.m_min, 40)
+    # 必须观测目标自己的重复观测按正常价值算（放最后）：只会用它的另一次观测替换，不会让它失去 t 之后的观测
+    for part, value in ((rep[rep != must], P), (rep[rep == must], pr.P)):
+        st.n, _ = repair_coverage(part, *_repair_args(st), pr.w_st, pr.w_k0, pr.w_k1, pr.t_ptr, pr.t_win,
+                                  value, pr.frac, pr.vc, pr.vs, pr.gap, pr.m_min, 40)
     cw, cm = candidates(pr, [pr.m_min])
     v = pr.vs * pr.P[pr.w_tg[cw]] * pr.frac[cm]
     run_greedy(pr, cw, cm, v + pr.vc, np.full(len(cw), -1.0), best_fit=True, state=st, cutoff=0.0)   # 新覆盖
@@ -447,9 +455,9 @@ def replan(pb: Problem, sch: Schedule, ev: Event, mode: str = "minimal", iters: 
         focus = {int(x) for x in sch.target[interrupted | cancelled]} | {int(sch.target[i]) for i in gone}
         if ev.kind in ("priority", "must"):
             focus.add(ev.target)
-        _local_repair(pr, st, np.array(sorted(focus), np.int64), n_keep, snap)
+        _local_repair(pr, st, np.array(sorted(focus), np.int64), n_keep, snap, must=ev.target if must_ok else -1)
     elif ev.kind == "must":                 # 全面重排后强行插入挤掉的目标，再补一次
-        _local_repair(pr, st, np.zeros(0, np.int64), 0, {})
+        _local_repair(pr, st, np.zeros(0, np.int64), 0, {}, must=ev.target if must_ok else -1)
     tick("局部修补")
 
     # ---- 5. 按秒精修：冻结、固定和原样保留的任务不动，其余任务按秒重新分配起止
