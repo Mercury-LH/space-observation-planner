@@ -17,6 +17,7 @@ import numpy as np
 from . import lagrange
 from .greedy import State, candidates, run_greedy
 from .problem import Problem
+from .schedule import score_ref
 from .visibility import Windows
 
 DAY_H = 24
@@ -193,7 +194,7 @@ def realized(pb: Problem, status: Status) -> dict:
     cov = len(status.succ)
     score = sum(pb.P[t] * pb.frac[m] for t, obs in status.succ.items() for a, m in obs)
     return {"covered": cov, "score": float(score), "executed": status.executed, "failed": status.failed,
-            "combined": 0.5 * cov / pb.n_targets + 0.5 * score / float(pb.P.sum())}
+            "combined": pb.cfg.w_cov * cov / pb.n_targets + pb.cfg.w_score * score / score_ref(pb.cfg, pb.ds)}
 
 
 def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, threshold: float = 30.0,
