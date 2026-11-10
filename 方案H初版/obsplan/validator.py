@@ -25,7 +25,12 @@ def _sky(cache_dir: str):
     return load.timescale(builtin=True), load("de421.bsp")
 
 
-def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> dict:
+# Skyfield 算站点看太阳的视位置，每个时间点约占 22 KB 中间内存；最忙的站点有三四十万个任务秒，一次算完要 7–9 GB。
+# 按块计算（每块 2 万个时间点，约 0.45 GB），结果与一次算完逐位相同。
+SUN_CHUNK = 20000
+
+
+def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk: int = SUN_CHUNK) -> dict:
     from skyfield.api import EarthSatellite, wgs84
 
     ts, eph = _sky(str(Path(cfg.cache_dir)))
@@ -57,7 +62,8 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
         if len(idx) == 0:
             continue
         secs = np.concatenate([task_secs[i] for i in idx])
-        alt = (earth + sites[j]).at(times(secs)).observe(sun).apparent().altaz()[0].degrees
+        alt = np.concatenate([(earth + sites[j]).at(times(secs[c:c + chunk])).observe(sun).apparent().altaz()[0].degrees
+                              for c in range(0, len(secs), chunk)])
         pos = 0
         for i in idx:
             k = len(task_secs[i])
