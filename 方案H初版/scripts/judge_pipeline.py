@@ -63,17 +63,22 @@ def _set_threads(n: int) -> None:
         numba.set_num_threads(n)
 
 
-def _done(step: str, cid: str) -> bool:
-    ext = {"scenes": None, "teacher": ".json", "export": ".npz", "tune": ".json", "bench": ".json"}[step]
+def _done(step: str, cid: str, args=None) -> bool:
     if step == "scenes":
         d = scenes.scene_dir(cid)
         return (d / "spec.json").exists() and any((OUT / "cache" / cid).glob("windows_*.npz"))
+    if step == "tune":
+        return all(_tune_path(tag_of(m), cid).exists() for m in model_paths(args))
+    if step == "bench":
+        row = _load_row(OUT / "bench" / f"{cid}.json")
+        return bool(row) and _bench_done(row, args)
+    ext = {"teacher": ".json", "export": ".npz"}[step]
     return (OUT / step / f"{cid}{ext}").exists()
 
 
 def run_many(step: str, ids: list[str], args, extra: list[str]) -> None:
     """每个场景一个子进程，最多 --jobs 个同时跑。"""
-    todo = [c for c in ids if not _done(step, c)]
+    todo = [c for c in ids if not _done(step, c, args)]
     print(f"{step}：共 {len(ids)} 个场景，还要跑 {len(todo)} 个，同时 {args.jobs} 个", flush=True)
     logdir = OUT / "logs"
     logdir.mkdir(parents=True, exist_ok=True)
@@ -168,23 +173,47 @@ def _end_to_end(pb, mu, rule, rmp=None):
     return objective(pb, st)
 
 
-TUNE_GRID = [(tu, tc) for tu in (-1.0, 0.0, 1.0, 2.0) for tc in (0.0, 1.0, 2.0, 3.0) if tc >= tu]
+TUNE_GRID = [(tu, tc) for tu in (-1.0, 0.0, 1.0) for tc in (0.0, 1.0, 2.0) if tc >= tu]
+
+
+def model_paths(args) -> list[Path]:
+    """--model 可以是逗号分隔的多个模型文件（数据配比、网络大小的对比），基准和阈值对每个都做。"""
+    return [Path(m) for m in args.model.split(",")]
+
+
+def tag_of(path) -> str:
+    return Path(path).stem
+
+
+def _tune_path(tag: str, cid: str) -> Path:
+    return OUT / "tune" / tag / f"{cid}.json"
 
 
 def step_tune(cid: str, args) -> None:
     from obsplan import judge
     from obsplan.evolved import load_rule
+    todo = [m for m in model_paths(args) if not _tune_path(tag_of(m), cid).exists()]
+    if not todo:
+        return
     cfg, ds, pb, spec = scenes.load_scene(cid, workers=args.threads or 8)
-    model = judge.load_model(args.model)
     famou = load_rule()
     mu = _prices(pb)
-    row = {"catalog_id": cid, "manual": _end_to_end(pb, mu, None), "famou": _end_to_end(pb, mu, famou), "judge": {}}
-    for tu, tc in TUNE_GRID:
-        row["judge"][f"{tu},{tc}"] = _end_to_end(pb, mu, judge.make_rule(model, tu, tc, famou))
-        print(cid, tu, tc, row["judge"][f"{tu},{tc}"], flush=True)
-    d = OUT / "tune"
-    d.mkdir(parents=True, exist_ok=True)
-    (d / f"{cid}.json").write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+    base_path = _tune_path("_base", cid)
+    if base_path.exists():
+        base = json.loads(base_path.read_text(encoding="utf-8"))
+    else:
+        base = {"catalog_id": cid, "manual": _end_to_end(pb, mu, None), "famou": _end_to_end(pb, mu, famou)}
+        base_path.parent.mkdir(parents=True, exist_ok=True)
+        base_path.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
+    for path in todo:
+        model = judge.load_model(path)
+        row = {**base, "model": tag_of(path), "judge": {}}
+        for tu, tc in TUNE_GRID:
+            row["judge"][f"{tu},{tc}"] = _end_to_end(pb, mu, judge.make_rule(model, tu, tc, famou))
+            print(cid, tag_of(path), tu, tc, row["judge"][f"{tu},{tc}"], flush=True)
+        out = _tune_path(tag_of(path), cid)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
 
 
 def _metrics(cfg, ds, pb, sch, seconds, near=None) -> dict:
@@ -197,7 +226,9 @@ def _metrics(cfg, ds, pb, sch, seconds, near=None) -> dict:
             "violations": int(sum(len(x) for x in v.values()))}
 
 
-METHODS = ("H", "H+", "网络", "稳健", "稳健+网络")
+BASE_METHODS = ("H", "H+", "稳健")              # 与模型无关，每个场景只算一次
+MODEL_METHODS = ("网络", "稳健+网络")            # 每个模型各算一次，存在 row["models"][模型名]
+METHODS = BASE_METHODS + MODEL_METHODS
 
 
 def solve_method(pb, name: str, famou, judge_rule, fast: bool = False):
@@ -207,69 +238,104 @@ def solve_method(pb, name: str, famou, judge_rule, fast: bool = False):
                           portfolio=name.startswith("稳健"))
 
 
+def _entries(row: dict) -> list[dict]:
+    return [row[m] for m in BASE_METHODS if m in row] + [v for d in row.get("models", {}).values() for v in d.values()]
+
+
+def _bench_done(row: dict, args) -> bool:
+    return all(m in row for m in BASE_METHODS) and all(tag_of(p) in row.get("models", {}) for p in model_paths(args))
+
+
+def _load_row(path: Path) -> dict | None:
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
 def step_bench(cid: str, args) -> None:
+    path = OUT / "bench" / f"{cid}.json"
+    old = _load_row(path)
+    if old and _bench_done(old, args):
+        return
     cfg, ds, pb, spec = scenes.load_scene(cid, workers=args.threads or 8)
-    row = {"catalog_id": cid, "split": spec["split"], "group": spec["sampling_group"], "stress_type": spec["stress_type"],
-           "n_targets": int(ds.n_targets), "n_stations": int(ds.n_stations), "start": spec["start_utc"][:10]}
-    row = bench_problem(cfg, ds, pb, row, args)
-    d = OUT / "bench"
-    d.mkdir(parents=True, exist_ok=True)
-    (d / f"{cid}.json").write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+    row = old or {"catalog_id": cid, "split": spec["split"], "group": spec["sampling_group"],
+                  "stress_type": spec["stress_type"], "n_targets": int(ds.n_targets), "n_stations": int(ds.n_stations),
+                  "start": spec["start_utc"][:10]}
+    path.parent.mkdir(parents=True, exist_ok=True)
+    bench_problem(cfg, ds, pb, row, args, save=lambda r: path.write_text(json.dumps(r, ensure_ascii=False, indent=1),
+                                                                          encoding="utf-8"))
 
 
 def do_contest(args) -> None:
-    """赛题本身（网络只在合成场景上训练过，从没见过它）：同样的五种做法 + 上界 + Skyfield。"""
+    """赛题本身（网络只在合成场景上训练过，从没见过它）：同样的做法 + 上界 + Skyfield。"""
     from obsplan.config import Config
     from obsplan.data import load
     from obsplan.problem import Problem
     from obsplan.visibility import get_windows
     _set_threads(args.threads)
+    path = OUT / "contest.json"
+    old = _load_row(path)
+    if old and _bench_done(old, args):
+        print(json.dumps(old, ensure_ascii=False, indent=1))
+        return
     cfg = Config()
     ds = load(cfg)
     pb = Problem.build(cfg, ds, get_windows(cfg, ds))
-    row = bench_problem(cfg, ds, pb, {"catalog_id": "赛题", "split": "contest", "group": "contest", "stress_type": None,
-                                      "n_targets": int(ds.n_targets), "n_stations": int(ds.n_stations),
-                                      "start": cfg.start_utc[:10]}, args)
-    (OUT / "contest.json").write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+    row = old or {"catalog_id": "赛题", "split": "contest", "group": "contest", "stress_type": None,
+                  "n_targets": int(ds.n_targets), "n_stations": int(ds.n_stations), "start": cfg.start_utc[:10]}
+    bench_problem(cfg, ds, pb, row, args, save=lambda r: path.write_text(json.dumps(r, ensure_ascii=False, indent=1),
+                                                                          encoding="utf-8"))
     print(json.dumps(row, ensure_ascii=False, indent=1))
 
 
-def bench_problem(cfg, ds, pb, row: dict, args) -> dict:
+def bench_problem(cfg, ds, pb, row: dict, args, save=None) -> dict:
+    """补齐 row 里缺的做法（已有的不重算），每算完一种就存盘。同一份计划只做一次 Skyfield 校验。"""
     from obsplan import judge
     from obsplan.bounds import by_second_problem, flow_upper_bound
     from obsplan.evolved import load_rule
     from obsplan.refine import finish, near_windows
+    from obsplan.validator import validate
     famou = load_rule()
-    judge_rule = judge.make_rule(judge.load_model(args.model), famou=famou)
+    row.setdefault("models", {})
     row.update(observable=int((pb.max_obs > 0).sum()), windows=int(len(pb.w_st)),
                mode="fast" if args.fast else "quality")
-    plans = {}
-    for name in METHODS:
+    if "bound" not in row:
+        t = time.time()
+        ub = flow_upper_bound(by_second_problem(pb), verbose=False)["combined_ub"]
+        row["bound"] = {"combined_ub": round(float(ub), 6), "seconds": round(time.time() - t, 1), "scope": "按秒口径网络流"}
+    ub = row["bound"]["combined_ub"]
+    sky = {e["plan"]: e["skyfield"] for e in _entries(row) if "skyfield" in e and "plan" in e}
+
+    def run(name, judge_rule):
         t = time.time()
         sch, info = solve_method(pb, name, famou, judge_rule, args.fast)
         sch, rinfo = finish(pb, sch)
         near = near_windows(pb) if rinfo.get("insert", {}).get("added") else None
-        row[name] = _metrics(cfg, ds, pb, sch, time.time() - t, near)
+        m = _metrics(cfg, ds, pb, sch, time.time() - t, near)
         if "portfolio" in info:
-            row[name]["picked"] = info["portfolio"]["picked"]
-        plans[name] = sch
-        print(cid, name, row[name], flush=True)
-    t = time.time()
-    ub = flow_upper_bound(by_second_problem(pb), verbose=False)["combined_ub"]
-    row["bound"] = {"combined_ub": round(float(ub), 6), "seconds": round(time.time() - t, 1), "scope": "按秒口径网络流"}
-    for name in METHODS:
-        row[name]["gap_pct"] = round(100 * (ub - row[name]["combined"]) / ub, 4)
-    if args.skyfield:
-        from obsplan.validator import validate
-        seen = {}
-        for name in METHODS:
-            sch = plans[name]
-            key = hashlib.md5(np.concatenate([sch.station, sch.target, sch.start_s, sch.dur_s]).astype(np.int64)
-                              .tobytes()).hexdigest()
-            if key not in seen:
+            m["picked"] = info["portfolio"]["picked"]
+        m["gap_pct"] = round(100 * (ub - m["combined"]) / ub, 4)
+        m["plan"] = hashlib.md5(np.concatenate([sch.station, sch.target, sch.start_s, sch.dur_s]).astype(np.int64)
+                                .tobytes()).hexdigest()
+        if args.skyfield:
+            if m["plan"] not in sky:
                 v = validate(cfg, ds, sch)
-                seen[key] = {"legal": bool(v["legal"]), "violations": v["violations"]}
-            row[name]["skyfield"] = seen[key]
+                sky[m["plan"]] = {"legal": bool(v["legal"]), "violations": v["violations"]}
+            m["skyfield"] = sky[m["plan"]]
+        print(row["catalog_id"], name, m, flush=True)
+        return m
+
+    for name in BASE_METHODS:
+        if name not in row:
+            row[name] = run(name, None)
+            if save:
+                save(row)
+    for path in model_paths(args):
+        tag = tag_of(path)
+        if tag in row["models"]:
+            continue
+        jr = judge.make_rule(judge.load_model(path), famou=famou)
+        row["models"][tag] = {name: run(name, jr) for name in MODEL_METHODS}
+        if save:
+            save(row)
     return row
 
 
@@ -311,32 +377,35 @@ def do_train(ids: list[str], args) -> None:
     p, hist = judge.fit(S, y, w, Sv, yv, wv, hidden=hidden, epochs=args.epochs, lr=args.lr)
     meta = {"train_scenes": tr, "holdout_scenes": sorted(hold), "hidden": hidden, "epochs": args.epochs,
             "history": hist, "baselines": base, "train_rows": int(len(y)), "seconds": round(time.time() - t, 1),
-            "teacher": "精简长跑（obsplan/teacher.py）", "neg_keep": NEG_KEEP}
+            "teacher": "精简长跑（obsplan/teacher.py）", "neg_keep": NEG_KEEP,
+            "dataset": args.dataset, "n": args.n, "lr": args.lr}
     judge.save(Path(args.model), p, mean, std, 0.0, 0.0, meta)
     print(f"已保存 {args.model}（{sum(v.size for v in p.values())} 个参数，训练 {time.time() - t:.0f} 秒）", flush=True)
 
 
 def do_tune_pick(ids: list[str], args) -> None:
-    """汇总各验证场景的阈值结果，选相对伐谋规则平均最好的一组，写进模型文件。"""
+    """汇总各验证场景的阈值结果，选相对伐谋规则平均最好的一组，写进模型文件（每个模型各选各的）。"""
     from obsplan import judge
-    rows = [json.loads((OUT / "tune" / f"{c}.json").read_text(encoding="utf-8")) for c in ids
-            if (OUT / "tune" / f"{c}.json").exists()]
-    if not rows:
-        print("没有阈值结果")
-        return
-    keys = list(rows[0]["judge"])
-    rel = {k: np.mean([r["judge"][k] / r["famou"] - 1 for r in rows]) for k in keys}
-    rel_manual = np.mean([r["manual"] / r["famou"] - 1 for r in rows])
-    for k in keys:
-        print(f"  t_u,t_c = {k}：相对伐谋规则 {rel[k]:+.4%}")
-    print(f"  人工规则相对伐谋规则 {rel_manual:+.4%}（{len(rows)} 个验证场景）")
-    k = max(keys, key=lambda k: rel[k])
-    tu, tc = (float(x) for x in k.split(","))
-    model = judge.load_model(args.model)
-    meta = {**model["meta"], "tune": {"scenes": [r["catalog_id"] for r in rows], "rel_vs_famou": rel,
-                                     "manual_vs_famou": rel_manual, "picked": k}}
-    judge.save(Path(args.model), model["p"], model["mean"], model["std"], tu, tc, meta)
-    print(f"选 t_u={tu}、t_c={tc}，已写入 {args.model}")
+    for path in model_paths(args):
+        tag = tag_of(path)
+        rows = [json.loads(_tune_path(tag, c).read_text(encoding="utf-8")) for c in ids if _tune_path(tag, c).exists()]
+        if not rows:
+            print(f"{tag}：没有阈值结果")
+            continue
+        keys = list(rows[0]["judge"])
+        rel = {k: float(np.mean([r["judge"][k] / r["famou"] - 1 for r in rows])) for k in keys}
+        rel_manual = float(np.mean([r["manual"] / r["famou"] - 1 for r in rows]))
+        print(f"{tag}（{len(rows)} 个验证场景）：")
+        for k in keys:
+            print(f"  t_u,t_c = {k}：相对伐谋规则 {rel[k]:+.4%}")
+        print(f"  人工规则相对伐谋规则 {rel_manual:+.4%}")
+        k = max(keys, key=lambda k: rel[k])
+        tu, tc = (float(x) for x in k.split(","))
+        model = judge.load_model(path)
+        meta = {**model["meta"], "tune": {"scenes": [r["catalog_id"] for r in rows], "rel_vs_famou": rel,
+                                         "manual_vs_famou": rel_manual, "picked": k, "best_rel_vs_famou": rel[k]}}
+        judge.save(path, model["p"], model["mean"], model["std"], tu, tc, meta)
+        print(f"  选 t_u={tu}、t_c={tc}，已写入 {path}")
 
 
 def _bootstrap_ci(x: np.ndarray, n: int = 10000, seed: int = 20261111):
@@ -347,29 +416,45 @@ def _bootstrap_ci(x: np.ndarray, n: int = 10000, seed: int = 20261111):
     return float(np.percentile(means, 2.5)), float(np.percentile(means, 97.5))
 
 
+def _get(r: dict, m: str):
+    """做法名：H / H+ / 稳健，或 "网络·模型名" / "稳健+网络·模型名"。"""
+    if "·" not in m:
+        return r.get(m)
+    name, tag = m.split("·", 1)
+    return r.get("models", {}).get(tag, {}).get(name)
+
+
 def do_summary(args) -> None:
     rows = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((OUT / "bench").glob("*.json"))]
     if not rows:
         print("没有基准结果")
         return
+    tags = sorted({t for r in rows for t in r.get("models", {})})
+    methods = list(BASE_METHODS) + [f"{n}·{t}" for t in tags for n in MODEL_METHODS]
 
     def diff(sub, a, b):
-        d = np.array([r[a]["combined"] - r[b]["combined"] for r in sub])
+        sub = [r for r in sub if _get(r, a) and _get(r, b)]
+        if not sub:
+            return None
+        d = np.array([_get(r, a)["combined"] - _get(r, b)["combined"] for r in sub])
         lo, hi = _bootstrap_ci(d)
         return {"scenes": len(sub), "mean": round(float(d.mean()), 6), "ci95": [round(lo, 6), round(hi, 6)],
                 "median": round(float(np.median(d)), 6), "min": round(float(d.min()), 6),
                 "better": int((d > 1e-9).sum()), "worse": int((d < -1e-9).sum())}
 
     def per(sub, m):
-        g = np.array([r[m]["gap_pct"] for r in sub])
-        return {"gap_pct_median": round(float(np.median(g)), 3), "gap_pct_mean": round(float(g.mean()), 3),
+        e = [_get(r, m) for r in sub if _get(r, m)]
+        if not e:
+            return None
+        g = np.array([x["gap_pct"] for x in e])
+        return {"scenes": len(e), "gap_pct_median": round(float(np.median(g)), 3), "gap_pct_mean": round(float(g.mean()), 3),
                 "gap_pct_max": round(float(g.max()), 3),
-                "seconds_mean": round(float(np.mean([r[m]["seconds"] for r in sub])), 1),
-                "violations": int(sum(r[m]["violations"] for r in sub)),
-                "skyfield_illegal": int(sum(1 for r in sub if not r[m].get("skyfield", {}).get("legal", True)))}
+                "seconds_mean": round(float(np.mean([x["seconds"] for x in e])), 1),
+                "violations": int(sum(x["violations"] for x in e)),
+                "skyfield_illegal": int(sum(1 for x in e if not x.get("skyfield", {}).get("legal", True)))}
 
-    groups = {"全部": rows, "主体": [r for r in rows if r["group"] == "core"],
-              "压力": [r for r in rows if r["group"] == "stress"],
+    groups = {"全部": rows, "v0.2 主体": [r for r in rows if r["group"] == "core"],
+              "v0.2 压力": [r for r in rows if r["group"] == "stress"],
               "v0.3 像赛题": [r for r in rows if r["group"] == "v0.3"]}
     for k in sorted({r["stress_type"] for r in rows if r["stress_type"]}):
         groups[f"压力:{k}"] = [r for r in rows if r["stress_type"] == k]
@@ -377,12 +462,15 @@ def do_summary(args) -> None:
     for g, sub in groups.items():
         if not sub:
             continue
-        summary[g] = {"methods": {m: per(sub, m) for m in METHODS},
-                      "网络 相对 H+": diff(sub, "网络", "H+"), "网络 相对 H": diff(sub, "网络", "H"),
-                      "稳健+网络 相对 稳健": diff(sub, "稳健+网络", "稳健")}
+        summary[g] = {"methods": {m: per(sub, m) for m in methods}}
+        for t in tags:
+            summary[g][t] = {"网络 相对 H+": diff(sub, f"网络·{t}", "H+"), "网络 相对 H": diff(sub, f"网络·{t}", "H"),
+                             "稳健+网络 相对 稳健": diff(sub, f"稳健+网络·{t}", "稳健")}
+    contest = _load_row(OUT / "contest.json")
     res = {"说明": "测试场景从未参与训练、阈值选择或任何调参；综合指标按各场景自己的目标数归一化；"
-                   "gap_pct = 离按秒口径网络流上界的差距（%），上界对任何合法计划成立。",
-           "rows": rows, "summary": summary}
+                   "gap_pct = 离按秒口径网络流上界的差距（%），上界对任何合法计划成立。"
+                   "模型名对应 obsplan/models/ 下的文件（训练数据配比、网络大小见各模型 meta）。",
+           "models": tags, "rows": rows, "summary": summary, "contest": contest}
     RESULT.write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(summary.get("全部", {}), ensure_ascii=False, indent=1))
 
@@ -427,7 +515,7 @@ def main() -> int:
     fn = {"scenes": step_scenes, "teacher": step_teacher, "export": step_export, "tune": step_tune,
           "bench": step_bench}[args.step]
     for cid in ids:
-        if _done(args.step, cid) and len(ids) > 1:
+        if _done(args.step, cid, args) and len(ids) > 1:
             continue
         fn(cid, args)
     return 0
