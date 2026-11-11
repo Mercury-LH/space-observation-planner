@@ -260,7 +260,9 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     与伐谋评测的做法相同；None 时只用人工规则。
     portfolio：稳健模式（需要 rule）。人工规则和伐谋规则各恢复一份计划，两份的局部搜索在两个线程里同时做
     （局部搜索是单线程的 numba 代码，已放开 GIL），取目标值高的一份；一样高时取伐谋规则的。
-    伐谋规则是在赛题这一份数据上演化的，换了场景不保证更好，这样做在任何场景上都不会比人工规则差。"""
+    伐谋规则是在赛题这一份数据上演化的，换了场景不保证更好，这样做在任何场景上都不会比人工规则差。
+    rule 也可以是几条规则的列表（只用于 portfolio）：人工规则加列表里每条规则各恢复一份，局部搜索并行，取目标值最高的；
+    一样高时按列表顺序优先，人工规则最后。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -319,9 +321,13 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     lb_manual = best_lb
     manual_state = best_state
     use_rule = rule is not None and not use_q and vc_target is None
+    rules = list(rule) if isinstance(rule, (list, tuple)) else [rule]
+    if len(rules) > 1 and not portfolio:
+        raise ValueError("多条放置规则只用于稳健模式（portfolio=True）")
     if use_rule:
         # 与伐谋评测一致：用最好一次可行解对应的价格，按演化出的放置规则重新恢复一次，再做局部搜索
-        best_state = recover(pb, best_mu, cand, init_state=init_state, rule=rule)
+        rule_states = [recover(pb, best_mu, cand, init_state=init_state, rule=r) for r in rules]
+        best_state = rule_states[0]
         best_lb = objective(pb, best_state)
     ls_stats, pf = {}, None
     if progress is not None:
@@ -329,16 +335,17 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     rmp = 3.0 if fast else None
     if local_search and portfolio and use_rule:
         from concurrent.futures import ThreadPoolExecutor
-        with ThreadPoolExecutor(2) as ex:
-            f_rule = ex.submit(improve, pb, best_state, repeat_min_priority=rmp)
-            f_manual = ex.submit(improve, pb, manual_state, repeat_min_priority=rmp)
-            stats = {"rule": f_rule.result(), "manual": f_manual.result()}
-        obj = {"rule": objective(pb, best_state), "manual": objective(pb, manual_state)}
-        picked = "rule" if obj["rule"] >= obj["manual"] else "manual"
+        names = ["rule"] if len(rules) == 1 else [f"rule{i}" for i in range(len(rules))]
+        arms = dict(zip(names, rule_states))
+        arms["manual"] = manual_state
+        with ThreadPoolExecutor(len(arms)) as ex:
+            futs = {k: ex.submit(improve, pb, s, repeat_min_priority=rmp) for k, s in arms.items()}
+            stats = {k: f.result() for k, f in futs.items()}
+        obj = {k: objective(pb, s) for k, s in arms.items()}
+        picked = max(arms, key=lambda k: (obj[k], -list(arms).index(k)))     # 一样高时取靠前的（人工规则最后）
         pf = {"objective": obj, "picked": picked, "ls": stats}
         ls_stats = stats[picked]
-        if picked == "manual":
-            best_state = manual_state
+        best_state = arms[picked]
     elif local_search:
         ls_stats = improve(pb, best_state, repeat_min_priority=rmp)
     sch = best_state.schedule(pb, name, time.time() - t0)
