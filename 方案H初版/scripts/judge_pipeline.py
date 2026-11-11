@@ -471,6 +471,7 @@ def do_summary(args) -> None:
                    "gap_pct = 离按秒口径网络流上界的差距（%），上界对任何合法计划成立。"
                    "模型名对应 obsplan/models/ 下的文件（训练数据配比、网络大小见各模型 meta）。",
            "models": tags, "rows": rows, "summary": summary, "contest": contest}
+    RESULT.parent.mkdir(parents=True, exist_ok=True)
     RESULT.write_text(json.dumps(res, ensure_ascii=False, indent=1), encoding="utf-8")
     print(json.dumps(summary.get("全部", {}), ensure_ascii=False, indent=1))
 
@@ -517,8 +518,55 @@ def main() -> int:
     for cid in ids:
         if _done(args.step, cid, args) and len(ids) > 1:
             continue
-        fn(cid, args)
+        if args.step != "teacher":
+            fn(cid, args)
+            continue
+        if not _teacher_lock(cid):
+            print(f"{cid}：已由另一个进程完成或正在计算，跳过", flush=True)
+            continue
+        try:
+            fn(cid, args)
+        finally:
+            (OUT / "teacher" / f"{cid}.lock").unlink(missing_ok=True)
     return 0
+
+
+def _teacher_lock(cid: str) -> bool:
+    """几个调度进程同时跑老师时，用锁文件保证同一个场景只算一遍。返回 True 表示由本进程计算。
+    别的进程正在算这个场景时：默认等它算完（调度进程结束时所有场景都已完成，后面的导出步骤才不会缺数据）；
+    环境变量 JUDGE_LOCK_MODE=skip 时直接跳过（给后加的辅助调度进程用）。持锁进程已经不在了就接手。"""
+    d = OUT / "teacher"
+    d.mkdir(parents=True, exist_ok=True)
+    lock = d / f"{cid}.lock"
+    skip = os.environ.get("JUDGE_LOCK_MODE") == "skip"
+    while True:
+        if _done("teacher", cid):
+            return False
+        try:
+            fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            os.write(fd, str(os.getpid()).encode())
+            os.close(fd)
+            return True
+        except FileExistsError:
+            pass
+        try:
+            pid = int(lock.read_text() or 0)
+        except (FileNotFoundError, ValueError):
+            continue
+        alive = True
+        if pid > 0:
+            try:
+                os.kill(pid, 0)
+            except ProcessLookupError:
+                alive = False
+            except PermissionError:
+                pass
+        if not alive:
+            lock.unlink(missing_ok=True)
+            continue
+        if skip:
+            return False
+        time.sleep(30)
 
 
 if __name__ == "__main__":
