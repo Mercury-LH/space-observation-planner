@@ -52,7 +52,7 @@ def cfg_key(cfg: Config) -> str:
 
 
 def problem_for(run: Run):
-    cfg = Config(**run.cfg)
+    cfg = Config.from_saved(run.cfg)
     cfg_, ds, pb, orbit, _ = base(cfg_key(cfg))
     if run.subset:
         pb = subset_problem(pb, run.subset["target_frac"], run.subset["stations"], run.subset.get("seed", 0))
