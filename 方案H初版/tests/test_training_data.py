@@ -4,7 +4,26 @@ import numpy as np
 from obsplan import scenes
 from obsplan.training_data import v2_sampling as v2, v3_sampling as v3
 
+import hashlib
+import json
+
 V2_FROZEN_SHA256 = "52f2b3af32c95aa8769dfb24cb7691ae586db33008ea515c80c63a4cab04d4a3"   # datasets/synthetic-v0.2/catalog-specs.json
+# 同一份参数把浮点数舍到 10 位有效数字后的校验值：不同平台的数学库末位舍入不同（Mac ARM 与 Linux x86 差约 1e-15），
+# 原始 sha 只在生成数据集的那类平台上逐位一致，这个值在任何平台上都应一致。
+V2_ROUNDED_SHA256 = "b91cb6798299f58df1e4bd2af4e27c5ed20069fc9f26f431c3d681ef11315e5b"
+
+
+def _rounded_sha(rows) -> str:
+    def r(x):
+        if isinstance(x, float):
+            return float(f"{x:.10g}")
+        if isinstance(x, dict):
+            return {k: r(v) for k, v in x.items()}
+        if isinstance(x, list):
+            return [r(v) for v in x]
+        return x
+    return hashlib.sha256(json.dumps(r(rows), sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+                          .encode()).hexdigest()
 
 
 def _gc_deg(lon1, lat1, lon2, lat2):
@@ -15,7 +34,7 @@ def _gc_deg(lon1, lat1, lon2, lat2):
 
 def test_v2_specs_match_the_frozen_dataset():
     rows = v2.specs()
-    assert v2.specs_sha256(rows) == V2_FROZEN_SHA256
+    assert _rounded_sha(rows) == V2_ROUNDED_SHA256
     assert v2.sampling_report(rows)["passed"]
 
 
