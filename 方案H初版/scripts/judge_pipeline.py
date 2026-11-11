@@ -2,6 +2,8 @@
 
     # 场景（侯治民的生成器重建输入 + 我们自己算窗口）
     uv run python scripts/judge_pipeline.py scenes --split train --n 120 --jobs 8
+    # --dataset：v2 = 他的 synthetic-v0.2；v3 = 我们补的"像赛题"场景（低轨更低、有高纬度站、中轨少、更挤）
+    uv run python scripts/judge_pipeline.py scenes --dataset v2,v3 --split train --n 60,60 --jobs 8
     # 老师：每个训练场景 30 分钟精简长跑
     uv run python scripts/judge_pipeline.py teacher --split train --n 120 --minutes 30 --jobs 8 --threads 8
     # 特征与标签（H 收敛价格下每个候选的 20 个特征；标签 = 老师计划是否选中）
@@ -46,7 +48,13 @@ NEG_KEEP = 0.25           # 负例抽样比例（正例全留），训练时负�
 def ids_of(args) -> list[str]:
     if args.ids:
         return args.ids.split(",")
-    return scenes.select(args.split, args.n)
+    sets = args.dataset.split(",")
+    ns = [None] * len(sets) if args.n is None else [int(x) for x in str(args.n).split(",")]
+    if len(ns) == 1 and len(sets) > 1:
+        ns = ns * len(sets)
+    if len(ns) != len(sets):
+        raise SystemExit("--n 的个数要和 --dataset 一致，例如 --dataset v2,v3 --n 60,60")
+    return [c for d, n in zip(sets, ns) for c in scenes.select(args.split, n, dataset=d)]
 
 
 def _set_threads(n: int) -> None:
@@ -361,7 +369,8 @@ def do_summary(args) -> None:
                 "skyfield_illegal": int(sum(1 for r in sub if not r[m].get("skyfield", {}).get("legal", True)))}
 
     groups = {"全部": rows, "主体": [r for r in rows if r["group"] == "core"],
-              "压力": [r for r in rows if r["group"] != "core"]}
+              "压力": [r for r in rows if r["group"] == "stress"],
+              "v0.3 像赛题": [r for r in rows if r["group"] == "v0.3"]}
     for k in sorted({r["stress_type"] for r in rows if r["stress_type"]}):
         groups[f"压力:{k}"] = [r for r in rows if r["stress_type"] == k]
     summary = {}
@@ -382,7 +391,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("step", choices=["scenes", "teacher", "export", "train", "tune", "pick", "bench", "contest", "summary"])
     ap.add_argument("--split", default="train", choices=["train", "validation", "test"])
-    ap.add_argument("--n", type=int, default=None, help="均匀抽几个场景（默认全部）")
+    ap.add_argument("--dataset", default="v2", help="v2（侯治民的 synthetic-v0.2）、v3（像赛题的补充）或 v2,v3")
+    ap.add_argument("--n", default=None, help="均匀抽几个场景（默认全部）；多个数据集时逗号分隔，如 60,60")
     ap.add_argument("--ids", help="逗号分隔的场景编号（优先于 --split/--n）")
     ap.add_argument("--jobs", type=int, default=1)
     ap.add_argument("--threads", type=int, default=0)

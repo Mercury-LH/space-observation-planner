@@ -1,13 +1,15 @@
-"""合成数据（synthetic-v0.2）审查：和赛题像不像、数据本身对不对、训出来的网络能不能迁移到赛题。
+"""合成数据（synthetic-v0.2 与我们补的 v0.3）审查：和赛题像不像、数据本身对不对、训出来的网络能不能迁移到赛题。
 
     uv run python scripts/judge_data_audit.py                  # A/B/C 三部分统计
     uv run python scripts/judge_data_audit.py --transfer M.npz # 加 D：模型在赛题上的迁移检验
 
-A. 600 个场景的设计参数（catalog-specs.json）与赛题对比：目标数、站数、轨道构成、低轨高度与倾角、优先级、月份、站点纬度。
-B. 已生成并算过窗口的场景，实际几何统计：低轨高度分布、每颗目标的窗口数、窗口长度、黑夜时长、可观测比例、拥挤度。
+A. 场景设计参数（v0.2 的 600 个、v0.3 的 180 个，分开统计）与赛题对比：目标数、站数、轨道构成、低轨高度与倾角、优先级、月份、站点纬度。
+B. 已生成并算过窗口的场景，实际几何统计（按 v0.2 / v0.3 分开汇总）：低轨高度分布、每颗目标的窗口数、窗口长度、黑夜时长、可观测比例、拥挤度。
 C. 数据本身的检查：输入问题、SGP4 失败、重复编号、TLE 历元与规划期的距离。
+G. 特征覆盖（--features N）：每套数据各取 N 个已算窗口的场景，用 H 价格算全部候选的 24 维输入，
+   看赛题的候选有多少落在该数据集 1%～99% 分位之外（越少越好，说明网络在赛题上不是"外推"）。
 D. 迁移：赛题上用 H 价格算特征、长跑最好计划当标签，看模型和人工 / 伐谋规则的 AUC；各输入特征在赛题上相对训练分布的偏移。
-输出 results/judge_data_audit.json。
+输出 results/judge_data_audit.json（文件里已有、这次没重算的部分保留）。
 """
 from __future__ import annotations
 
@@ -114,13 +116,9 @@ def pct_rank(values, x) -> float:
     return float((v < x).mean() * 100 + (v == x).mean() * 50) if len(v) else float("nan")
 
 
-def part_a(contest_orbit: dict, ds_c) -> dict:
-    sp = scenes.specs()
-    from importlib.util import module_from_spec, spec_from_file_location
-    m = spec_from_file_location("hou_v2", scenes.generator_dir() / "v2_sampling.py")
-    mod = module_from_spec(m)
-    m.loader.exec_module(mod)
-    anchors = mod.STATION_ANCHORS
+def part_a(contest_orbit: dict, ds_c, dataset: str) -> dict:
+    from obsplan.training_data.v2_sampling import STATION_ANCHORS as anchors
+    sp = scenes.specs(dataset)
     rows = []
     for s in sp:
         fam = s["family_probabilities"]
@@ -128,14 +126,18 @@ def part_a(contest_orbit: dict, ds_c) -> dict:
         rows.append({"n_targets": s["n_targets"], "n_stations": s["n_stations"], "leo_p": fam[0], "meo_p": fam[1],
                      "geo_p": fam[2], "leo_alt_mean": s["sampling_latents"]["leo_altitude_mean_km"],
                      "leo_inc_mean": s["sampling_latents"]["leo_inclination_mean_deg"],
+                     "n_high_lat_stations": int((lat >= 46).sum()),
                      "high_p": s["priority_probabilities"][2], "month": int(s["start_utc"][5:7]),
                      "abs_lat_max": float(lat.max())})
     c = {"n_targets": ds_c.n_targets, "n_stations": ds_c.n_stations, "leo_p": contest_orbit["leo_frac"],
          "meo_p": contest_orbit["meo_frac"], "geo_p": contest_orbit["geo_frac"],
          "leo_alt_mean": None, "leo_inc_mean": contest_orbit["leo_inc_mean"],
+         "n_high_lat_stations": int((np.abs(ds_c.st_lat) >= 46).sum()),
          "high_p": float((ds_c.priority == ds_c.priority.max()).mean()), "month": 8,
          "abs_lat_max": float(np.abs(ds_c.st_lat).max())}
-    out = {"anchor_abs_lat_range": [float(np.abs(anchors[:, 1]).min()), float(np.abs(anchors[:, 1]).max())],
+    used = np.unique(np.concatenate([s["station_anchor_ids"] for s in sp]))
+    out = {"scenes": len(sp), "anchor_abs_lat_range": [float(np.abs(anchors[used, 1]).min()),
+                                                       float(np.abs(anchors[used, 1]).max())],
            "contest_station_abs_lat": sorted(round(float(x), 1) for x in np.abs(ds_c.st_lat))}
     for k in rows[0]:
         v = np.array([r[k] for r in rows], float)
@@ -144,6 +146,20 @@ def part_a(contest_orbit: dict, ds_c) -> dict:
                   "synthetic_max": float(v.max()), "contest": c[k],
                   "contest_pct_rank": pct_rank(v, c[k]) if c[k] is not None else None}
     return out
+
+
+def b_summary(rows: list, contest: dict) -> dict:
+    summ = {}
+    for grp, key in (("orbit", "leo_alt_median"), ("orbit", "leo_below_550"), ("orbit", "meo_frac"), ("orbit", "geo_frac"),
+                     ("geometry", "windows_per_target"), ("geometry", "window_cells_median"),
+                     ("geometry", "dark_hours_per_station"), ("geometry", "dark_hours_min_station"),
+                     ("geometry", "observable_frac"), ("geometry", "load_one_obs"), ("geometry", "load_three_obs"),
+                     ("geometry", "abs_lat_max")):
+        v = [r[grp][key] for r in rows if r[grp][key] is not None]
+        cv = contest[grp][key]
+        summ[key] = {"synthetic_min": float(np.min(v)), "synthetic_median": float(np.median(v)),
+                     "synthetic_max": float(np.max(v)), "contest": cv, "contest_pct_rank": pct_rank(v, cv)}
+    return {"scenes": len(rows), **summ}
 
 
 def part_d(model_path: str, pb_c, bench_ids: list) -> dict:
@@ -180,32 +196,71 @@ def part_d(model_path: str, pb_c, bench_ids: list) -> dict:
     return res
 
 
+def _h_inputs(pb) -> np.ndarray:
+    from obsplan import judge, lagrange
+    from obsplan.famou_h_eval import feature_rows
+    from obsplan.greedy import candidates
+    _, info = lagrange.solve(pb, iters=300, local_search=False, verbose=False)
+    cw, cm = candidates(pb)
+    return judge.inputs(feature_rows(pb, info["mu"], cw, cm))
+
+
+def part_g(pb_c, n: int, split: str | None = None) -> dict:
+    from obsplan import judge
+    Zc = _h_inputs(pb_c)
+    by = {}
+    for cid, d, c in cached_scenes():
+        if split and json.loads((d / "spec.json").read_text(encoding="utf-8"))["split"] != split:
+            continue
+        by.setdefault(cid.split("-")[0], []).append((cid, d, c))
+    rng = np.random.default_rng(0)
+    out = {"split": split or "全部", "scenes": {}, "contest_outside_p1_p99": {}}
+    for dname, items in sorted(by.items()):
+        pick = [items[i] for i in np.linspace(0, len(items) - 1, min(n, len(items))).round().astype(int)]
+        Zs = []
+        for cid, d, c in pick:
+            _, _, pb, _ = load_cached(cid, d, c)
+            Z = _h_inputs(pb)
+            Zs.append(Z[rng.random(len(Z)) < min(1.0, 400000 / len(Z))])
+            print("特征", cid, len(Z), flush=True)
+        Z = np.concatenate(Zs)
+        out["scenes"][dname] = [x[0] for x in pick]
+        row = {}
+        for j, name in enumerate(judge.INPUTS):
+            lo, hi = np.percentile(Z[:, j], [1, 99])
+            row[name] = round(float(((Zc[:, j] < lo) | (Zc[:, j] > hi)).mean()), 4)
+        row["任一特征超出"] = round(float(np.mean(np.any([(Zc[:, j] < np.percentile(Z[:, j], 1)) |
+                                                  (Zc[:, j] > np.percentile(Z[:, j], 99))
+                                                  for j in range(Z.shape[1])], axis=0))), 4)
+        out["contest_outside_p1_p99"][dname] = row
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--transfer", help="模型文件；给定时做 D 部分（赛题上的迁移检验）")
+    ap.add_argument("--features", type=int, default=0, help="G 部分：每套数据取几个场景比较特征覆盖")
+    ap.add_argument("--features-split", default=None, help="G 部分只用这个划分的场景（如 train：网络真正学的数据）")
     args = ap.parse_args()
     cfg_c, ds_c, pb_c = contest()
     oc = orbit_stats(ds_c)
     res = {"contest": {"orbit": oc, "geometry": geometry_stats(cfg_c, ds_c, pb_c), "checks": data_checks(cfg_c, ds_c, pb_c)}}
-    res["A_design"] = part_a(oc, ds_c)
+    old = json.loads(RESULT.read_text(encoding="utf-8")) if RESULT.exists() else {}
+    res.update({k: v for k, v in old.items() if k not in res})
+    res["A_design"] = {d: part_a(oc, ds_c, d) for d in scenes.DATASETS}
     rows = []
     for cid, d, c in cached_scenes():
         cfg, ds, pb, spec = load_cached(cid, d, c)
-        rows.append({"catalog_id": cid, "split": spec["split"], "stress_type": spec["stress_type"],
+        rows.append({"catalog_id": cid, "dataset": cid.split("-")[0], "split": spec["split"],
+                     "stress_type": spec["stress_type"],
                      "orbit": orbit_stats(ds), "geometry": geometry_stats(cfg, ds, pb), "checks": data_checks(cfg, ds, pb)})
         print(cid, rows[-1]["geometry"]["load_one_obs"], rows[-1]["orbit"]["leo_alt_median"], flush=True)
     res["B_scenes"] = rows
-    summ = {}
-    for grp, key in (("orbit", "leo_alt_median"), ("orbit", "leo_below_550"), ("orbit", "geo_frac"),
-                     ("geometry", "windows_per_target"), ("geometry", "window_cells_median"),
-                     ("geometry", "dark_hours_per_station"), ("geometry", "dark_hours_min_station"),
-                     ("geometry", "observable_frac"), ("geometry", "load_one_obs"), ("geometry", "load_three_obs"),
-                     ("geometry", "abs_lat_max")):
-        v = [r[grp][key] for r in rows if r[grp][key] is not None]
-        cv = res["contest"][grp][key]
-        summ[key] = {"synthetic_min": float(np.min(v)), "synthetic_median": float(np.median(v)),
-                     "synthetic_max": float(np.max(v)), "contest": cv, "contest_pct_rank": pct_rank(v, cv)}
-    res["B_summary"] = {"scenes": len(rows), **summ}
+    res["B_summary"] = {}
+    for dname in scenes.DATASETS:
+        sub = [r for r in rows if r["dataset"] == dname]
+        if sub:
+            res["B_summary"][dname] = b_summary(sub, res["contest"])
     res["C_checks"] = {"scenes_with_issues": sum(1 for r in rows if r["checks"]["issues"]),
                        "sgp4_failed_total": sum(r["checks"]["sgp4_failed"] for r in rows),
                        "duplicate_satnum_total": sum(r["checks"]["duplicate_satnum"] for r in rows),
@@ -214,8 +269,12 @@ def main() -> int:
                        "priority_value_sets": sorted({tuple(r["checks"]["priority_values"]) for r in rows})}
     if args.transfer:
         res["D_transfer"] = part_d(args.transfer, pb_c, [])
+    if args.features:
+        key = "G_feature_coverage" + (f"_{args.features_split}" if args.features_split else "")
+        res[key] = part_g(pb_c, args.features, args.features_split)
+        print(json.dumps(res[key]["contest_outside_p1_p99"], ensure_ascii=False, indent=1))
     RESULT.write_text(json.dumps(res, ensure_ascii=False, indent=1, default=float), encoding="utf-8")
-    print(json.dumps({k: res[k] for k in ("A_design", "B_summary", "C_checks")}, ensure_ascii=False, indent=1))
+    print(json.dumps({k: res[k] for k in ("B_summary", "C_checks")}, ensure_ascii=False, indent=1))
     if "D_transfer" in res:
         d = res["D_transfer"]
         print(json.dumps(d["auc"], ensure_ascii=False, indent=1))
