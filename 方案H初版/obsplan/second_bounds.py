@@ -44,3 +44,15 @@ def all_bounds(pb: Problem, path: Path | None = None, workers: int = 4, chunk_ta
         Path(path).parent.mkdir(parents=True, exist_ok=True)
         np.savez_compressed(path, L=L, R=R)
     return L, R
+
+
+def short_windows(pb: Problem) -> dict:
+    """网格上只有 4 个采样点（90 秒）、按秒探查后够 120 秒的短窗口：{"station", "target", "k0", "L", "R"}。
+    这些窗口不在 pb 的窗口表里；用了它们的计划做结构检查时要把它们作为 extra_windows 传给 structural_violations。"""
+    from .bounds import _short_windows
+    st, tg, k0, k1 = (np.asarray(x).astype(np.int64) for x in _short_windows(pb))
+    keep = k1 - k0 == pb.m_min - 1
+    st, tg, k0, k1 = st[keep], tg[keep], k0[keep], k1[keep]
+    L, R = probe_bounds(pb.cfg, pb.ds, st, tg, k0, k1)
+    ok = R - L >= pb.cfg.obs_min_s
+    return {"station": st[ok], "target": tg[ok], "k0": k0[ok], "L": L[ok], "R": R[ok]}
