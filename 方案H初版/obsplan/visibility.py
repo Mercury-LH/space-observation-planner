@@ -8,9 +8,14 @@
 """
 from __future__ import annotations
 
+import multiprocessing
 import os
+import sys
+import threading
 import time
+import types
 from concurrent.futures import ProcessPoolExecutor
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,6 +27,7 @@ from .data import Dataset
 
 WGS84_A = 6378.137
 WGS84_F = 1 / 298.257223563
+_MAIN_LOCK = threading.Lock()
 
 
 def julian(cfg: Config, seconds: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -116,11 +122,9 @@ def _runs(edge_ok: np.ndarray, min_len: int):
 
 def moon_ecef(cfg: Config, seconds: np.ndarray) -> np.ndarray:
     """(T, 3) 月亮在地固系（ITRS）中的地心位置，km。"""
-    from skyfield.api import Loader
     from skyfield.framelib import itrs
-    load = Loader(cfg.cache_dir, verbose=False)
-    ts = load.timescale(builtin=True)
-    eph = load("de421.bsp")
+    from .ephemeris import load_de421
+    ts, eph = load_de421(cfg.cache_dir)
     s = cfg.start_dt
     t = ts.utc(s.year, s.month, s.day, s.hour, s.minute, s.second + seconds)
     return eph["earth"].at(t).observe(eph["moon"]).frame_xyz(itrs).km.T
@@ -219,6 +223,60 @@ def _chunk_job(args):
     return st, tg, a, b, failed
 
 
+def _physical_memory() -> int | None:
+    """物理内存字节数（Linux 容器里取 cgroup 限额）；拿不到时返回 None。"""
+    try:
+        if sys.platform == "win32":
+            import ctypes
+
+            class MemoryStatus(ctypes.Structure):
+                _fields_ = [("length", ctypes.c_ulong), ("load", ctypes.c_ulong)] + [
+                    (k, ctypes.c_ulonglong) for k in ("total", "avail", "page_total", "page_avail",
+                                                      "virtual_total", "virtual_avail", "extended_avail")]
+
+            ms = MemoryStatus()
+            ms.length = ctypes.sizeof(ms)
+            return ms.total if ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(ms)) else None
+        total = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (AttributeError, OSError, ValueError):
+        return None
+    for limit in ("/sys/fs/cgroup/memory.max", "/sys/fs/cgroup/memory/memory.limit_in_bytes"):
+        try:
+            total = min(total, int(Path(limit).read_text()))
+        except (OSError, ValueError):              # 没有这个文件，或写的是 max（不限）
+            pass
+    return total
+
+
+def _default_workers() -> int:
+    """留两个核给系统；每个进程算一块（200 颗目标）峰值约 0.7 GB，合计不超过内存的一半；
+    Windows 的进程池最多 61 个进程。进程数只影响快慢，不影响结果。"""
+    n = max(1, (os.cpu_count() or 2) - 2)
+    mem = _physical_memory()
+    if mem:
+        n = min(n, max(1, int(mem * 0.5 / 0.7e9)))
+    return min(n, 61) if sys.platform == "win32" else n
+
+
+@contextmanager
+def _spawn_without_main():
+    """启动子进程期间临时换掉 __main__，子进程就不会重新执行调用方的主脚本。
+
+    spawn 方式（Windows、macOS 的默认方式，这里各平台统一使用）启动的子进程会按文件路径重新执行
+    没有 __spec__ 的主模块。Streamlit 把界面脚本装成这样的 __main__，于是每个子进程都会把界面
+    再跑一遍，进程池随之崩溃（BrokenProcessPool）。子进程只需要本模块的 _chunk_job。
+    加锁是因为界面的多个会话可能同时算窗口。
+    """
+    with _MAIN_LOCK:
+        main, stub = sys.modules["__main__"], types.ModuleType("__main__")
+        sys.modules["__main__"] = stub
+        try:
+            yield
+        finally:
+            if sys.modules.get("__main__") is stub:
+                sys.modules["__main__"] = main
+
+
 def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbose=True,
                     keep_short: bool = False) -> Windows:
     """keep_short：同一遍计算里顺带保留比最短观测少一格的窗口（按秒精修的"按秒才可见"候选），
@@ -242,9 +300,11 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
     chunk = 200
     jobs = [(cfg, list(zip(ds.line1[i:i + chunk], ds.line2[i:i + chunk])), i, st_pos, st_up, dark, moon)
             for i in range(0, ds.n_targets, chunk)]
-    workers = workers or max(1, (os.cpu_count() or 2) - 2)
-    with ProcessPoolExecutor(workers) as ex:
-        res = list(ex.map(_chunk_job, jobs))
+    workers = workers or _default_workers()
+    with ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn")) as ex:
+        with _spawn_without_main():               # 子进程在提交任务时启动
+            res = ex.map(_chunk_job, jobs)
+        res = list(res)
     st = np.concatenate([r[0] for r in res])
     tg = np.concatenate([r[1] for r in res])
     k0 = np.concatenate([r[2] for r in res])

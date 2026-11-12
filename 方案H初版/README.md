@@ -5,6 +5,64 @@
 1. **新算法 H（价格协调）**：给每个站点每 30 秒时间格定价，每颗目标按价格独立挑选最划算的观测，被争抢的时段自动涨价，迭代后用"价值 − 价格"引导放置，再做局部搜索。
 2. **统一对比平台**：在同一份窗口、同一套规则、同一个 Skyfield 独立校验器下，重新实现并对比规划方案中的 A–G，用于回答"哪种方案更好"。
 
+## 评委运行指南
+
+Windows、macOS（Apple 芯片）、Linux 都能直接运行，也可以用 Docker。命令都在 `方案H初版/` 目录下执行；赛题数据（仓库根目录的 `data/数据.zip`、`data/优先级.zip`）已随仓库提供。
+
+**环境要求**
+
+- 64 位 Windows 10/11、macOS 12 以上（Apple 芯片）或 Linux（glibc 2.28 以上，如 Ubuntu 20.04+）。Intel 芯片的 Mac 请用 Docker（numba 0.68 没有 Intel Mac 的安装包）。
+- 内存建议 16 GB：规划峰值约 4 GB，Skyfield 逐秒校验峰值约 9 GB。磁盘约 1 GB。
+- 第一次运行要联网（安装依赖；第一次校验时下载 17 MB 的 DE421 星历），之后可以离线。
+- 安装 [uv](https://docs.astral.sh/uv/)，它会自动准备 Python 3.12 和 `uv.lock` 锁定版本的依赖：
+  Windows 在 PowerShell 里运行 `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`；
+  macOS / Linux 运行 `curl -LsSf https://astral.sh/uv/install.sh | sh`；已有 Python 时也可以 `pip install uv`。
+
+**一键启动**（安装依赖 → 准备可见窗口 → 自动打开浏览器 http://localhost:8501）：Windows 双击 `start_app.bat`，macOS 双击 `start_app.command`，Linux 运行 `bash start_app.sh`。
+
+**三条命令**
+
+```bash
+uv sync --extra app                                    # 安装 Python 3.12 和依赖
+uv run python -m obsplan plan --mode fast --validate   # 全量规划 + Skyfield 逐秒校验，结果写到 outputs/plan/
+uv run streamlit run app/streamlit_app.py              # 网页界面：浏览器打开 http://localhost:8501
+```
+
+`outputs/plan/` 里是 `plan.csv`（观测计划，含 Skyfield 复核的仰角和太阳角）、`target_status.csv`（每颗目标的观测情况）和 `summary.json`（指标、用时、校验结果）。快速模式应得到覆盖 9987 颗、得分 28237.8、任务 12097 个，Skyfield 校验全部合法；同一台机器上重复运行，结果逐字节相同。
+
+**Docker**（在仓库根目录执行，不用装 uv）
+
+```bash
+docker build -f 方案H初版/Dockerfile -t obsplan .
+docker run --rm -p 127.0.0.1:8501:8501 obsplan        # 网页界面：浏览器打开 http://localhost:8501
+docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --mode fast --validate --out /out/plan
+```
+
+结果写到当前目录的 `out/plan/`（Windows 命令提示符里把 `$PWD` 换成 `%cd%`）。构建时已算好默认规则的可见窗口、取好星历、编译好 numba 函数，容器里的规划不用再等这几步。Docker Desktop 的内存上限（Settings → Resources）要调到 10 GB 以上，否则校验会被系统终止（退出码 137）。
+
+**预计用时**（10 核 M1 Pro、16 GB 实测；核数少的电脑相应变慢）
+
+| 步骤 | 第一次 | 之后 |
+|---|---:|---:|
+| 安装依赖 | 1–5 分钟（看网速） | 几秒 |
+| 计算可见窗口（多进程） | 约 20–30 秒 | 读缓存 |
+| 快速模式规划（含按秒精修） | 约 100 秒（含 numba 首次编译约 25 秒） | 约 75 秒 |
+| Skyfield 逐秒校验（约 1.2 万个任务） | 约 100 秒（含下载星历） | 约 90 秒 |
+| 上面第二条命令合计 | 约 4 分钟 | 约 3 分钟 |
+
+Docker 首次构建除下载依赖外，预先计算约 1–2 分钟。
+
+**常见问题**
+
+- **提示找不到 uv**：按上面的方法安装，装完关掉终端（命令行窗口）再重新打开。
+- **国内网络下载慢**：先设置 PyPI 镜像再运行，uv 会把 `uv.lock` 里的下载地址换成镜像，版本不变。Windows 命令提示符：`set UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple`；macOS / Linux：`export UV_DEFAULT_INDEX=https://pypi.tuna.tsinghua.edu.cn/simple`。电脑上已有 Python 3.12 时 uv 直接用它，不再下载 Python。Docker 构建时加 `--build-arg PIP_INDEX_URL=镜像地址 --build-arg UV_DEFAULT_INDEX=镜像地址`。
+- **星历下载失败**：程序先从 JPL 官网下载，失败再从 PyPI 的 skyfield-data 包里取同一文件，都核对 SHA-256。都不通时，在能上网的电脑上下载 https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de421.bsp ，放到 `方案H初版/cache/de421.bsp`。只规划、不校验时用不到星历。
+- **8501 端口被占用**：命令后面加 `--server.port 8502`，一键脚本同样可以加（如 `start_app.bat --server.port 8502`）。
+- **Windows 提示"已保护你的电脑"**：点"更多信息 → 仍要运行"。**macOS 提示无法打开 `start_app.command`**：右键 → 打开，或在终端运行 `bash start_app.command`。
+- **内存不足、进程被终止**：校验峰值约 9 GB，关掉其他大程序再试；用 Docker 时调高内存上限。
+- **路径里有中文或空格**：支持，已在这样的目录里测试过。Windows 上若安装依赖时报路径过长，把整个目录移到较短的路径（如 `C:\obsplan`）。
+- **界面第一次"运行规划"**：要先算可见窗口（约半分钟，一键脚本已提前算好），全量快速模式约 1–2 分钟出结果；左侧"演示模式"缩小规模，几秒出结果。
+
 ## 规则口径（依据答疑文档，均可在 `obsplan/config.py` 修改）
 
 | 项目 | 取值 | 依据 |
@@ -36,10 +94,10 @@ uv run python run_compare.py                              # A–H 全部方案�
 **目标状态分析**（`obsplan/target_status.py`；答疑 #26：赛题中的"目标状态分析"按观测任务状态理解）：`target_status.csv` 每颗目标一行——状态（外推异常 / 无可见窗口 / 未覆盖 / 已观测 1–3 次）、观测次数与理论最多次数、总观测秒数、得分、首次与最近一次观测时间、所用站点、可见窗口数，以及未覆盖或未观测满的原因；只计满足 48 小时间隔的观测，与计分口径相同。`summary.json` 里有按优先级、轨道类别的汇总，界面"概览"页可按状态查看明细并下载。默认流水线（H+）的结果：可观测 9999 颗中覆盖 9994 颗，高优先级 2023/2024（另 1 颗外推异常），观测 2 次以上的目标 1684 颗；未覆盖的 5 颗都是低优先级低轨目标，可见窗口的站点时间都已被占满。融合模式 9999 颗全部覆盖（汇总见 `results/target_status_*.json`）。
 `validate` 能读本方案导出的 CSV、方案G初版的 `schedule.csv`（列 station_id、target_id、start、end），以及观测列表 JSON（方案E初版的格式；时间是相对规划开始的秒数时加 `--seconds-from-start`）。
 
-数据放在仓库根目录 `data/`（已被 Git 忽略）：直接放 `数据.zip`、`优先级.zip`，或放解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 均可。
-测试：`uv run pytest -q`（60 个，约 40 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
+数据在仓库根目录 `data/`：`数据.zip`、`优先级.zip` 已随仓库提交，程序直接读取；换成解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 也可以。
+测试：`uv run pytest -q`（82 个，约 40 秒；`-m "not slow"` 跳过 Skyfield 逐秒校验测试）。
 
-首次运行会计算可见窗口（M1 Pro 约 30 秒）并缓存，Skyfield 校验会自动下载 DE421 星历（约 17MB）到 `cache/`。
+首次运行会计算可见窗口（M1 Pro 约 30 秒）并缓存，Skyfield 校验会自动下载 DE421 星历（约 17MB，JPL 取不到时改从 PyPI 取同一文件）到 `cache/`。
 完整对比（含 CP-SAT 约 9 分钟、11 份计划约 12.7 万个任务的 Skyfield 逐秒校验约 17 分钟）约 30 分钟。
 
 ## 结果（2026-10-21，规划期 8 月 1–7 日，10000 目标 × 10 站 × 6 天，全部通过 Skyfield 逐秒校验，0 违规）
@@ -469,6 +527,7 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 | `obsplan/data.py` | 数据读取与一致性检查 |
 | `obsplan/visibility.py` | SGP4 传播与合法窗口（30 秒网格） |
 | `obsplan/validator.py` | Skyfield 独立校验、得分复算 |
+| `obsplan/ephemeris.py` | DE421 星历的下载（JPL / PyPI 两个来源，核对 SHA-256）与读取 |
 | `obsplan/greedy.py` | A/B/C/D 贪心引擎 |
 | `obsplan/ga.py` | D：遗传算法学习价值函数权重 |
 | `obsplan/local_search.py` | 共用局部搜索 |
@@ -491,6 +550,10 @@ uv run streamlit run app/streamlit_app.py   # 浏览器打开 http://localhost:8
 | `scripts/bound_experiment.py` | 上界实验：三个口径的上界、各计划离最优最多差多少（`results/bounds.json`） |
 | `scripts/chain_run.py`、`scripts/second_dual_bound.py` | 弹射链的命令行入口；更紧的按秒上界（`results/chain.json`） |
 | `scripts/generalization_experiment.py` | 泛化检验：合成测试场景上人工规则、伐谋规则、稳健模式三者对比 |
+| `start_app.bat`、`start_app.command`、`start_app.sh` | 一键启动界面（Windows / macOS / Linux） |
+| `Dockerfile`、`Dockerfile.dockerignore` | 容器镜像（在仓库根目录构建） |
+| `scripts/check_app.py` | 界面冒烟检查（AppTest，在界面里现算可见窗口并运行一次演示规划） |
+| `../.github/workflows/scheme-h*.yml` | CI：Linux 与 Windows 上的测试、界面检查、启动脚本；Docker 镜像构建与容器内运行 |
 | `tests/` | 单元测试：数据、计分、各规划器合法性、上界、按秒精修、解合并、动态重规划、突发事件重规划、伐谋沙箱、Skyfield 校验 |
 
 ## 尚未完成

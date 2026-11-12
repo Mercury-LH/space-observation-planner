@@ -1,0 +1,16 @@
+# 方案H初版/Dockerfile 专用（构建上下文是仓库根目录）：只放行镜像需要的文件。
+# 其他方案、虚拟环境、缓存、输出和本地凭据（如 .env.famou）都不进入构建上下文。
+*
+!data/数据.zip
+!data/优先级.zip
+!方案H初版/pyproject.toml
+!方案H初版/uv.lock
+!方案H初版/.streamlit
+!方案H初版/results
+!方案H初版/scripts/check_app.py
+!方案H初版/app
+!方案H初版/obsplan
+**/__pycache__
+**/.env*
+**/*.csv
+**/*.log

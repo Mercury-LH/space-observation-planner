@@ -20,9 +20,8 @@ from .schedule import Schedule
 
 @lru_cache(maxsize=1)
 def _sky(cache_dir: str):
-    from skyfield.api import Loader
-    load = Loader(cache_dir, verbose=False)
-    return load.timescale(builtin=True), load("de421.bsp")
+    from .ephemeris import load_de421
+    return load_de421(cache_dir)
 
 
 DE421_BYTES = 16788480      # 完整的 de421.bsp；下载中断会留下截断文件，Skyfield 读时报 "mmap length is greater than file size"

@@ -411,7 +411,7 @@ def page_weather():
         c1, c2 = st.columns(2)
         wdf = pd.DataFrame({"站点": [f"{i + 1}号" for i in range(len(sc))], "晴空概率": sc,
                             "平均云量%": np.nanmean(cloud, axis=(0, 2))})
-        fig = px.bar(wdf, x="站点", y="晴空概率", color_discrete_sequence=[BLUE], title=f"各站 {cfg.start_dt:%m 月 %d 日}起 {cfg.days:g} 天同期的晴空概率（全天统计，过去 10 年）",
+        fig = px.bar(wdf, x="站点", y="晴空概率", color_discrete_sequence=[BLUE], title=f"各站 {cfg.start_dt.month:02d} 月 {cfg.start_dt.day:02d} 日起 {cfg.days:g} 天同期的晴空概率（全天统计，过去 10 年）",
                      hover_data={"平均云量%": ":.0f", "晴空概率": ":.2f"})
         fig.update_layout(yaxis_tickformat=".0%", height=380)
         c1.plotly_chart(fig, use_container_width=True)
