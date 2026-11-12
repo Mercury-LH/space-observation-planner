@@ -12,7 +12,7 @@ Windows、macOS（Apple 芯片）、Linux 都能直接运行，也可以用 Dock
 **环境要求**
 
 - 64 位 Windows 10/11、macOS 12 以上（Apple 芯片）或 Linux（glibc 2.28 以上，如 Ubuntu 20.04+）。Intel 芯片的 Mac 请用 Docker（numba 0.68 没有 Intel Mac 的安装包）。
-- 内存建议 16 GB：规划峰值约 4 GB，Skyfield 逐秒校验峰值约 9 GB。磁盘约 1 GB。
+- 内存建议 16 GB，8 GB 也能跑：规划峰值约 4 GB，Skyfield 逐秒校验分块计算后峰值约 1.6 GB。磁盘约 1 GB。
 - 第一次运行要联网（安装依赖；第一次校验时下载 17 MB 的 DE421 星历），之后可以离线。
 - 安装 [uv](https://docs.astral.sh/uv/)，它会自动准备 Python 3.12 和 `uv.lock` 锁定版本的依赖：
   Windows 在 PowerShell 里运行 `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`；
@@ -38,7 +38,7 @@ docker run --rm -p 127.0.0.1:8501:8501 obsplan        # 网页界面：浏览器
 docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --mode fast --validate --out /out/plan
 ```
 
-结果写到当前目录的 `out/plan/`（Windows 命令提示符里把 `$PWD` 换成 `%cd%`）。构建时已算好默认规则的可见窗口、取好星历、编译好 numba 函数，容器里的规划不用再等这几步。Docker Desktop 的内存上限（Settings → Resources）要调到 10 GB 以上，否则校验会被系统终止（退出码 137）。
+结果写到当前目录的 `out/plan/`（Windows 命令提示符里把 `$PWD` 换成 `%cd%`）。构建时已算好默认规则的可见窗口、取好星历、编译好 numba 函数，容器里的规划不用再等这几步。Docker Desktop 的内存上限（Settings → Resources）建议 6 GB 以上，否则规划可能被系统终止（退出码 137）。
 
 **预计用时**（10 核 M1 Pro、16 GB 实测；核数少的电脑相应变慢）
 
@@ -59,7 +59,7 @@ Docker 首次构建除下载依赖外，预先计算约 1–2 分钟。
 - **星历下载失败**：程序先从 JPL 官网下载，失败再从 PyPI 的 skyfield-data 包里取同一文件，都核对 SHA-256。都不通时，在能上网的电脑上下载 https://ssd.jpl.nasa.gov/ftp/eph/planets/bsp/de421.bsp ，放到 `方案H初版/cache/de421.bsp`。只规划、不校验时用不到星历。
 - **8501 端口被占用**：命令后面加 `--server.port 8502`，一键脚本同样可以加（如 `start_app.bat --server.port 8502`）。
 - **Windows 提示"已保护你的电脑"**：点"更多信息 → 仍要运行"。**macOS 提示无法打开 `start_app.command`**：右键 → 打开，或在终端运行 `bash start_app.command`。
-- **内存不足、进程被终止**：校验峰值约 9 GB，关掉其他大程序再试；用 Docker 时调高内存上限。
+- **内存不足、进程被终止**：规划峰值约 4 GB，关掉其他大程序再试；用 Docker 时调高内存上限。
 - **路径里有中文或空格**：支持，已在这样的目录里测试过。Windows 上若安装依赖时报路径过长，把整个目录移到较短的路径（如 `C:\obsplan`）。
 - **界面第一次"运行规划"**：要先算可见窗口（约半分钟，一键脚本已提前算好），全量快速模式约 1–2 分钟出结果；左侧"演示模式"缩小规模，几秒出结果。
 
