@@ -1,0 +1,131 @@
+{
+ "catalog_id": "赛题",
+ "split": "contest",
+ "group": "contest",
+ "stress_type": null,
+ "n_targets": 10000,
+ "n_stations": 10,
+ "start": "2026-08-01",
+ "models": {
+  "judge_v3_M": {
+   "网络": {
+    "covered": 9945,
+    "score": 27848.223,
+    "combined": 0.96043,
+    "tasks": 12139,
+    "repeat_tasks": 2194,
+    "seconds": 54.9,
+    "violations": 0,
+    "gap_pct": 4.5134,
+    "plan": "8f08b9682b16ab294cbd1c9bed1b49ba",
+    "skyfield": {
+     "legal": true,
+     "violations": {}
+    }
+   },
+   "稳健+网络": {
+    "covered": 9994,
+    "score": 28538.393,
+    "combined": 0.974359,
+    "tasks": 12368,
+    "repeat_tasks": 2374,
+    "seconds": 55.5,
+    "violations": 0,
+    "picked": "rule0",
+    "gap_pct": 3.1286,
+    "plan": "55a713d1fe21c09559d8c5eb9513a1c5",
+    "skyfield": {
+     "legal": true,
+     "violations": {}
+    }
+   }
+  },
+  "judge_mix_L": {
+   "网络": {
+    "covered": 9961,
+    "score": 27882.453,
+    "combined": 0.961799,
+    "tasks": 12171,
+    "repeat_tasks": 2210,
+    "seconds": 54.9,
+    "violations": 0,
+    "gap_pct": 4.3773,
+    "plan": "15e72a0cb5fb0d832d35bb7f663f464e",
+    "skyfield": {
+     "legal": true,
+     "violations": {}
+    }
+   },
+   "稳健+网络": {
+    "covered": 9994,
+    "score": 28538.393,
+    "combined": 0.974359,
+    "tasks": 12368,
+    "repeat_tasks": 2374,
+    "seconds": 58.8,
+    "violations": 0,
+    "picked": "rule0",
+    "gap_pct": 3.1286,
+    "plan": "55a713d1fe21c09559d8c5eb9513a1c5",
+    "skyfield": {
+     "legal": true,
+     "violations": {}
+    }
+   }
+  }
+ },
+ "observable": 9999,
+ "windows": 519672,
+ "mode": "quality",
+ "bound": {
+  "combined_ub": 1.005827,
+  "seconds": 5.2,
+  "scope": "按秒口径网络流"
+ },
+ "H": {
+  "covered": 9987,
+  "score": 28083.677,
+  "combined": 0.966446,
+  "tasks": 12506,
+  "repeat_tasks": 2519,
+  "seconds": 36.5,
+  "violations": 0,
+  "gap_pct": 3.9153,
+  "plan": "8d0c3df57d0bb7f9948b6d33d124f07f",
+  "skyfield": {
+   "legal": true,
+   "violations": {}
+  }
+ },
+ "H+": {
+  "covered": 9994,
+  "score": 28538.393,
+  "combined": 0.974359,
+  "tasks": 12368,
+  "repeat_tasks": 2374,
+  "seconds": 49.2,
+  "violations": 0,
+  "gap_pct": 3.1286,
+  "plan": "55a713d1fe21c09559d8c5eb9513a1c5",
+  "skyfield": {
+   "legal": true,
+   "violations": {}
+  }
+ },
+ "稳健": {
+  "covered": 9994,
+  "score": 28538.393,
+  "combined": 0.974359,
+  "tasks": 12368,
+  "repeat_tasks": 2374,
+  "seconds": 52.0,
+  "violations": 0,
+  "picked": "rule",
+  "gap_pct": 3.1286,
+  "plan": "55a713d1fe21c09559d8c5eb9513a1c5",
+  "skyfield": {
+   "legal": true,
+   "violations": {}
+  }
+ }
+}
