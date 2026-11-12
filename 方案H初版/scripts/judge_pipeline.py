@@ -198,22 +198,47 @@ def step_tune(cid: str, args) -> None:
     cfg, ds, pb, spec = scenes.load_scene(cid, workers=args.threads or 8)
     famou = load_rule()
     mu = _prices(pb)
+    # 每个（场景, 模型）各有一个锁：几个进程可以同时算同一场景的不同模型；
+    # 别的进程正在算的模型：默认等它算完再返回，JUDGE_LOCK_MODE=skip 时不等
+    skip = os.environ.get("JUDGE_LOCK_MODE") == "skip"
     base_path = _tune_path("_base", cid)
-    if base_path.exists():
-        base = json.loads(base_path.read_text(encoding="utf-8"))
-    else:
-        base = {"catalog_id": cid, "manual": _end_to_end(pb, mu, None), "famou": _end_to_end(pb, mu, famou)}
-        base_path.parent.mkdir(parents=True, exist_ok=True)
-        base_path.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
-    for path in todo:
-        model = judge.load_model(path)
-        row = {**base, "model": tag_of(path), "judge": {}}
-        for tu, tc in TUNE_GRID:
-            row["judge"][f"{tu},{tc}"] = _end_to_end(pb, mu, judge.make_rule(model, tu, tc, famou))
-            print(cid, tag_of(path), tu, tc, row["judge"][f"{tu},{tc}"], flush=True)
-        out = _tune_path(tag_of(path), cid)
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+    while not base_path.exists():
+        lock = base_path.with_suffix(".lock")
+        if _try_lock(lock):
+            try:
+                if not base_path.exists():
+                    base = {"catalog_id": cid, "manual": _end_to_end(pb, mu, None), "famou": _end_to_end(pb, mu, famou)}
+                    base_path.write_text(json.dumps(base, ensure_ascii=False, indent=1), encoding="utf-8")
+            finally:
+                lock.unlink(missing_ok=True)
+        else:
+            time.sleep(10)
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    pending = list(todo)
+    while pending:
+        busy = []
+        for path in pending:
+            out = _tune_path(tag_of(path), cid)
+            if out.exists():
+                continue
+            lock = out.with_suffix(".lock")
+            if not _try_lock(lock):
+                busy.append(path)
+                continue
+            try:
+                model = judge.load_model(path)
+                row = {**base, "model": tag_of(path), "judge": {}}
+                for tu, tc in TUNE_GRID:
+                    row["judge"][f"{tu},{tc}"] = _end_to_end(pb, mu, judge.make_rule(model, tu, tc, famou))
+                    print(cid, tag_of(path), tu, tc, row["judge"][f"{tu},{tc}"], flush=True)
+                out.write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+            finally:
+                lock.unlink(missing_ok=True)
+        pending = busy
+        if pending:
+            if skip:
+                return
+            time.sleep(30)
 
 
 def _metrics(cfg, ds, pb, sch, seconds, near=None) -> dict:
@@ -518,30 +543,23 @@ def main() -> int:
     for cid in ids:
         if _done(args.step, cid, args) and len(ids) > 1:
             continue
-        if args.step != "teacher":
+        if args.step not in ("teacher", "bench"):
             fn(cid, args)
             continue
-        if not _teacher_lock(cid):
+        if not _step_lock(args.step, cid, args):
             print(f"{cid}：已由另一个进程完成或正在计算，跳过", flush=True)
             continue
         try:
             fn(cid, args)
         finally:
-            (OUT / "teacher" / f"{cid}.lock").unlink(missing_ok=True)
+            (OUT / args.step / f"{cid}.lock").unlink(missing_ok=True)
     return 0
 
 
-def _teacher_lock(cid: str) -> bool:
-    """几个调度进程同时跑老师时，用锁文件保证同一个场景只算一遍。返回 True 表示由本进程计算。
-    别的进程正在算这个场景时：默认等它算完（调度进程结束时所有场景都已完成，后面的导出步骤才不会缺数据）；
-    环境变量 JUDGE_LOCK_MODE=skip 时直接跳过（给后加的辅助调度进程用）。持锁进程已经不在了就接手。"""
-    d = OUT / "teacher"
-    d.mkdir(parents=True, exist_ok=True)
-    lock = d / f"{cid}.lock"
-    skip = os.environ.get("JUDGE_LOCK_MODE") == "skip"
+def _try_lock(lock: Path) -> bool:
+    """建锁文件（写入本进程号）。已被一个还活着的进程占着时返回 False；占锁进程已经不在了就接手。"""
+    lock.parent.mkdir(parents=True, exist_ok=True)
     while True:
-        if _done("teacher", cid):
-            return False
         try:
             fd = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
             os.write(fd, str(os.getpid()).encode())
@@ -553,17 +571,28 @@ def _teacher_lock(cid: str) -> bool:
             pid = int(lock.read_text() or 0)
         except (FileNotFoundError, ValueError):
             continue
-        alive = True
         if pid > 0:
             try:
                 os.kill(pid, 0)
             except ProcessLookupError:
-                alive = False
+                lock.unlink(missing_ok=True)
+                continue
             except PermissionError:
                 pass
-        if not alive:
-            lock.unlink(missing_ok=True)
-            continue
+        return False
+
+
+def _step_lock(step: str, cid: str, args) -> bool:
+    """几个调度进程同时跑同一步（老师、基准）时，用锁文件保证同一个场景只算一遍。返回 True 表示由本进程计算。
+    别的进程正在算这个场景时：默认等它算完（调度进程结束时所有场景都已完成，后面的步骤才不会缺数据）；
+    环境变量 JUDGE_LOCK_MODE=skip 时直接跳过（给后加的辅助调度进程用）。"""
+    lock = OUT / step / f"{cid}.lock"
+    skip = os.environ.get("JUDGE_LOCK_MODE") == "skip"
+    while True:
+        if _done(step, cid, args):
+            return False
+        if _try_lock(lock):
+            return True
         if skip:
             return False
         time.sleep(30)
