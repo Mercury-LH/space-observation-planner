@@ -99,6 +99,11 @@ with st.sidebar.expander("新建规划", expanded=not labels):
                                "勾选时人工规则也会同时排一份，自动取综合高的（稳健模式），换一份数据也不会比人工规则差，用时基本不变")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
                             help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
+    chain_min = st.select_slider("按秒跨站弹射链（推荐）", options=[0, 1, 2, 5, 10], value=2,
+                                 format_func=lambda m: "不跑" if m == 0 else f"{m} 分钟", disabled=not refine_on,
+                                 help="按秒精修之后，把高优先级任务的「延长」换成「给另一颗高优先级目标多观测一次」"
+                                      "（同样 150 秒，前者 2.5 分、后者 3 分），一条链可以跨站、跨夜连环挪动任务腾位置。"
+                                      "快速模式 + 2 分钟：综合约 0.969 → 0.986。演示模式（缩小规模）下不跑")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -120,7 +125,8 @@ if go_btn:
             b.progress(min(1.0, f), text=t)
 
     run = run_planning(pb, algo, iters=iters, progress=tick, weather=weather and algo == "H", fast=fast,
-                       refine_seconds=refine_on, full_problem=not subset, evolved_rule=evolved)
+                       refine_seconds=refine_on, full_problem=not subset, evolved_rule=evolved,
+                       chain_minutes=float(chain_min) if refine_on else 0.0)
     run.subset = subset
     tick(1.0, f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)

@@ -206,8 +206,9 @@ def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, pr
 
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
                  fast: bool = False, refine_seconds: bool = True, full_problem: bool = True,
-                 evolved_rule: bool = True) -> Run:
+                 evolved_rule: bool = True, chain_minutes: float = 0.0) -> Run:
     """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。
+    chain_minutes：按秒精修之后再跑几分钟按秒跨站弹射链（obsplan/chain.py；0 = 不跑；演示子集上不跑）。
     full_problem：pb 是否为完整问题；演示子集上不做"按秒补覆盖"。
     evolved_rule：H 的放置规则用伐谋演化并已采纳的版本（obsplan/evolved/），否则用人工的"价值 − 价格"。"""
     cfg = pb.cfg
@@ -253,6 +254,12 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             progress(0.97, "按秒精修：探查真实可见边界、插入按秒才可见的目标、重新分配观测时长……")
         sch, fi = finish(pb, sch, near=full_problem)
         notes["refine"], notes["insert"] = fi["refine"], fi["insert"]
+        if chain_minutes > 0 and full_problem:
+            from .chain import improve as chain_improve
+            if progress:
+                progress(0.98, f"按秒跨站弹射链（最多 {chain_minutes:g} 分钟）：把高优先级任务的延长换成多一次观测……")
+            sch, ci = chain_improve(pb, sch, minutes=chain_minutes)
+            notes["chain"] = {"minutes": chain_minutes, "seconds": ci["seconds"], "start": ci["start"], "best": ci["best"]}
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"

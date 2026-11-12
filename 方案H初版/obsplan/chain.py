@@ -783,3 +783,78 @@ def repattern_pass(tl: Timeline, targets, max_depth: int = 3, verbose: bool = Tr
         if verbose and (n + 1) % log_every == 0:
             print(f"  [重排节奏] {n + 1}/{len(targets)}  成功 {ok}  累计 +{total:.1f} 分  {time.time() - t0:.0f}s", flush=True)
     return {"tried": len(targets), "repatterned": ok, "gain_points": total, "seconds": time.time() - t0}
+
+
+def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, rounds: str = "0:0,40:0,40:20,0:0",
+            passes: int = 4, shift: int = 4, retries: int = 6, drop: bool = True, repattern: bool = True,
+            repattern_depth: int = 3, min_priority: float = 5.0, seed: int = 0, extra_windows: dict | None = None,
+            bounds=None, workers: int = 4, verbose: bool = False, on_best=None) -> tuple[Schedule, dict]:
+    """弹射链的整套流程（scripts/chain_run.py 与 `obsplan plan --chain` 共用）：依次按 rounds 里的时间线切法，
+    每种切法做若干遍"弹射链 → 重排节奏"，每种切法结束后全局按秒精修一次，只保留变好的。
+    minutes：总时长上限（0 = 不限）。bounds：全部窗口的按秒真实区间 (L, R)，不给时读缓存或现算（第一次约十几秒）。
+    on_best(sch, ev, used)：每次变好时回调（存盘用）。返回最好计划和统计。"""
+    from pathlib import Path
+    from .refine import refine
+    from .schedule import evaluate
+    from .second_bounds import all_bounds
+    cfg, ds = pb.cfg, pb.ds
+    t_start = time.time()
+    deadline = t_start + minutes * 60 if minutes > 0 else None
+    late = lambda: deadline is not None and time.time() > deadline          # noqa: E731
+    say = print if verbose else (lambda *a, **k: None)
+
+    def ev(s):
+        e = evaluate(cfg, ds, s)
+        return {"covered": int(e["covered"]), "score": round(float(e["score"]), 3),
+                "combined": round(float(e["combined"]), 6), "tasks": int(e["tasks"])}
+
+    if bounds is None:
+        bounds = all_bounds(pb, Path(cfg.cache_dir) / f"bounds_all_{cfg.scenario_key()}.npz", workers=workers,
+                            verbose=verbose)
+    wL, wR = bounds
+    rng = np.random.default_rng(seed)
+    e0 = ev(sch)
+    best, best_ev, best_used = sch, e0, None
+    stats_all, log = {}, []
+    for spec in [r for r in rounds.split(",") if r]:
+        if late():
+            break
+        piece, offset = (int(v) for v in spec.split(":"))
+        tl = Timeline(pb, wL, wR, best, piece=piece, offset=offset, extra_windows=extra_windows)
+        if tl.unmatched or not tl.unit_ok.all():
+            say(f"  [弹射链] 切法 {spec}：{tl.unmatched} 个任务对不上窗口、{int((~tl.unit_ok).sum())} 条时间线不可行")
+        drop_pass(tl)
+        for k in range(passes):
+            cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+            cand = cand[rng.permutation(len(cand))]
+            cand = cand[np.argsort(-pb.P[cand], kind="stable")]
+            r = run_pass(tl, cand, max_depth=depth, verbose=verbose, deadline=deadline, shift=shift, retries=retries,
+                         drop=drop)
+            r.update(spec=spec, step="chain", **{"pass": k})
+            log.append(r)
+            if repattern and not late():
+                cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt == 2) & (pb.max_obs >= 3))[0]
+                cand = cand[rng.permutation(len(cand))]
+                rp = repattern_pass(tl, cand, max_depth=repattern_depth, verbose=verbose, deadline=deadline,
+                                    shift=shift, retries=retries, drop=drop)
+                rp.update(spec=spec, step="repattern", **{"pass": k})
+                log.append(rp)
+                r["added"] += rp["repatterned"]
+            say(f"  [弹射链] 切法 {spec} 第 {k} 遍：加入 {r['added']} 次（{time.time() - t_start:.0f}s）")
+            if r["added"] == 0 or late():
+                break
+        for k_, v_ in tl.stats.items():
+            stats_all[k_] = stats_all.get(k_, 0) + v_
+        cur, L, R, used = tl.schedule()
+        e1 = ev(cur)
+        ref, _ = refine(pb, cur, bounds=(L, R))           # 全局按秒精修：同目标 48 小时间隔按真实约束重新定时
+        e2 = ev(ref)
+        if e2["combined"] >= e1["combined"]:
+            cur, e1 = ref, e2
+        if e1["combined"] > best_ev["combined"]:
+            best, best_ev, best_used = cur, e1, used
+            if on_best is not None:
+                on_best(best, best_ev, best_used)
+    best.algo = (sch.algo + " + " if sch.algo else "") + "按秒跨站弹射链"
+    return best, {"start": e0, "best": best_ev, "extra_windows": best_used, "stats": stats_all, "passes": log,
+                  "seconds": round(time.time() - t_start, 1)}

@@ -1,6 +1,6 @@
 """命令行入口。
 
-    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
+    uv run python -m obsplan plan [--mode fast|quality] [--chain 分钟] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
     uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
     uv run python -m obsplan windows [--refresh]
@@ -150,6 +150,11 @@ def cmd_plan(args) -> int:
     if not args.no_refine:
         from .refine import finish
         sch, rinfo = finish(pb, sch)
+    cinfo = None
+    if args.chain > 0 and not args.no_refine:
+        from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
+        sch, ci = improve(pb, sch, minutes=args.chain)
+        cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -168,11 +173,14 @@ def cmd_plan(args) -> int:
                "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
+               "chain": cinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
                "target_status": summarize(status_rows)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
+    if cinfo is not None:
+        print(f"弹射链 {cinfo['seconds']:.0f} 秒：综合 {cinfo['start']['combined']:.6f} → {cinfo['best']['combined']:.6f}")
     if pf is not None:
         o = pf["objective"]
         print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
@@ -229,6 +237,8 @@ def main(argv=None) -> int:
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
             p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
+            p.add_argument("--chain", type=float, default=0.0,
+                           help="按秒精修之后再跑几分钟按秒跨站弹射链（0 = 不跑；见 obsplan/chain.py）")
             p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
             p.add_argument("--rule-only", action="store_true",
                            help="只用伐谋规则排一份（默认是稳健模式：伐谋、人工两条规则各排一份，取综合高的，用时基本不变）")
