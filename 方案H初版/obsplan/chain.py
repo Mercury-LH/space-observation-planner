@@ -22,6 +22,7 @@
 from __future__ import annotations
 
 import bisect
+import os
 import time
 from collections import defaultdict
 
@@ -424,6 +425,7 @@ class Timeline:
         self.q = [np.zeros(mq, np.int64) for _ in range(7)]
         self.max_q = mq
         self.stats = defaultdict(int)
+        self.lp_k = int(os.environ.get("OBSPLAN_CHAIN_LPK", "40"))   # 线性规划只重排改动前后各几个任务（0 = 整条时间线）
 
     # ---------- 基础 ----------
     def refresh(self, u: int) -> None:
@@ -462,7 +464,35 @@ class Timeline:
         返回 (这些时间线的新得分, {任务: (开始, 结束)})；不可行返回 None。"""
         from ortools.linear_solver import pywraplp
         dmin, dmax, sw, gap = self.dmin, self.dmax, self.sw, self.gap
-        tasks = [p for seq in new_seqs.values() for p in seq]
+        kx = 0.4 / (dmax - dmin)
+        # 只重排改动附近的任务：每条时间线取"新旧顺序不同的那一段"前后各 lp_k 个任务，其余按当前起止固定，
+        # 固定任务成为这一段的边界。lp_k = 0 时整条时间线都进线性规划（旧行为）。
+        local, fixed_pts = {}, 0.0
+        for u, seq in new_seqs.items():
+            n_new = len(seq)
+            if self.lp_k <= 0:
+                local[u] = (0, n_new, int(self.wall_lo[u]), int(self.wall_hi[u]) - sw)
+                continue
+            cur = self.seq[u]
+            m = min(n_new, len(cur))
+            i0 = 0
+            while i0 < m and seq[i0] == cur[i0] and seq[i0] not in override:
+                i0 += 1
+            j0 = 0
+            while j0 < m - i0 and seq[n_new - 1 - j0] == cur[len(cur) - 1 - j0] and seq[n_new - 1 - j0] not in override:
+                j0 += 1
+            a, b = max(0, i0 - self.lp_k), min(n_new, n_new - j0 + self.lp_k)
+            if b <= a:
+                a, b = max(0, i0 - self.lp_k), min(n_new, i0 + self.lp_k)
+            wlo, whi = int(self.wall_lo[u]), int(self.wall_hi[u]) - sw
+            if a > 0:
+                wlo = max(wlo, int(self.tk_e[seq[a - 1]]) + sw)
+            if b < n_new:
+                whi = min(whi, int(self.tk_s[seq[b]]) - sw)
+            local[u] = (a, b, wlo, whi)
+            for p in seq[:a] + seq[b:]:
+                fixed_pts += self.P[self.tk_tg[p]] * (0.6 + kx * (self.tk_e[p] - self.tk_s[p] - dmin))
+        tasks = [p for u, seq in new_seqs.items() for p in seq[local[u][0]:local[u][1]]]
         inlp = set(tasks)
         lp = pywraplp.Solver.CreateSolver("GLOP")
         sv, dv = {}, {}
@@ -471,8 +501,8 @@ class Timeline:
         obj = lp.Objective()
         inf = lp.infinity()
         for u, seq in new_seqs.items():
-            wlo, whi = int(self.wall_lo[u]), int(self.wall_hi[u]) - sw
-            for p in seq:
+            a_, b_, wlo, whi = local[u]
+            for p in seq[a_:b_]:
                 if p in override:
                     w, r = override[p]
                 else:
@@ -503,8 +533,9 @@ class Timeline:
                 obj.SetCoefficient(dv[p], float(self.P[x]))
                 by_t[x].append(p)
         pairs = []
-        for seq in new_seqs.values():
-            for p, q in zip(seq[:-1], seq[1:]):
+        for u, seq in new_seqs.items():
+            sub = seq[local[u][0]:local[u][1]]
+            for p, q in zip(sub[:-1], sub[1:]):
                 pairs.append((p, q, sw))
         for x, ps in by_t.items():
             if len(ps) > 1:
@@ -532,8 +563,11 @@ class Timeline:
         for p in tasks:
             if out[p][0] < lim[p][0] or out[p][1] > lim[p][1]:
                 return None
-        k = 0.4 / (dmax - dmin)
-        new = sum(self.P[self.tk_tg[p]] * (0.6 + k * (out[p][1] - out[p][0] - dmin)) for p in tasks)
+        new = fixed_pts + sum(self.P[self.tk_tg[p]] * (0.6 + kx * (out[p][1] - out[p][0] - dmin)) for p in tasks)
+        for u, seq in new_seqs.items():                 # 固定的任务按当前起止一并返回
+            a_, b_ = local[u][0], local[u][1]
+            for p in seq[:a_] + seq[b_:]:
+                out[p] = (int(self.tk_s[p]), int(self.tk_e[p]))
         return new, out
 
     def units_score(self, units) -> float:
