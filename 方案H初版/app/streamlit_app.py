@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -22,19 +23,19 @@ SCHEME_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SCHEME_DIR))
 
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
-                                 orbit_class, pass_profile, replay_weather, run_planning, simulate_days,
-                                 station_nights,
-                                 subset_problem, summary_json, task_rows, validate_run, weather_stats,
-                                 status_csv_bytes, status_rows)
+                                 load_problem, orbit_class, pass_profile, replan_changed, replan_run, replay_weather,
+                                 run_name, run_planning, save_replan, schedule_csv_bytes, scope_metrics, simulate_days,
+                                 station_nights, structural_check, subset_problem, summary_json, task_rows,
+                                 validate_replan, validate_run, weather_stats, status_csv_bytes, status_rows,
+                                 optimality_gap)
+from obsplan.replan import KINDS, MODES, STATUS_ORDER, Event, busiest_station, suggest_targets  # noqa: E402
 from obsplan.target_status import STATUS, describe, summarize  # noqa: E402
 from obsplan.config import Config  # noqa: E402
-from obsplan.data import load  # noqa: E402
-from obsplan.problem import Problem  # noqa: E402
-from obsplan.visibility import get_windows  # noqa: E402
 
 RUNS = SCHEME_DIR / "outputs" / "app_runs"
 BLUE, ORANGE, AQUA, NAVY = "#2a78d6", "#eb6834", "#1baf7a", "#14213D"
 PRI_COLORS = {"高": ORANGE, "中": BLUE, "低": AQUA}
+CHANGE_COLORS = {"冻结": "#b9bfca", "保留": BLUE, "移动": ORANGE, "删除": "#d1495b", "新增": AQUA}
 
 st.set_page_config(page_title="空间目标观测规划", page_icon="🛰️", layout="wide")
 
@@ -42,9 +43,8 @@ st.set_page_config(page_title="空间目标观测规划", page_icon="🛰️", l
 @st.cache_resource(show_spinner="正在读取数据并计算可见窗口（首次约 30 秒）……")
 def base(cfg_json: str):
     cfg = Config(**json.loads(cfg_json))
-    ds = load(cfg)
-    pb = Problem.build(cfg, ds, get_windows(cfg, ds))
-    return cfg, ds, pb, orbit_class(ds)
+    ds, pb, timing = load_problem(cfg)
+    return cfg, ds, pb, orbit_class(ds), timing
 
 
 def cfg_key(cfg: Config) -> str:
@@ -52,8 +52,8 @@ def cfg_key(cfg: Config) -> str:
 
 
 def problem_for(run: Run):
-    cfg = Config(**run.cfg)
-    cfg_, ds, pb, orbit = base(cfg_key(cfg))
+    cfg = Config.from_saved(run.cfg)
+    cfg_, ds, pb, orbit, _ = base(cfg_key(cfg))
     if run.subset:
         pb = subset_problem(pb, run.subset["target_frac"], run.subset["stations"], run.subset.get("seed", 0))
     return cfg_, ds, pb, orbit
@@ -67,8 +67,7 @@ for p in runs:
     try:
         r = Run.load(p)
         m = r.metrics
-        name = r.notes.get("label", f"{r.run_id[:15]} · {r.algo}")
-        labels[p] = f"{name} · 覆盖 {m['covered']} · 得分 {m['score']:.0f}" + (" · 演示" if r.subset else "")
+        labels[p] = f"{run_name(r)} · 覆盖 {m['covered']} · 得分 {m['score']:.0f}" + (" · 演示" if r.subset else "")
     except Exception:  # 损坏的结果文件不影响界面
         continue
 choice = None
@@ -90,15 +89,16 @@ with st.sidebar.expander("新建规划", expanded=not labels):
     moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
     w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
     algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
-    mode = st.radio("模式", ["快速（全量约 1 分钟）", "高质量（全量约 2 分钟）"], horizontal=False)
+    mode = st.radio("模式", ["快速（全量约 40 秒）", "高质量（全量约 1 分钟）"], horizontal=False)
     fast = mode.startswith("快速")
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
     evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
                           help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
-                               "关闭则用人工的「价值 − 价格」。全量约多 15 秒，综合指标高约 0.8%")
+                               "关闭则用人工的「价值 − 价格」。本赛题数据上综合指标高约 0.8%。"
+                               "勾选时人工规则也会同时排一份，自动取综合高的（稳健模式），换一份数据也不会比人工规则差，用时基本不变")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
-                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 4 秒")
+                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
     stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
@@ -107,50 +107,105 @@ with st.sidebar.expander("新建规划", expanded=not labels):
 if go_btn:
     cfg = Config(start_utc=f"{d0:%Y-%m-%d}T00:00:00", days=float(days), elev_min=elev_min, elev_max=elev_max,
                  sun_max=sun_max, use_sunlit=use_sunlit, w_cov=w_cov, w_score=1 - w_cov, moon_sep_deg=float(moon))
-    cfg_, ds, pb, orbit = base(cfg_key(cfg))
+    st.info("正在运行新的规划，完成后这里自动换成新结果（下方变灰的内容是上一份结果）。")
+    cfg_, ds, pb, orbit, _ = base(cfg_key(cfg))
     subset = {}
     if frac < 1 or len(stations) < 10:
         subset = {"target_frac": float(frac), "stations": [s - 1 for s in stations], "seed": 0}
         pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
-    bar = st.sidebar.progress(0.0, text="开始规划……")
-    run = run_planning(pb, algo, iters=iters, progress=lambda f, t: bar.progress(min(1.0, f), text=t),
-                       weather=weather and algo == "H", fast=fast, refine_seconds=refine_on,
-                       full_problem=not subset, evolved_rule=evolved)
+    bars = [st.progress(0.0, text="开始规划……"), st.sidebar.progress(0.0, text="开始规划……")]   # 主区域和侧栏各一条
+
+    def tick(f, t):
+        for b in bars:
+            b.progress(min(1.0, f), text=t)
+
+    run = run_planning(pb, algo, iters=iters, progress=tick, weather=weather and algo == "H", fast=fast,
+                       refine_seconds=refine_on, full_problem=not subset, evolved_rule=evolved)
     run.subset = subset
-    bar.progress(1.0, text=f"完成，用时 {run.runtime_s:.0f} 秒")
+    tick(1.0, f"完成，用时 {run.runtime_s:.0f} 秒")
     run.save(RUNS)
     st.session_state["selected"] = run.run_id
     st.rerun()
 
 if choice is None:
     st.title("空间目标观测规划")
-    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 1 分钟、高质量模式约 2 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
+    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 40 秒、高质量模式约 1 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
     st.stop()
 
 run = Run.load(choice)
 cfg, ds, pb, orbit = problem_for(run)
 m = run.metrics
-rows = task_rows(pb, run, orbit)
-df = pd.DataFrame(rows)
+sc = scope_metrics(cfg, ds, run)
+in_scope = sc["mask"]              # 演示结果：参与规划的目标；全量为 None
+n_scope = sc["targets"]
+hi_all = ds.priority == max(cfg.priority_score.values())
+pri_total = {lab: int((np.array(ds.priority_label) == lab)[in_scope if in_scope is not None else slice(None)].sum())
+             for lab in ("高", "中", "低")}
+
+
+@st.cache_data(show_spinner="整理任务明细与目标状态……", max_entries=8)
+def run_tables(run_id: str, _pb, _run, _orbit):
+    """一份结果的任务明细与目标状态表（按结果编号缓存，切换页签不重复计算），以及各自用时。"""
+    t0 = time.time()
+    tdf = pd.DataFrame(task_rows(_pb, _run, _orbit))
+    t1 = time.time()
+    srows_ = status_rows(_pb, _run)
+    return tdf, srows_, {"rows_s": t1 - t0, "status_s": time.time() - t1}
+
+
+@st.cache_data(show_spinner=False, max_entries=8)
+def run_structural(run_id: str, _pb, _run):
+    t0 = time.time()
+    return structural_check(_pb, _run), time.time() - t0
+
+
+df, srows, table_timing = run_tables(run.run_id, pb, run, orbit)
+if in_scope is not None and len(srows) == len(in_scope):
+    srows = [r for r, keep in zip(srows, in_scope) if keep]      # 演示结果只统计参与规划的目标
+
+
+def goto(name: str):
+    """页签之间跳转（按钮回调）。"""
+    st.session_state["page"] = name
+
+
+def links(names, key: str):
+    row = st.container(horizontal=True, gap="small")
+    for n in names:
+        row.button(f"查看「{n}」→", key=f"go_{key}_{n}", on_click=goto, args=(n,), type="tertiary")
+
+
+def fmt_s(x) -> str:
+    if x is None:
+        return "—"
+    return f"{x * 1000:.0f} 毫秒" if x < 1 else (f"{x:.1f} 秒" if x < 90 else f"{x / 60:.1f} 分钟")
+
+
+def utc_of(seconds) -> datetime:
+    return (cfg.start_dt + timedelta(seconds=float(seconds))).replace(tzinfo=None)
+
 
 st.title("空间目标观测规划")
-scope = "全量" if not run.subset else f"演示：{run.subset['target_frac']:.0%} 目标 × {len(run.subset['stations'])} 站"
+scope = "全量" if not run.subset else (f"演示：{run.subset['target_frac']:.0%} 目标（{n_scope:,} 颗）× "
+                                         f"{len(run.subset['stations'])} 站")
 extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "") + \
     (" · 按历史天气期望规划" if run.notes.get("weather_aware") else "") + \
     (" · 按秒精修" if run.notes.get("refine", {}).get("refined") else "")
 st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC）· {scope} · "
            f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}{extra}")
 
-tabs = st.tabs(["概览", "站点地图", "甘特图", "时间价格", "任务解释", "天气与月光", "校验与导出", "结果对比", "规则说明"])
-
 # ------------------------------------------------------------------ 概览
-with tabs[0]:
+def page_overview():
     k = st.columns(6)
     v = run.validation
+    gap = optimality_gap(cfg, run)
     tiles = [
-        ("覆盖目标", f"{m['covered']}", f"可观测 {(pb.max_obs > 0).sum()} / 全部 {ds.n_targets}"),
+        ("覆盖目标", f"{m['covered']}", f"可观测 {(pb.max_obs > 0).sum()} / " +
+         (f"全部 {ds.n_targets}" if not run.subset else f"本次参与 {n_scope}")),
         ("累计得分", f"{m['score']:.0f}", "含 48 小时后的重复观测"),
-        ("综合指标", f"{m['combined']:.4f}", f"覆盖权重 {cfg.w_cov:g}（内部口径）"),
+        ("综合指标", f"{sc['combined']:.4f}", (f"离可证明的上界 {gap['ub']:.4f} 最多差 {gap['gap_pct']:.1f}%（{gap['label']}）"
+                                              if gap else f"覆盖权重 {cfg.w_cov:g}（内部口径）") if not run.subset else
+         f"按本次参与的 {n_scope} 颗目标归一" + ("；目标少、站点有富余，重复观测多，所以超过 1" if sc["combined"] > 1 else "")),
         ("观测任务", f"{m['tasks']}", f"其中重复观测 {m['repeat_tasks']}"),
         ("求解用时", f"{run.runtime_s:.0f} 秒", "不含窗口预处理"),
         ("Skyfield 校验", "未校验" if v is None else ("全部合法" if v["legal"] else "有违规"),
@@ -162,7 +217,7 @@ with tabs[0]:
     c1, c2, c3 = st.columns(3)
     pri = pd.DataFrame({"优先级": ["高", "中", "低"],
                         "已覆盖": [m["covered_高"], m["covered_中"], m["covered_低"]],
-                        "未覆盖": [m["total_高"] - m["covered_高"], m["total_中"] - m["covered_中"], m["total_低"] - m["covered_低"]]})
+                        "未覆盖": [pri_total[lab] - m[f"covered_{lab}"] for lab in ("高", "中", "低")]})
     fig = px.bar(pri, x="优先级", y=["已覆盖", "未覆盖"], color_discrete_sequence=[BLUE, "#d9dce3"],
                  title="各优先级覆盖情况")
     fig.update_layout(legend_title_text="", yaxis_title="目标数", height=360)
@@ -184,14 +239,13 @@ with tabs[0]:
     st.subheader("目标状态分析")
     st.caption("按观测任务状态理解（答疑 #26）：每颗目标观测了几次（只计满足 48 小时间隔的观测，与计分口径相同）、"
                "总观测时长、首次与最近一次观测时间，以及没有覆盖或没有观测满的原因。")
-    srows = status_rows(pb, run)
     ssum = summarize(srows)
     st.write(describe(ssum))
     cnt = pd.DataFrame(ssum["by_priority"]).T
     cnt = cnt.loc[:, (cnt != 0).any(axis=0)]
     cnt.index = [f"{p}优先级" for p in cnt.index]
     st.dataframe(cnt, use_container_width=True)
-    pick = st.selectbox("查看明细", ["未覆盖与未观测满"] + list(STATUS.values()), key="status_pick")
+    pick = st.selectbox("查看明细", ["未覆盖与未观测满"] + list(STATUS.values()), key="status_pick", persist_state="page")
     sdf = pd.DataFrame(srows)
     if pick == "未覆盖与未观测满":
         sdf = sdf[(sdf["status"] == "UNCOVERED") | ((sdf["n_obs"] > 0) & (sdf["n_obs"] < sdf["max_obs"])
@@ -207,7 +261,7 @@ with tabs[0]:
                  use_container_width=True, hide_index=True)
 
 # ------------------------------------------------------------------ 站点地图
-with tabs[1]:
+def page_map():
     cnt = df.groupby("站点").size() if len(df) else pd.Series(dtype=int)
     st_df = pd.DataFrame({"站点": [f"{i + 1}号站" for i in range(ds.n_stations)], "经度": ds.st_lon, "纬度": ds.st_lat,
                           "海拔(m)": ds.st_alt_m, "任务数": [int(cnt.get(i + 1, 0)) for i in range(ds.n_stations)],
@@ -223,17 +277,18 @@ with tabs[1]:
     st.dataframe(st_df, hide_index=True, use_container_width=True)
 
 # ------------------------------------------------------------------ 甘特图
-with tabs[2]:
+def page_gantt():
     nights = station_nights(pb)
     c1, c2, c3 = st.columns([1, 2, 1])
-    s_sel = c1.selectbox("站点", list(range(1, pb.n_stations + 1)), format_func=lambda s: f"{s}号站")
+    s_sel = c1.selectbox("站点", list(range(1, pb.n_stations + 1)), format_func=lambda s: f"{s}号站",
+                         key="gantt_station", persist_state="page")
     ns = [(n, a, b) for (s, n, a, b) in nights if s == s_sel - 1]
     if not ns:
         st.info("该站在规划期内没有黑夜时段。")
     else:
         n_sel = c2.selectbox("夜晚", ns, format_func=lambda x: f"第 {x[0] + 1} 夜：{cfg.start_dt + timedelta(seconds=x[1] * cfg.cell_s):%m-%d %H:%M} – "
                                                           f"{cfg.start_dt + timedelta(seconds=x[2] * cfg.cell_s):%m-%d %H:%M} UTC")
-        color_by = c3.radio("颜色", ["优先级", "轨道"], horizontal=True)
+        color_by = c3.radio("颜色", ["优先级", "轨道"], horizontal=True, key="gantt_color", persist_state="page")
         a = cfg.start_dt + timedelta(seconds=n_sel[1] * cfg.cell_s)
         b = cfg.start_dt + timedelta(seconds=n_sel[2] * cfg.cell_s)
         part = df[(df["站点"] == s_sel) & (df["开始"] >= a) & (df["结束"] <= b)] if len(df) else df
@@ -252,12 +307,12 @@ with tabs[2]:
             st.dataframe(show, hide_index=True, use_container_width=True, height=300)
 
 # ------------------------------------------------------------------ 时间价格
-with tabs[3]:
+def page_price():
     if run.mu is None:
         st.info("时间价格只有价格协调方案（H）才有。")
     else:
         mu = run.mu.astype(float)
-        day = st.slider("查看第几天", 1, int(cfg.days), 2)
+        day = st.slider("查看第几天", 1, int(cfg.days), 2, key="price_day", persist_state="page")
         bins = 20
         a0, b0 = (day - 1) * int(86400 / cfg.cell_s), min(day * int(86400 / cfg.cell_s), mu.shape[1])
         blk = mu[:, a0:b0]
@@ -273,7 +328,7 @@ with tabs[3]:
                     "低纬度站午夜前后更贵。规划时每个任务优先放进它窗口内最便宜的时段。")
 
 # ------------------------------------------------------------------ 任务解释
-with tabs[4]:
+def page_explain():
     c1, c2 = st.columns([1, 2])
     covered = set(run.target.tolist())
     examples = {"自己输入编号": None}
@@ -338,7 +393,7 @@ with tabs[4]:
                        "橙色带为观测时段，深色带为目标处于地球阴影；虚线为规则界限。前后各显示 5 分钟。")
 
 # ------------------------------------------------------------------ 天气与月光（加分项）
-with tabs[5]:
+def page_weather():
     st.markdown("赛题基础部分不考虑天气；这里作为加分项：用 Open-Meteo 历史再分析数据取各站**过去 10 年同期**的逐小时总云量，"
                 f"云量 ≤ {CLOUD_THRESHOLD:g}% 视为可观测。首次使用需要联网（只发送四舍五入到 0.5° 的站点坐标），之后读缓存。")
     if st.button("读取历史云量并回放本计划", type="primary"):
@@ -407,7 +462,7 @@ with tabs[5]:
                        f" {rng(gains)}" + (f"；再用真实存档预报 {rng(fc_gain)}" if fc_gain else "")
                        + (f"；完美预报（参照）{rng(oracle_gain)}" if oracle_gain else "") + "。")
     c = st.columns([1, 1, 2])
-    year = c[0].selectbox("用哪一年的真实天气", list(range(2016, 2026)), index=8, key="dyn_year")
+    year = c[0].selectbox("用哪一年的真实天气", list(range(2016, 2026)), index=8, key="dyn_year", persist_state="page")
     c[1].markdown("&nbsp;")
     go_sim = c[1].button("逐日模拟", type="primary", key="dyn_go")
     c[2].caption("按当前计划的场景（目标、站点、规划期、规则），把“一次排完、照单执行”和“每天按执行结果重排”各模拟一遍。演示模式几秒；全量约 3 分钟。"
@@ -435,14 +490,29 @@ with tabs[5]:
         st.plotly_chart(fig, use_container_width=True)
 
 # ------------------------------------------------------------------ 校验与导出
-with tabs[6]:
+def skyfield_button(key: str):
+    """校验当前结果（Skyfield 逐秒），结果写回结果文件。"""
+    if st.button("开始 Skyfield 校验（全量约 1.5 分钟）", type="primary", key=key):
+        with st.spinner("逐秒校验中……"):
+            validate_run(pb, run).save(RUNS)
+        st.rerun()
+
+
+def download_buttons(key: str):
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("下载观测计划（CSV）", lambda: csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv",
+                       mime="text/csv", use_container_width=True, key=f"{key}_plan")
+    c2.download_button("下载目标状态表（CSV）", lambda: status_csv_bytes(srows),
+                       file_name=f"target_status_{run.run_id}.csv", mime="text/csv", use_container_width=True,
+                       key=f"{key}_status")
+    c3.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
+                       mime="application/json", use_container_width=True, key=f"{key}_summary")
+
+
+def page_export():
     if run.validation is None:
         st.write("用 Skyfield（评审参考标准）对每个任务逐秒重算仰角、站点太阳角和目标受照，并复算得分。")
-        if st.button("开始校验（全量约 2 分钟）", type="primary"):
-            with st.spinner("逐秒校验中……"):
-                run = validate_run(pb, run)
-                run.save(RUNS)
-            st.rerun()
+        skyfield_button("validate_export")
     else:
         v = run.validation
         if v["legal"]:
@@ -451,16 +521,10 @@ with tabs[6]:
             st.error(f"发现违规：{v['violations']}")
         mg = v["margins"]
         st.write(f"最小余量：仰角下限 {mg[0]:.3f}°，仰角上限 {mg[1]:.3f}°，太阳角 {mg[2]:.3f}°")
-    c1, c2, c3 = st.columns(3)
-    c1.download_button("下载观测计划（CSV）", csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv", mime="text/csv",
-                       use_container_width=True)
-    c2.download_button("下载目标状态表（CSV）", status_csv_bytes(status_rows(pb, run)),
-                       file_name=f"target_status_{run.run_id}.csv", mime="text/csv", use_container_width=True)
-    c3.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
-                       mime="application/json", use_container_width=True)
+    download_buttons("export")
 
 # ------------------------------------------------------------------ 结果对比
-with tabs[7]:
+def page_compare():
     recs = []
     for p in runs:
         try:
@@ -468,12 +532,18 @@ with tabs[7]:
         except Exception:
             continue
         rc = r.cfg
+        rpn = r.notes.get("replan")
+        try:
+            comb = scope_metrics(Config(**rc), ds, r)["combined"]     # 演示结果按参与目标归一
+        except Exception:
+            comb = r.metrics["combined"]
         recs.append({
-            "名称": r.notes.get("label", r.run_id), "算法": r.algo, "模式": r.notes.get("mode", ""),
+            "名称": run_name(r), "算法": r.algo,
+            "模式": " · ".join(x for x in (r.notes.get("mode", ""), f"重排（{MODES.get(rpn['mode'], rpn['mode'])}）" if rpn else "") if x),
             "范围": "全量" if not r.subset else f"演示 {r.subset['target_frac']:.0%}×{len(r.subset['stations'])}站",
             "规划期": rc["start_utc"][:10], "月光规避": f"{rc.get('moon_sep_deg', 0):g}°" if rc.get("moon_sep_deg") else "—",
             "按天气规划": "是" if r.notes.get("weather_aware") else "—",
-            "覆盖": r.metrics["covered"], "得分": round(r.metrics["score"], 1), "综合": round(r.metrics["combined"], 4),
+            "覆盖": r.metrics["covered"], "得分": round(r.metrics["score"], 1), "综合": round(comb, 4),
             "用时(秒)": round(r.runtime_s), "校验": "—" if r.validation is None else ("合法" if r.validation["legal"] else "有违规"),
         })
     if not recs:
@@ -490,10 +560,13 @@ with tabs[7]:
             fig = px.bar(full, x="名称", y="得分", color_discrete_sequence=[ORANGE], title="累计得分（全量）")
             fig.update_layout(height=360, xaxis_title="")
             c2.plotly_chart(fig, use_container_width=True)
-        st.caption("综合 = w × 覆盖/10000 + (1 − w) × 得分/30062（内部比较口径），不同覆盖权重的运行之间不宜直接比较综合值。")
+        st.caption("综合 = w × 覆盖/10000 + (1 − w) × 得分/30062（内部比较口径），不同覆盖权重的运行之间不宜直接比较综合值；"
+                   "演示结果只排了一部分目标，综合值按参与的目标归一，只适合和同一演示范围的结果比较"
+                   "（满分参考按每颗目标满分观测一次计，目标少、重复观测多时会超过 1）。"
+                   "重排结果的用时是重排本身的用时。")
 
 # ------------------------------------------------------------------ 规则说明
-with tabs[8]:
+def page_rules():
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
@@ -507,3 +580,466 @@ with tabs[8]:
 | 月光规避（加分项） | {'月亮在地平线以上时，目标与月亮角距 ≥ %g°' % cfg.moon_sep_deg if cfg.moon_sep_deg > 0 else '不考虑'} | 说明.docx 加分项 |
 | 综合指标 | {cfg.w_cov:g} × 覆盖数/10000 + {cfg.w_score:g} × 得分/30062（内部比较口径） | 答疑 #36 |
 """)
+
+# ------------------------------------------------------------------ 突发重规划（产品演示与加分项）
+@st.cache_data(show_spinner=False, max_entries=16)
+def replan_candidates(run_id: str, kind: str, t_s: int, _pb, _run) -> list[int]:
+    return suggest_targets(_pb, _run.schedule(), t_s, kind)
+
+
+def target_label(x: int) -> str:
+    n = int((run.target == x).sum())
+    return f"{ds.satnum[x]} · {ds.names[x] or '无名称'} · {ds.priority_label[x]}优先级 · 原计划观测 {n} 次"
+
+
+def default_event(t_s: int, hours: float = 6.0) -> Event:
+    """示例事件：事件时刻之后 hours 小时内任务最多的站点停机。"""
+    return Event("down", int(t_s), station=busiest_station(run.schedule(), pb.n_stations, t_s, hours), hours=float(hours))
+
+
+def run_replan(ev: Event, mode: str) -> dict:
+    bar = st.progress(0.0, text="准备重排……")
+    res = replan_run(pb, run, ev, mode=mode, progress=lambda f, t: bar.progress(min(1.0, f), text=t))
+    bar.empty()
+    n = st.session_state.get("replan", {}).get("n", 0) + 1
+    st.session_state["replan"] = {"run_id": run.run_id, "res": res, "n": n}
+    return res
+
+
+def current_replan():
+    got = st.session_state.get("replan")
+    return got if got and got["run_id"] == run.run_id else None
+
+
+def obs_text(obs) -> str:
+    return "、".join(f"{s + 1}号站 {utc_of(a):%m-%d %H:%M:%S} 起 {d} 秒" for s, a, d in obs) or "无"
+
+
+def show_replan(got: dict):
+    res, rid = got["res"], got["n"]
+    ev, d = res["event"], res["diff"]
+    b, n0, a = res["before"], res["no_replan"], res["after"]
+    old, new = run.schedule(), res["schedule"]
+    o_st, n_st = res["old_status"], res["new_status"]
+    st.success(f"**{res['describe']}** · {MODES[res['mode']]} · 用时 {res['seconds']:.0f} 秒")
+    base_name = "只取消受影响的任务" if ev.kind == "down" else "原计划"
+    k = st.columns(4)
+    k[0].metric("覆盖目标", f"{a['covered']}", f"{a['covered'] - n0['covered']:+d}（对比{base_name}）")
+    k[0].caption(f"原计划 {b['covered']}" + (f" → 只取消 {n0['covered']}" if ev.kind == "down" else "") + f" → 重排后 {a['covered']}")
+    k[1].metric("累计得分", f"{a['score']:.0f}", f"{a['score'] - n0['score']:+.0f}")
+    k[1].caption(f"原计划 {b['score']:.0f}" + (f" → 只取消 {n0['score']:.0f}" if ev.kind == "down" else "")
+                 + f" → 重排后 {a['score']:.0f}" + ("（按新优先级计分）" if ev.kind == "priority" else ""))
+    k[2].metric("综合指标", f"{a['combined']:.4f}", f"{a['combined'] - n0['combined']:+.4f}")
+    k[2].caption("0.5 × 覆盖/目标数 + 0.5 × 得分/满分（内部口径）")
+    k[3].metric("原计划任务保留", f"{d['保留'] / max(d['原计划 t 之后'], 1):.1%}")
+    k[3].caption(f"事件之后原有 {d['原计划 t 之后']} 个任务，保留 {d['保留']} 个")
+
+    st.markdown("**对原计划的扰动**（只看事件之后的任务；同一站、开始和结束都相差不超过 1 分钟算保留）")
+    k = st.columns(5)
+    k[0].metric("冻结", d["冻结"])
+    k[0].caption("事件前已开始的任务，原样不动")
+    k[1].metric("保留", d["保留"])
+    k[1].caption(f"其中 {d['完全不变']} 个起止时刻完全不变，其余按秒微调")
+    k[2].metric("移动", d["移动"])
+    k[2].caption("同一目标换了站点、时间或时长")
+    k[3].metric("删除", d["删除"])
+    k[3].caption(f"其中 {d['停机取消'] + d['停机中断'] - d['取消后改到别处']} 个因停机取消、没能改到别处" if ev.kind == "down"
+                 else "为腾出时间去掉的低价值观测")
+    k[4].metric("新增", d["新增"])
+    k[4].caption("原计划里没有的观测")
+    if ev.kind == "down":
+        st.write(f"停机时段内 {ev.station + 1} 号站原有 {d['停机取消']} 个任务取消"
+                 + (f"，另有 {d['停机中断']} 个正在执行的任务中断" if d["停机中断"] else "")
+                 + f"；其中 {d['取消后改到别处']} 个改到别的站或别的时间观测（计入移动），其余计入删除。")
+    elif "target" in res:
+        x, ti = ev.target, res["target"]
+        bo = [o for o in ti["before"] if o[1] >= ev.t_s]
+        ao = [o for o in ti["after"] if o[1] >= ev.t_s]
+        if ev.kind == "priority":
+            st.write(f"目标 {ds.satnum[x]} 升为高优先级：事件之后原计划观测 {len(bo)} 次（{sum(o[2] for o in bo)} 秒）"
+                     f"→ 重排后 {len(ao)} 次（{sum(o[2] for o in ao)} 秒）。重排后：{obs_text(ao)}。")
+            if len(ao) <= len(bo) and sum(o[2] for o in ao) <= sum(o[2] for o in bo):
+                st.caption("没有找到更好的安排：48 小时后的可见时段已被价值更高的任务占满，或剩余时间不够再观测一次。")
+        elif ti.get("ok"):
+            st.write(f"必须观测的目标 {ds.satnum[x]} 已安排：{obs_text(ao)}。")
+        else:
+            why = ("已观测满 3 次" if ti["frozen_obs"] >= 3 else
+                   "事件之后没有可见窗口（或与之前的观测间隔不足 48 小时）" if ti["windows_after_t"] == 0 else
+                   "可见时段都被不能调整的任务占用")
+            st.warning(f"目标 {ds.satnum[x]} 没能安排：{why}。")
+
+    st.markdown("**受影响站点的甘特图对比**")
+    chg_o = np.isin(o_st, ["移动", "删除"])
+    chg_n = np.isin(n_st, ["移动", "新增"])
+    per = (np.bincount(old.station[chg_o], minlength=pb.n_stations)
+           + np.bincount(new.station[chg_n], minlength=pb.n_stations))
+    affected = [int(s) for s in np.argsort(-per, kind="stable") if per[s] > 0]
+    if ev.kind == "down":
+        affected = [ev.station] + [s for s in affected if s != ev.station]
+    t0d, t1d = utc_of(0), utc_of(cfg.days * 86400)
+    if ev.kind == "down":
+        lo, hi = utc_of(ev.t_s - 3600), utc_of(ev.down[1] + 3 * 3600)
+    else:
+        times = np.concatenate([old.start_s[chg_o], new.start_s[chg_n]])
+        c0 = float(times.min()) if len(times) else float(ev.t_s)
+        lo, hi = utc_of(c0 - 2 * 3600), utc_of(c0 + 4 * 3600)
+    lo, hi = max(lo, t0d), min(hi, t1d)
+    c1, c2 = st.columns([2, 3])
+    stations = c1.multiselect("对比的站点", list(range(pb.n_stations)), default=affected[:3],
+                              format_func=lambda s: f"{s + 1}号站（改动 {per[s]}）", key=f"rp_gst_{rid}")
+    rng = c2.slider("时间范围（UTC）", min_value=t0d, max_value=t1d, value=(lo, hi), step=timedelta(minutes=30),
+                    format="MM-DD HH:mm", key=f"rp_grange_{rid}")
+    a_s, b_s = (rng[0] - t0d).total_seconds(), (rng[1] - t0d).total_seconds()
+    rows = []
+    for plan, sch, stt in (("原计划", old, o_st), ("新计划", new, n_st)):
+        e_ = sch.start_s + sch.dur_s
+        for i in np.nonzero(np.isin(sch.station, stations) & (sch.start_s < b_s) & (e_ > a_s))[0]:
+            x = int(sch.target[i])
+            rows.append({"行": f"{int(sch.station[i]) + 1}号站 · {plan}", "开始": utc_of(sch.start_s[i]),
+                         "结束": utc_of(e_[i]), "状态": stt[i], "目标编号": int(ds.satnum[x]),
+                         "优先级": res["ds"].priority_label[x], "时长(秒)": int(sch.dur_s[i])})
+    if rows:
+        order = [f"{s + 1}号站 · {p}" for s in stations for p in ("原计划", "新计划")]
+        gdf = pd.DataFrame(rows)
+        fig = px.timeline(gdf, x_start="开始", x_end="结束", y="行", color="状态", color_discrete_map=CHANGE_COLORS,
+                          category_orders={"行": order, "状态": STATUS_ORDER},
+                          hover_data=["目标编号", "优先级", "时长(秒)"])
+        fig.add_vline(x=utc_of(ev.t_s), line_dash="dash", line_color=NAVY, line_width=1.5)
+        fig.add_annotation(x=utc_of(ev.t_s), y=1.0, yref="paper", text="事件时刻", showarrow=False, yanchor="bottom",
+                           font=dict(color=NAVY))
+        if ev.kind == "down" and ev.station in stations:
+            # 只标在停机站的两行：类别轴上的位置按图里实际的类别顺序取（px.timeline 会把顺序倒过来，第一行在最上面）
+            cats = list(fig.layout.yaxis.categoryarray or order)
+            pos = [cats.index(f"{ev.station + 1}号站 · {p}") for p in ("原计划", "新计划")]
+            fig.add_shape(type="rect", x0=utc_of(ev.down[0]), x1=utc_of(ev.down[1]), y0=min(pos) - 0.5,
+                          y1=max(pos) + 0.5, xref="x", yref="y", fillcolor="#d1495b", opacity=0.08, line_width=0,
+                          layer="below")
+            fig.add_annotation(x=utc_of(min(ev.down[1], ev.down[0] + 1800)), y=1.0, yref="paper", xanchor="left",
+                               text=f"{ev.station + 1}号站停机", showarrow=False, yanchor="bottom",
+                               font=dict(color="#d1495b"))
+        fig.update_layout(height=110 + 46 * len(order), xaxis_title="UTC", yaxis_title="", legend_title_text="",
+                          margin=dict(t=30, b=10, l=10, r=10), legend=dict(orientation="h", y=-0.25 if len(order) > 4 else -0.4))
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("每个站上下两行：原计划与新计划。灰色为事件前已执行（冻结），蓝色保留，橙色移动，红色删除，绿色新增；"
+                   "停机时段用淡红色标出。可以拖动选择范围放大。")
+    else:
+        st.info("所选站点在这个时间范围内没有任务。")
+
+    st.markdown("**约束校验**")
+    viol = res["violations"]
+    k = st.columns(3 if ev.kind == "down" else 2)
+    k[0].metric("结构检查", "全部合法" if not viol else f"{sum(len(v) for v in viol.values())} 项违规")
+    k[0].caption("时长 120–240 秒、同站切换 30 秒、同一目标间隔 48 小时、任务都在可见窗口内（obsplan/checks.py）")
+    if viol:
+        st.error({kk: len(vv) for kk, vv in viol.items()})
+    k[1].metric("冻结部分", "未改动" if res["frozen_unchanged"] else "有改动")
+    k[1].caption(f"事件前已开始的 {d['冻结']} 个任务与原计划逐一相同")
+    if ev.kind == "down":
+        k[2].metric("停机时段内的任务", f"{res['outage_tasks']} 个")
+        k[2].caption(f"{ev.station + 1} 号站 {utc_of(ev.down[0]):%m-%d %H:%M} – {utc_of(ev.down[1]):%m-%d %H:%M}")
+    changed = replan_changed(res)
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        allk = st.checkbox("同时校验原样保留的任务（较慢）", key=f"rp_valall_{rid}")
+        n_chk = int((n_st != "冻结").sum()) if allk else len(changed)
+        go_val = st.button(f"Skyfield 逐秒校验{'事件后的全部' if allk else '改动过的'} {n_chk} 个任务", key=f"rp_val_{rid}",
+                           type="primary")
+    if go_val:
+        with st.spinner("Skyfield 逐秒校验中……"):
+            st.session_state["replan_val"] = (rid, validate_replan(pb, res, include_kept=allk))
+    val = st.session_state.get("replan_val")
+    if val and val[0] == rid:
+        v = val[1]
+        (c2.success if v["legal"] else c2.error)(
+            f"Skyfield 校验{v['scope']} {v['tasks']} 个：" + ("全部合法" if v["legal"] else f"违规 {v['violations']}")
+            + f"（{v['seconds']:.0f} 秒）")
+    else:
+        c2.caption("原样保留和冻结的任务与原计划完全相同" + ("，原计划已通过 Skyfield 校验。" if run.validation and run.validation["legal"]
+                                                  else "；原计划可在「校验与导出」页签校验。"))
+
+    c1, c2, c3 = st.columns(3)
+    c1.download_button("下载重排后的计划（CSV）", lambda: schedule_csv_bytes(cfg, res["ds"], new, f"replan_{run.run_id}"),
+                       file_name=f"plan_{run.run_id}_replan.csv", mime="text/csv", use_container_width=True,
+                       key=f"rp_dl_{rid}")
+    crow = []
+    for plan, sch, stt in (("原计划", old, o_st), ("新计划", new, n_st)):
+        for i in np.nonzero(np.isin(stt, ["移动", "删除", "新增"]))[0]:
+            x = int(sch.target[i])
+            crow.append({"状态": stt[i], "计划": plan, "目标编号": int(ds.satnum[x]), "名称": ds.names[x],
+                         "优先级": res["ds"].priority_label[x], "站点": int(sch.station[i]) + 1,
+                         "开始": f"{utc_of(sch.start_s[i]):%m-%d %H:%M:%S}",
+                         "结束": f"{utc_of(sch.start_s[i] + sch.dur_s[i]):%m-%d %H:%M:%S}", "时长(秒)": int(sch.dur_s[i])})
+    cdf = pd.DataFrame(crow)
+    if len(cdf):
+        cdf = cdf.sort_values(["目标编号", "计划", "开始"])
+    c2.download_button("下载改动清单（CSV）", ("﻿" + cdf.to_csv(index=False)).encode("utf-8"),
+                       file_name=f"changes_{run.run_id}.csv", mime="text/csv", use_container_width=True,
+                       key=f"rp_dlc_{rid}")
+    if ev.kind == "priority":
+        c3.caption("优先级变化后的结果不另存：其他页签按原始优先级计分。")
+    elif c3.button("另存为新结果（用其他页签查看）", use_container_width=True, key=f"rp_save_{rid}"):
+        new_run = save_replan(run, res, RUNS)
+        st.session_state["selected"] = new_run.run_id
+        st.rerun()
+    if len(cdf):
+        with st.expander(f"改动明细（{len(cdf)} 行）"):
+            st.dataframe(cdf, hide_index=True, use_container_width=True, height=320)
+
+
+def page_replan():
+    st.markdown("正式赛题没有突发情况（答疑 #32），这里演示系统应对突发事件的闭环：**状态更新 → 动态重规划 → 约束校验**。"
+                "选一个时刻和事件：此前已经开始的任务冻结不动，之后的时段用同一套价格协调重排，并统计对原计划的改动。")
+    t0d = utc_of(0)
+    t1d = utc_of(cfg.days * 86400)
+    ev = None
+    with st.container(border=True):
+        c1, c2, c3 = st.columns([3, 3, 2])
+        when = c1.slider("事件时刻（UTC）", min_value=t0d, max_value=t1d - timedelta(hours=1),
+                         value=t0d + timedelta(hours=min(60.0, cfg.days * 12)), step=timedelta(minutes=10),
+                         format="MM-DD HH:mm", key="rp_when", persist_state="page")
+        t_s = int((when - t0d).total_seconds())
+        kind = c2.radio("事件类型", list(KINDS), format_func=KINDS.get, horizontal=True, key="rp_kind",
+                        persist_state="page")
+        mode = c3.radio("重排方式", list(MODES), format_func=lambda k_: MODES[k_] + ("（推荐）" if k_ == "minimal" else ""),
+                        key="rp_mode", persist_state="page",
+                        help="扰动最小：事件之后仍然可行的原任务原样保留，只为受影响的目标挤让少量任务；"
+                             "全面重排：事件之后从头规划，九成以上的任务会变，质量也不一定更好"
+                             "（在默认的 H+ 结果上实测综合指标反而略低）。")
+        c4, c5 = st.columns([3, 2])
+        if kind == "down":
+            busy = np.bincount(run.station[(run.start_s >= t_s) & (run.start_s < t_s + 6 * 3600)],
+                               minlength=pb.n_stations)
+            station = c4.selectbox("停机站点", list(range(pb.n_stations)), index=int(busy.argmax()),
+                                   format_func=lambda s: f"{s + 1}号站（事件后 6 小时内原有 {busy[s]} 个任务）",
+                                   key="rp_station", persist_state="page")
+            hours = c5.slider("停机时长（小时）", 1, 24, 6, key="rp_hours", persist_state="page")
+            ev = Event("down", t_s, station=int(station), hours=float(hours))
+        else:
+            cand = replan_candidates(run.run_id, kind, t_s, pb, run)
+            tip = ("推荐的是原计划只观测 1 次、48 小时后还有可见窗口的中低优先级目标，升级后有机会多观测一次" if kind == "priority"
+                   else "推荐的是事件之后没有安排观测、但还有可见窗口的目标，原计划没覆盖的排在前面")
+            x = c4.selectbox("目标（推荐）", cand, format_func=target_label, key=f"rp_target_{kind}", help=tip) if cand else None
+            num = c5.text_input("或输入目标编号（NORAD）", key=f"rp_num_{kind}", persist_state="page",
+                                help="填了就用这里的编号，留空则用左边选中的目标")
+            if num.strip():
+                hit = np.nonzero(ds.satnum == int(num))[0] if num.strip().isdigit() else []
+                x = int(hit[0]) if len(hit) else None
+                if x is None:
+                    c5.warning("没有这个编号。")
+            if x is not None and kind == "priority" and ds.priority_label[x] == "高":
+                c5.warning("这颗目标已经是高优先级。")
+                x = None
+            if x is None and not cand and not num.strip():
+                c4.info("没有合适的推荐目标，请在右侧输入编号。")
+            ev = Event(kind, t_s, target=int(x)) if x is not None else None
+        go_btn = st.button("执行重排", type="primary", disabled=ev is None, key="rp_go")
+        st.caption("全量 10000 颗目标一次重排约 10 秒，演示模式几秒。")
+    if go_btn and ev is not None:
+        run_replan(ev, mode)
+    got = current_replan()
+    if got is None:
+        st.info("设定事件后点「执行重排」。")
+        return
+    show_replan(got)
+
+
+# ------------------------------------------------------------------ 演示：企业赛题的任务链
+PIPE_CSS = """<style>
+.pipe {display:flex; flex-wrap:wrap; gap:6px; align-items:stretch; margin:2px 0 10px;}
+.pipe .s {flex:1 1 0; min-width:104px; border:1px solid #d9dce3; border-radius:8px; padding:7px 9px; background:#ffffff;}
+.pipe .s b {display:block; font-size:0.82rem; color:#14213D;}
+.pipe .s span {display:block; font-size:1.02rem; font-weight:600; color:#2a78d6; margin-top:2px;}
+.pipe .s small {display:block; color:#8A93A3; font-size:0.75rem;}
+.pipe .ar {align-self:center; color:#b9bfca; font-size:1.1rem;}
+.stepno {display:inline-block; min-width:1.7em; height:1.7em; line-height:1.7em; border-radius:50%; text-align:center;
+         background:#14213D; color:#ffffff; font-weight:600; margin-right:0.45em; font-size:0.9rem;}
+</style>"""
+
+
+def step_box(no: int, title: str, did: str, took: str, numbers: list, tabs_: list):
+    """演示页的一步：做了什么、用时、关键数字，以及到详细页签的链接。返回右侧容器，供追加按钮等。"""
+    with st.container(border=True):
+        c1, c2 = st.columns([5, 7], gap="medium")
+        c1.markdown(f"<span class='stepno'>{no}</span>**{title}**", unsafe_allow_html=True)
+        c1.markdown(did)
+        c1.caption(f"用时：{took}")
+        with c1:
+            links(tabs_, key=f"s{no}")
+        cols = c2.columns(len(numbers))
+        for col, (lab, val, note) in zip(cols, numbers):
+            col.metric(lab, val)
+            if note:
+                col.caption(note)
+        return c2
+
+
+def page_demo():
+    tm = base(cfg_key(cfg))[4]
+    t_pri0 = time.time()
+    labs = pd.Series(ds.priority_label).value_counts()
+    obs_mask = pb.max_obs > 0
+    pairs = np.unique(pb.w_tg * pb.n_stations + pb.w_st)              # (目标, 站) 组合
+    n_st_t = np.bincount(pairs // pb.n_stations, minlength=pb.n_targets)
+    scarce = obs_mask & (n_st_t <= 2)
+    hi = hi_all if in_scope is None else hi_all & in_scope
+    if run.mu is not None:
+        busiest, busiest_note = int(run.mu.astype(float).mean(axis=1).argmax()), "平均价格最高"
+    else:                                   # 没有保存价格的结果（重排结果、方案 E / B）：看哪个站排得最满
+        dark_s = np.array([sum(b - a for a, b in runs_) * cfg.cell_s / 3600 for runs_ in pb.win.dark])
+        used = np.array(m["station_busy_h"]) / np.maximum(dark_s, 1e-9)
+        busiest, busiest_note = int(used.argmax()), f"黑夜时间用掉 {used.max():.0%}，各站最高"
+    t_pri = time.time() - t_pri0
+    sv, sv_t = run_structural(run.run_id, pb, run)
+    v = run.validation
+    ssum = summarize(srows)
+    hi_rows = ssum["by_priority"].get("高", {})
+    hi_cov = sum(n for kk, n in hi_rows.items() if kk.startswith("已观测"))
+    hi_obs = int((hi & obs_mask).sum())
+    rp = current_replan()
+    dark_h = sum(b - a for runs_ in pb.win.dark for a, b in runs_) * cfg.cell_s / 3600
+    sub_note = "" if not run.subset else f"（演示模式：{run.subset['target_frac']:.0%} 目标 × {len(run.subset['stations'])} 站）"
+    t_ev = int(min(60 * 3600, cfg.days * 43200))
+
+    st.markdown(PIPE_CSS, unsafe_allow_html=True)
+    st.markdown(f"按企业赛题给出的任务链，把当前结果{sub_note}从读数据到输出走一遍：每一步做了什么、用了多久、关键数字，"
+                "点「查看」进入对应的详细页签。")
+    chips = [("① 数据读取", f"{ds.n_targets:,} 颗目标", fmt_s(tm["load_s"])),
+             ("② 机会分析", f"{int(obs_mask.sum()):,} 颗可观测", fmt_s(tm["windows_s"] + tm["build_s"])),
+             ("③ 优先级判断", f"{hi_obs:,} 颗高优先", fmt_s(t_pri)),
+             ("④ 任务规划", f"{m['tasks']:,} 个任务", fmt_s(run.runtime_s)),
+             ("⑤ 约束校验", "全部合法" if (not sv and v is not None and v["legal"]) else
+              ("结构合法" if not sv else "有违规"), fmt_s(sv_t + (v.get("seconds", 0) if v else 0))),
+             ("⑥ 状态更新", f"覆盖 {ssum['covered']:,} 颗", fmt_s(table_timing["status_s"])),
+             ("⑦ 动态重规划", f"保留 {rp['res']['diff']['保留'] / max(rp['res']['diff']['原计划 t 之后'], 1):.0%} 原任务" if rp
+              else "待演示", fmt_s(rp["res"]["seconds"]) if rp else "约 10 秒"),
+             ("⑧ 结果输出", "CSV / JSON", "点击即下载")]
+    html = "<div class='pipe'>" + "<span class='ar'>›</span>".join(
+        f"<div class='s'><b>{a}</b><span>{b}</span><small>{c}</small></div>" for a, b, c in chips) + "</div>"
+    st.markdown(html, unsafe_allow_html=True)
+
+    step_box(1, "任务数据读取",
+             "读取每颗目标的轨道根数（TLE：两行数字描述一颗卫星的轨道，是推算位置的输入）、10 个地面站的经纬度与海拔、"
+             "高/中/低优先级清单，并检查 TLE 校验位、编号与优先级清单是否一一对应。",
+             fmt_s(tm["load_s"]) + "（本次启动时读取）",
+             [("目标", f"{ds.n_targets:,}", f"高 {labs.get('高', 0)} · 中 {labs.get('中', 0)} · 低 {labs.get('低', 0)}"),
+              ("地面站", f"{ds.n_stations}", "经度 / 纬度 / 海拔"),
+              ("数据问题", f"{len(ds.issues)} 条", "；".join(ds.issues[:2]) if ds.issues else "校验位、编号均无误")],
+             ["站点地图", "规则说明"])
+
+    step_box(2, "观测机会分析",
+             f"每 {cfg.cell_s} 秒推算一次 {cfg.days:g} 天内每颗目标的位置（SGP4 轨道外推），逐站判断三件事是否同时满足："
+             f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}°（目标在天上合适的高度）、站点太阳高度角 < {cfg.sun_max:g}°（站点已天黑）、"
+             "目标被太阳照亮（不在地球影子里，才看得见）。连续满足不少于 120 秒的时段就是一个可见窗口。",
+             (f"读缓存 {fmt_s(tm['windows_s'])}，建索引 {fmt_s(tm['build_s'])}（首次计算约 30 秒）" if tm["windows_cached"]
+              else f"计算 {fmt_s(tm['windows_s'])}，建索引 {fmt_s(tm['build_s'])}"),
+             [("可见窗口", f"{len(pb.w_k0):,}", f"平均每颗可观测目标 {len(pb.w_k0) / max(int(obs_mask.sum()), 1):.0f} 个"),
+              ("可观测目标", f"{int(obs_mask.sum()):,}", f"外推异常 {int(pb.win.sgp4_failed.sum())} 颗" +
+               (f" · 本次参与 {n_scope:,} 颗" if run.subset else "")),
+              ("站点黑夜", f"{dark_h:.0f} 小时", "10 站合计，北半球夏季夜短")],
+             ["任务解释"])
+
+    step_box(3, "目标优先级判断",
+             "高、中、低优先级每次观测分别计 5、3、2 分（观测 240 秒得满分，120 秒得 60%），每覆盖一颗目标另计覆盖分。"
+             "价格协调给每个站点每 30 秒定一个“价格”：被越多目标争抢的时段越贵；只有少数站看得到的稀缺目标没有别的选择，"
+             "会先拿到时段。",
+             fmt_s(t_pri),
+             [("高优先级", f"{hi_obs:,}", f"可观测 / {'本次参与' if run.subset else '全部'} {int(hi.sum()):,}"),
+              ("稀缺目标", f"{int(scarce.sum()):,}", f"只有 1–2 个站看得到，其中高优先级 {int((scarce & hi).sum())} 颗"),
+              ("最拥挤的站", f"{busiest + 1} 号站", busiest_note)],
+             ["时间价格", "概览"])
+
+    pick = run.notes.get("rule_pick")
+    by_famou = bool(run.notes.get("famou_rule"))
+    rule_flag = ["伐谋放置规则"] if by_famou else (["人工放置规则（两条都排，这份数据上人工的更好）"] if pick else [])
+    rpn = run.notes.get("replan")
+    if rpn:                                 # 重排结果：用时是重排本身的用时
+        flags = [f"突发重排，{MODES.get(rpn['mode'], rpn['mode'])}"]
+    else:
+        flags = [run.notes.get("mode", "")] + rule_flag + (["按秒精修"] if run.notes.get("refine", {}).get("refined") else [])
+    flag_text = "、".join(f for f in flags if f)
+    place_text = ("按伐谋演化出的放置规则" if by_famou else "按「价值 − 价格」的放置规则") + "把任务排进各站时间线" + \
+        (f"（伐谋、人工两条规则各排一份，取综合高的：伐谋 {pick['objective']['rule']:.4f}，人工 {pick['objective']['manual']:.4f}）"
+         if pick else "")
+    step_box(4, "任务规划",
+             ("价格协调：每颗目标按当前价格独立挑选最划算的至多 3 次观测（间隔 48 小时），被争抢的时段涨价、没人要的降价，"
+              f"反复迭代；收敛后{place_text}，再做局部搜索（挤让插入、压紧、补空、延长），"
+              "最后按秒精修起止时间。" if run.algo == "H" else f"{ALGOS.get(run.algo, run.algo)}，之后按秒精修起止时间。") +
+             (f"这份结果是在原计划上处理突发事件“{rpn['event']}”后重排得到的。" if rpn else ""),
+             fmt_s(run.runtime_s) + (f"（{flag_text}）" if flag_text else ""),
+             [("观测任务", f"{m['tasks']:,}", f"其中重复观测 {m['repeat_tasks']:,}"),
+              ("覆盖", f"{m['covered']:,}", f"高 {m['covered_高']} · 中 {m['covered_中']} · 低 {m['covered_低']}"),
+              ("得分", f"{m['score']:,.0f}", f"综合 {sc['combined']:.4f}" + ("（按参与目标归一）" if run.subset else ""))],
+             ["甘特图", "时间价格"])
+
+    box = step_box(5, "约束校验",
+                   "先做结构检查：时长 120–240 秒、同站相邻任务留 30 秒切换、同一目标两次观测间隔 48 小时、每个任务都在可见窗口内；"
+                   "再用评审参考标准 Skyfield 逐秒重算每个任务的仰角、站点太阳角和目标受照（与规划器的代码完全独立）。",
+                   f"结构检查 {fmt_s(sv_t)}；Skyfield " + ("未校验" if v is None else fmt_s(v.get("seconds")) if v.get("seconds")
+                                                       else "已校验"),
+                   [("结构检查", "全部合法" if not sv else f"{sum(sv.values())} 项违规", "；".join(f"{kk} {n}" for kk, n in sv.items())),
+                    ("Skyfield 逐秒", "未校验" if v is None else ("全部合法" if v["legal"] else "有违规"),
+                     "" if v is None else f"仰角下限余量 {v['margins'][0]:.2f}°"),
+                    ("校验任务数", f"{len(run.target):,}", "")],
+                   ["校验与导出"])
+    if v is None:
+        with box:
+            skyfield_button("validate_demo")
+
+    by = ssum["by_priority"]
+    tot = {kk: sum(by[p].get(kk, 0) for p in by) for kk in STATUS.values()}
+    step_box(6, "状态更新",
+             "逐目标统计观测完成情况（答疑 #26 的“目标状态分析”）：观测了几次（只计满足 48 小时间隔的观测，与计分口径相同）、"
+             "总观测时长、首次与最近一次观测时间，以及没有覆盖或没有观测满的原因。",
+             fmt_s(table_timing["status_s"]),
+             [("已覆盖", f"{ssum['covered']:,}", f"可观测 {ssum['observable']:,} 颗"),
+              ("观测 2 次以上", f"{ssum['targets_observed_2plus']:,}", f"3 次 {tot.get('已观测 3 次', 0):,} 颗"),
+              ("高优先级覆盖", f"{hi_cov:,} / {sum(hi_rows.values()):,}", f"未覆盖（全部） {tot.get('未覆盖', 0)} 颗")],
+             ["概览"])
+
+    if rp:
+        r, dd = rp["res"], rp["res"]["diff"]
+        nums = [("事件", KINDS[r["event"].kind], r["describe"]),
+                ("覆盖", f"{r['after']['covered']:,}", f"原计划 {r['before']['covered']:,}" +
+                 (f" · 只取消 {r['no_replan']['covered']:,}" if r["event"].kind == "down" else "")),
+                ("原任务保留", f"{dd['保留'] / max(dd['原计划 t 之后'], 1):.1%}", f"移动 {dd['移动']} · 删除 {dd['删除']} · 新增 {dd['新增']}")]
+        took = f"{fmt_s(r['seconds'])}（{MODES[r['mode']]}）"
+    else:
+        gain = "—"
+        dyn_path = SCHEME_DIR / "results" / "dynamic.json"
+        if dyn_path.exists():
+            g = [v_["policies"]["dynamic_clim"]["combined"] / v_["policies"]["static"]["combined"] - 1
+                 for v_ in json.loads(dyn_path.read_text(encoding="utf-8"))["years"].values()
+                 if {"static", "dynamic_clim"} <= set(v_["policies"])]
+            gain = f"{min(g):+.1%}" if g else "—"
+        nums = [("事件", "未运行", "可在「突发重规划」自选事件"), ("每天按天气重排", gain, "对比一次排完，真实天气回放"),
+                ("重排用时", "约 10 秒", "全量 10000 颗目标")]
+        took = "—"
+    box = step_box(7, "动态重规划",
+                   "执行中出现突发事件（站点停机、目标升为高优先级、临时加一个必须观测的目标）时：冻结已经开始的任务，"
+                   "按事件更新状态，用同一套价格协调重排之后的时段，并尽量少改动原计划。天气版本是“每天按执行结果重排”。",
+                   took, nums, ["突发重规划", "天气与月光"])
+    with box:
+        ev0 = default_event(t_ev)
+        if st.button(f"运行示例：{ev0.describe(cfg, ds)}（扰动最小）", key="demo_replan"):
+            run_replan(ev0, "minimal")
+            st.rerun()
+
+    box = step_box(8, "结果输出",
+                   "导出赛题要求的观测计划（站点、目标、起止时间、时长、切换释放时间、Skyfield 复核的仰角与太阳角、得分、首次或重复观测），"
+                   "以及目标状态表和结果摘要。",
+                   "点击下载时生成，约 1 秒",
+                   [("观测计划", f"{len(run.target):,} 行", "CSV，UTF-8"), ("目标状态表", f"{len(srows):,} 行", "CSV"),
+                    ("结果摘要", "JSON", "指标、规则与校验结果")],
+                   ["校验与导出"])
+    with box:
+        download_buttons("demo")
+
+
+# ------------------------------------------------------------------ 页签（只计算当前打开的那一个）
+PAGES = {"演示": page_demo, "概览": page_overview, "站点地图": page_map, "甘特图": page_gantt, "时间价格": page_price,
+         "任务解释": page_explain, "天气与月光": page_weather, "突发重规划": page_replan, "校验与导出": page_export,
+         "结果对比": page_compare, "规则说明": page_rules}
+for (name, page), tab in zip(PAGES.items(), st.tabs(list(PAGES), key="page", on_change="rerun")):
+    if tab.open:
+        with tab:
+            page()

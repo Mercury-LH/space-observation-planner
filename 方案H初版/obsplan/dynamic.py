@@ -17,6 +17,7 @@ import numpy as np
 from . import lagrange
 from .greedy import State, candidates, run_greedy
 from .problem import Problem
+from .schedule import score_ref
 from .visibility import Windows
 
 DAY_H = 24
@@ -49,14 +50,15 @@ class Status:
 
 
 def residual_problem(pb: Problem, status: Status) -> Problem:
+    """剩余问题：各站从 c_now 起；已成功观测过的目标，窗口从上次成功观测结束 48 小时后起，观测满 3 次的不再有窗口。"""
     k0 = np.maximum(pb.w_k0, status.c_now[pb.w_st])
-    for t, obs in status.succ.items():
-        sel = pb.w_tg == t
-        if len(obs) >= 3:
-            k0[sel] = pb.w_k1[sel] + 1
-        else:
-            last_end = max(a + m for a, m in obs)
-            k0[sel] = np.maximum(k0[sel], last_end + pb.gap)
+    if status.succ:
+        tg = np.fromiter(status.succ, np.int64, len(status.succ))
+        full = np.array([len(obs) >= 3 for obs in status.succ.values()])
+        last_end = np.array([max(a + m for a, m in obs) for obs in status.succ.values()], np.int64)
+        lim = np.full(pb.n_targets, np.iinfo(np.int64).min)
+        lim[tg] = np.where(full, np.iinfo(np.int64).max, last_end + pb.gap)
+        k0 = np.maximum(k0, lim[pb.w_tg])
     keep = pb.w_k1 - k0 >= pb.m_min
     w = pb.win
     w2 = Windows(pb.w_st[keep].astype(np.int16), pb.w_tg[keep].astype(np.int32), k0[keep].astype(np.int32),
@@ -74,6 +76,11 @@ def clip_windows(pb: Problem, usable_h: np.ndarray) -> Problem:
     ok = np.ones((pb.n_stations, T), bool)
     inside = hour_of_cell < H
     ok[:, inside] = usable_h[:, hour_of_cell[inside]]
+    return clip_cells(pb, ok)
+
+
+def clip_cells(pb: Problem, ok: np.ndarray) -> Problem:
+    """把可见窗口裁剪到可用的时间格（ok：(站, 格) bool，例如站点停机以外的时段）；短于最短观测时长的窗口丢弃。"""
     st, tg, k0, k1 = [], [], [], []
     for s in range(pb.n_stations):
         sel = np.nonzero(pb.w_st == s)[0]
@@ -187,7 +194,7 @@ def realized(pb: Problem, status: Status) -> dict:
     cov = len(status.succ)
     score = sum(pb.P[t] * pb.frac[m] for t, obs in status.succ.items() for a, m in obs)
     return {"covered": cov, "score": float(score), "executed": status.executed, "failed": status.failed,
-            "combined": 0.5 * cov / pb.n_targets + 0.5 * score / float(pb.P.sum())}
+            "combined": pb.cfg.w_cov * cov / pb.n_targets + pb.cfg.w_score * score / score_ref(pb.cfg, pb.ds)}
 
 
 def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, threshold: float = 30.0,

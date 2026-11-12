@@ -103,9 +103,11 @@ def true_bounds(pb: Problem, sch: Schedule) -> tuple[np.ndarray, np.ndarray]:
     return L[inv], R[inv]
 
 
-def refine(pb: Problem, sch: Schedule, verbose: bool = False, bounds=None) -> tuple[Schedule, dict]:
+def refine(pb: Problem, sch: Schedule, verbose: bool = False, bounds=None,
+           fixed: np.ndarray | None = None) -> tuple[Schedule, dict]:
     """返回按秒精修后的计划和统计信息。任务集合与顺序不变，只调整起止时间。
-    bounds：每个任务的真实可见区间 (L, R)；不给时从网格窗口探查。"""
+    bounds：每个任务的真实可见区间 (L, R)；不给时从网格窗口探查。
+    fixed：不许改动起止的任务（动态重规划中已执行、原样保留的任务），其余任务与它们之间同样满足切换和 48 小时间隔。"""
     from ortools.linear_solver import pywraplp
     cfg, ds = pb.cfg, pb.ds
     t0 = time.time()
@@ -113,12 +115,20 @@ def refine(pb: Problem, sch: Schedule, verbose: bool = False, bounds=None) -> tu
     L, R = true_bounds(pb, sch) if bounds is None else bounds
     t1 = time.time()
     s0, e0 = sch.start_s.astype(np.int64), (sch.start_s + sch.dur_s).astype(np.int64)
+    if fixed is not None:
+        L, R = np.where(fixed, s0, L), np.where(fixed, e0, R)
     sw, dmin, dmax = cfg.switch_s, cfg.obs_min_s, cfg.obs_max_s
     gap = int(round(cfg.repeat_gap_h * 3600))
     P = ds.priority[sch.target].astype(float)
     lp = pywraplp.Solver.CreateSolver("GLOP")
-    sv = [lp.NumVar(float(L[i]), float(R[i] - dmin), "") for i in range(n)]
-    ev = [lp.NumVar(float(L[i] + dmin), float(R[i]), "") for i in range(n)]
+    if fixed is None:
+        sv = [lp.NumVar(float(L[i]), float(R[i] - dmin), "") for i in range(n)]
+        ev = [lp.NumVar(float(L[i] + dmin), float(R[i]), "") for i in range(n)]
+    else:
+        sv = [lp.NumVar(float(s0[i]), float(s0[i]), "") if fixed[i] else lp.NumVar(float(L[i]), float(R[i] - dmin), "")
+              for i in range(n)]
+        ev = [lp.NumVar(float(e0[i]), float(e0[i]), "") if fixed[i] else lp.NumVar(float(L[i] + dmin), float(R[i]), "")
+              for i in range(n)]
     pairs = []                                # (前, 后, 最小间隔)
     for i in range(n):
         lp.Add(ev[i] - sv[i] >= dmin)

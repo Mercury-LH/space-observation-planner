@@ -1,0 +1,96 @@
+{
+ "description": "按秒跨站弹射链（scripts/chain_run.py）：在长跑最好计划上成批加入高优先级重复观测；以及更紧的按秒上界（scripts/second_dual_bound.py）",
+ "scenario": "2026-08-01_6d_sun-6_lit_el10-85_c30",
+ "start": {
+  "plan": "长跑 + 另一会话按秒重排的最好计划（服务器副本 /root/fable/start_plan.csv）",
+  "combined": 0.990665,
+  "covered": 9999,
+  "score": 29503.753,
+  "tasks": 12726,
+  "note": "本机那份 start_plan.csv 是 0.990643 / 12725 个任务，差一次观测"
+ },
+ "final": {
+  "combined": 0.995223,
+  "covered": 9999,
+  "score": 29777.813,
+  "tasks": 13224,
+  "repeat_tasks": 3225,
+  "high_priority_targets_with_3_obs": 1275,
+  "high_priority_targets_with_3_obs_before": 896,
+  "structural_violations": {},
+  "md5": "b6f88e8627a3e14a226a0279dd5df39a"
+ },
+ "validation": {
+  "tool": "Skyfield 逐秒校验（obsplan validate，在服务器上跑）",
+  "tasks": 13224,
+  "all_legal": true,
+  "covered": 9999,
+  "score": 29777.8,
+  "repeat_tasks": 3225,
+  "seconds": 310
+ },
+ "steps": [
+  {
+   "what": "弹射链，最多连顶 2 个任务（本机，起点 0.990643）",
+   "combined": 0.993007,
+   "seconds": 7,
+   "skyfield": "全部合法"
+  },
+  {
+   "what": "加：错位插入、删低价值重复、不划算时换一条链重试；最多连顶 4 个（本机）",
+   "combined": 0.994169,
+   "seconds": 266
+  },
+  {
+   "what": "同上 + 重排节奏（本机）",
+   "combined": 0.994774,
+   "seconds": 215,
+   "skyfield": "全部合法"
+  },
+  {
+   "what": "最多连顶 8 个、错位 6 个位置（服务器，单线程，起点 0.990665）",
+   "combined": 0.994741,
+   "seconds": 1945
+  },
+  {
+   "what": "在上一份上加重排节奏、每夜切成 30 个任务一段再整夜（服务器，单线程）",
+   "combined": 0.995223,
+   "seconds": 864,
+   "skyfield": "全部合法"
+  },
+  {
+   "what": "试验：把按秒才够 120 秒的短窗口也作候选（本机，未做 Skyfield 校验，未采用）",
+   "combined": 0.995284,
+   "seconds": 60
+  }
+ ],
+ "final_stats": {
+  "删重复换延长": 14,
+  "找不到链": 4535,
+  "成功_深度4": 4,
+  "不划算": 23,
+  "重排节奏回退": 6621,
+  "成功_深度1": 25,
+  "成功_深度2": 28,
+  "重排节奏成功": 42,
+  "成功_深度3": 17,
+  "成功_深度0": 12,
+  "成功_深度3_删": 2
+ },
+ "upper_bound_second": {
+  "old_flow": 1.005828,
+  "new_fine_dual": 1.004687,
+  "cell_s": 10,
+  "iters": 20000,
+  "seconds": 7877,
+  "windows": 530994,
+  "prices": "results/dual_prices_second_c10.npz",
+  "verify": "uv run python scripts/second_dual_bound.py --verify",
+  "note": "真实按秒窗口（含 11322 个按秒才够长的短窗口）向外取整到 10 秒细网格；另一组不带惯性的迭代到 1.004732；步长已缩到下限，继续迭代或换步长策略还能再低一点"
+ },
+ "gap_pct": {
+  "before": 1.51,
+  "after": 0.942
+ },
+ "time": "2026-11-12"
+}

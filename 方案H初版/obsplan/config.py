@@ -92,3 +92,13 @@ class Config:
     @classmethod
     def from_json(cls, path: str | Path) -> "Config":
         return cls(**json.loads(Path(path).read_text(encoding="utf-8")))
+
+    @classmethod
+    def from_saved(cls, d: dict) -> "Config":
+        """读回别的机器上存下的参数（比如在 Mac 上算好、拿到服务器上展示的结果）：
+        记录里的数据 / 缓存目录在本机不存在时，换成本机的默认目录，其余参数不变。"""
+        d = dict(d)
+        for k in ("data_dir", "cache_dir"):
+            if k in d and not Path(d[k]).exists():
+                d[k] = cls.__dataclass_fields__[k].default
+        return cls(**d)

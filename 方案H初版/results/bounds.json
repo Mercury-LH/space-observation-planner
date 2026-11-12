@@ -1,0 +1,237 @@
+{
+ "scenario": "2026-08-01_6d_sun-6_lit_el10-85_c30",
+ "说明": "上界：任何合法计划的综合指标都不超过它。grid = 起止在 30 秒格点上的计划；second = 按秒的计划（窗口两端各放宽一格 + 短窗口）；second0 = 同 second、可见性不留安全余量。best_ub = 该口径可用的最小上界；gap_pct = (上界 − 计划) / 上界；gap_no_margin_pct 用 second0 的上界。plans 是按 results/ 里的计划文件现算的，recorded 取自各结果文件里记录的数。",
+ "plans": {
+  "H+ 高质量（网格）": {
+   "file": "results/plan_H+.csv",
+   "scope": "grid",
+   "covered": 9994,
+   "score": 28013.3,
+   "combined": 0.965625,
+   "ub": 1.002704,
+   "gap_pct": 3.698,
+   "gap_no_margin_pct": 4.078
+  },
+  "H+ 高质量（按秒精修）": {
+   "file": "results/plan_H+_refined.csv",
+   "scope": "second",
+   "covered": 9994,
+   "score": 28538.393,
+   "combined": 0.974359,
+   "ub": 1.005828,
+   "gap_pct": 3.129,
+   "gap_no_margin_pct": 3.21
+  },
+  "长跑优化（按秒精修）": {
+   "file": "results/plan_longrun.csv",
+   "scope": "second",
+   "covered": 9999,
+   "score": 29484.923,
+   "combined": 0.990352,
+   "ub": 1.005828,
+   "gap_pct": 1.539,
+   "gap_no_margin_pct": 1.622
+  }
+ },
+ "grid": {
+  "口径": "30 秒格点口径",
+  "windows": 519672,
+  "flow_ub": 1.00405,
+  "flow_seconds": 5.3,
+  "best_ub": 1.002704,
+  "dual_ub": 1.002704,
+  "dual_iters": 6000,
+  "dual_target": 0.988158,
+  "dual_prices": "results/dual_prices_grid.npz",
+  "own_ub": 1.002704
+ },
+ "second": {
+  "口径": "按秒口径",
+  "windows": 543085,
+  "flow_ub": 1.005828,
+  "flow_seconds": 5.0,
+  "best_ub": 1.005828,
+  "dual_note": "从零价格迭代 12000 次的对偶上界为 1.005997，不如网络流上界，未保留价格证书",
+  "own_ub": 1.005828
+ },
+ "recorded": {
+  "A 随机可行调度": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 5341,
+   "score": 20382.0,
+   "combined": 0.606049,
+   "ub": 1.002704,
+   "gap_pct": 39.559,
+   "gap_no_margin_pct": 39.797
+  },
+  "B 固定优先级贪心": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 4183,
+   "score": 31232.8,
+   "combined": 0.728623,
+   "ub": 1.002704,
+   "gap_pct": 27.334,
+   "gap_no_margin_pct": 27.621
+  },
+  "C 人工多因素贪心": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 6748,
+   "score": 27579.4,
+   "combined": 0.796109,
+   "ub": 1.002704,
+   "gap_pct": 20.604,
+   "gap_no_margin_pct": 20.917
+  },
+  "D AI进化权重贪心": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 9998,
+   "score": 23800.8,
+   "combined": 0.895762,
+   "ub": 1.002704,
+   "gap_pct": 10.665,
+   "gap_no_margin_pct": 11.018
+  },
+  "E AI贪心+局部搜索": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 9999,
+   "score": 26387.8,
+   "combined": 0.93884,
+   "ub": 1.002704,
+   "gap_pct": 6.369,
+   "gap_no_margin_pct": 6.739
+  },
+  "G AI筛选+CP-SAT": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 8472,
+   "score": 23479.8,
+   "combined": 0.814123,
+   "ub": 1.002704,
+   "gap_pct": 18.807,
+   "gap_no_margin_pct": 19.128
+  },
+  "G+ CP-SAT+局部搜索": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 9992,
+   "score": 27773.8,
+   "combined": 0.961542,
+   "ub": 1.002704,
+   "gap_pct": 4.105,
+   "gap_no_margin_pct": 4.483
+  },
+  "H 价格协调（新算法）": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 9987,
+   "score": 27358.8,
+   "combined": 0.95439,
+   "ub": 1.002704,
+   "gap_pct": 4.818,
+   "gap_no_margin_pct": 5.194
+  },
+  "E AI贪心+局部搜索 + 按秒精修": {
+   "source": "results/compare.json",
+   "scope": "second",
+   "covered": 9999,
+   "score": 26985.76,
+   "combined": 0.948785,
+   "ub": 1.005828,
+   "gap_pct": 5.671,
+   "gap_no_margin_pct": 5.751
+  },
+  "G+ CP-SAT+局部搜索 + 按秒精修": {
+   "source": "results/compare.json",
+   "scope": "second",
+   "covered": 9992,
+   "score": 28181.793,
+   "combined": 0.968328,
+   "ub": 1.005828,
+   "gap_pct": 3.728,
+   "gap_no_margin_pct": 3.809
+  },
+  "H 价格协调（新算法） + 按秒精修": {
+   "source": "results/compare.json",
+   "scope": "second",
+   "covered": 9987,
+   "score": 28083.677,
+   "combined": 0.966446,
+   "ub": 1.005828,
+   "gap_pct": 3.915,
+   "gap_no_margin_pct": 3.996
+  },
+  "H+ 价格协调+伐谋放置规则": {
+   "source": "results/compare.json",
+   "scope": "grid",
+   "covered": 9994,
+   "score": 28013.3,
+   "combined": 0.965625,
+   "ub": 1.002704,
+   "gap_pct": 3.698,
+   "gap_no_margin_pct": 4.078
+  },
+  "H+ 价格协调+伐谋放置规则 + 按秒精修": {
+   "source": "results/compare.json",
+   "scope": "second",
+   "covered": 9994,
+   "score": 28538.393,
+   "combined": 0.974359,
+   "ub": 1.005828,
+   "gap_pct": 3.129,
+   "gap_no_margin_pct": 3.21
+  },
+  "H+、G+、E 解合并（网格）": {
+   "source": "results/fusion_merge.json",
+   "scope": "grid",
+   "covered": 9999,
+   "score": 28460.9,
+   "combined": 0.97332,
+   "ub": 1.002704,
+   "gap_pct": 2.93,
+   "gap_no_margin_pct": 3.313
+  },
+  "H+、G+、E 解合并 + 按秒精修": {
+   "source": "results/fusion_merge.json",
+   "scope": "second",
+   "covered": 9999,
+   "score": 28735.4,
+   "combined": 0.977886,
+   "ub": 1.005828,
+   "gap_pct": 2.778,
+   "gap_no_margin_pct": 2.86
+  },
+  "长跑优化（网格）": {
+   "source": "results/long_run.json",
+   "scope": "grid",
+   "covered": 9999,
+   "score": 29365.2,
+   "combined": 0.988361,
+   "ub": 1.002704,
+   "gap_pct": 1.43,
+   "gap_no_margin_pct": 1.819
+  },
+  "长跑优化 + 按秒精修": {
+   "source": "results/long_run.json",
+   "scope": "second",
+   "covered": 9999,
+   "score": 29484.923,
+   "combined": 0.990352,
+   "ub": 1.005828,
+   "gap_pct": 1.539,
+   "gap_no_margin_pct": 1.622
+  }
+ },
+ "second0": {
+  "口径": "按秒口径，可见性不留安全余量",
+  "windows": 547960,
+  "flow_ub": 1.006676,
+  "flow_seconds": 5.0,
+  "own_ub": 1.006676,
+  "best_ub": 1.006676
+ }
+}
