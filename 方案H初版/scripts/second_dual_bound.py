@@ -1,10 +1,12 @@
 """更紧的按秒上界（obsplan/second_dual.py）：真实按秒窗口 + 细网格上的拉格朗日对偶上界。
 
     uv run python scripts/second_dual_bound.py --cell 10 --iters 3000 --target 0.9942
+    uv run python scripts/second_dual_bound.py --verify          # 用存下的价格证书重算上界（约 10 秒）
 
 --target 填已知最好计划的综合值（只影响步长，不影响上界的合法性）。从 results/dual_prices_grid.npz（30 秒网格上
 迭代好的价格）热启动；--resume 从上次的检查点接着算。结果写 results/bound_second_fine.json，
-价格证书存 outputs/fable/dual_second_c<cell>.npz（Dual(pb).value(mu) 一次子问题计算即可复核）。
+迭代中的价格存 outputs/fable/dual_second_c<cell>.npz；采用的那组价格放在 results/dual_prices_second_c10.npz，
+--verify 用它做一次子问题计算重算出同一个上界，不需要相信迭代过程（任何非负价格都给出合法上界）。
 """
 from __future__ import annotations
 
@@ -22,7 +24,7 @@ from obsplan.config import Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.second_bounds import all_bounds  # noqa: E402
-from obsplan.second_dual import dual_upper_bound, fine_problem, warm_start  # noqa: E402
+from obsplan.second_dual import Dual, dual_upper_bound, fine_problem, warm_start  # noqa: E402
 from obsplan.visibility import get_windows  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,7 +34,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--cell", type=int, default=10)
     ap.add_argument("--iters", type=int, default=3000)
-    ap.add_argument("--target", type=float, required=True)
+    ap.add_argument("--target", type=float, default=0.0)
+    ap.add_argument("--verify", action="store_true", help="只用 results/dual_prices_second_c10.npz 重算上界")
     ap.add_argument("--minutes", type=float, default=0.0)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--start-from", default="", help="从这个检查点的价格出发（步长系数重新给）")
@@ -52,6 +55,12 @@ def main() -> int:
     wL, wR = all_bounds(pb, Path(args.bounds), workers=args.workers)
     pf = fine_problem(pb, wL, wR, args.cell)
     print(f"细网格 {args.cell} 秒：窗口 {len(pf.w_st)} 个，准备用时 {time.time() - t0:.0f}s", flush=True)
+    if args.verify:
+        mu = np.load(ROOT / "results" / "dual_prices_second_c10.npz")["mu"]
+        assert args.cell == 10 and (mu >= 0).all()
+        print(f"价格证书重算的按秒上界：{Dual(pf).value(mu):.6f}（{time.time() - t0:.0f}s）", flush=True)
+        return 0
+    assert args.target > 0, "需要 --target（已知最好计划的综合值）"
     ckpt = ROOT / "outputs" / "fable" / f"dual_second_c{args.cell}{args.tag}.npz"
     theta = args.theta
     if args.start_from:
