@@ -120,14 +120,33 @@ def _runs(edge_ok: np.ndarray, min_len: int):
     return rs[keep], cs[keep], ce[keep]
 
 
-def moon_ecef(cfg: Config, seconds: np.ndarray) -> np.ndarray:
-    """(T, 3) 月亮在地固系（ITRS）中的地心位置，km。"""
+MOON_STEP_S = 30.0
+
+
+def _moon_exact(cfg: Config, seconds: np.ndarray) -> np.ndarray:
     from skyfield.framelib import itrs
     from .ephemeris import load_de421
     ts, eph = load_de421(cfg.cache_dir)
     s = cfg.start_dt
-    t = ts.utc(s.year, s.month, s.day, s.hour, s.minute, s.second + seconds)
+    t = ts.utc(s.year, s.month, s.day, s.hour, s.minute, s.second + np.asarray(seconds, float))
     return eph["earth"].at(t).observe(eph["moon"]).frame_xyz(itrs).km.T
+
+
+def moon_ecef(cfg: Config, seconds: np.ndarray) -> np.ndarray:
+    """(T, 3) 月亮在地固系（ITRS）中的地心位置，km。
+    时刻多时每 MOON_STEP_S 秒精确算一次、中间线性插值：Skyfield 一次算几十万个时刻要占几 GB 内存（多进程时会把内存占满），
+    而月亮在地固系里 30 秒只转约 0.13°，插值的弦高误差约 0.2 km，从测站看不到 0.0001°，远小于 0.5° 的月光余量。"""
+    sec = np.asarray(seconds, float)
+    if sec.size <= 4096:
+        return _moon_exact(cfg, sec)
+    lo = np.floor(sec.min() / MOON_STEP_S) * MOON_STEP_S
+    hi = np.ceil(sec.max() / MOON_STEP_S) * MOON_STEP_S
+    grid = np.arange(lo, hi + MOON_STEP_S / 2, MOON_STEP_S)
+    idx = np.unique(np.clip(np.floor((sec - lo) / MOON_STEP_S).astype(np.int64), 0, len(grid) - 1))
+    need = np.unique(np.concatenate([idx, np.minimum(idx + 1, len(grid) - 1)]))   # 只算用得到的格点
+    pos = np.full((len(grid), 3), np.nan)
+    pos[need] = _moon_exact(cfg, grid[need])
+    return np.column_stack([np.interp(sec, grid[need], pos[need, k]) for k in range(3)])
 
 
 def _chunk_job(args):

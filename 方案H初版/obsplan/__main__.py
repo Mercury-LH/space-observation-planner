@@ -4,6 +4,7 @@
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
     uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
     uv run python -m obsplan windows [--refresh]
+    uv run python -m obsplan env 标准计划.csv [考虑环境的计划.csv ...] [--moon-sep 30]   # 加分项：环境影响对比
 
 validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
 （时间为 UTC 的 ISO 格式，或配合 --seconds-from-start 使用相对规划开始的秒数）；
@@ -214,6 +215,45 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_env(args) -> int:
+    """加分项：把几份计划放进同一个环境模型（月光、目标亮度、过去 10 年真实天气），对比名义结果与考虑之后的结果。"""
+    from .data import load
+    from .env_report import report
+    cfg = _cfg(args)
+    ds = load(cfg)
+    rows = []
+    for path in args.plans:
+        sch, skipped = read_plan(cfg, ds, Path(path), args.seconds_from_start)
+        try:
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=not args.no_weather)
+        except OSError as e:                                    # 没网且没有云量缓存：只算月光与亮度
+            print(f"取不到历史云量（{e}），这次不算天气")
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=False)
+        r["plan"] = str(path)
+        rows.append(r)
+    a = rows[0]["assumptions"]
+    print(f"环境模型：月亮在地平线以上时目标离月亮 < {a['moon_sep_deg']:g}° 算失败；目标视星等暗于 {a['limit_mag']:g} 等算失败"
+          f"（1000 km、相位角 90° 时取 {a['m_std']:g} 等）；天气用过去 {a['weather_years'] or 0} 年同期真实云量（≤ 30% 算晴）")
+    for r in rows:
+        nm, am, af = r["nominal"], r["after_moon"], r["after_moon_dim"]
+        print(f"\n{r['plan']}")
+        print(f"  名义（不考虑环境）：综合 {nm['combined']:.4f}，覆盖 {nm['covered']}，得分 {nm['score']:.0f}，任务 {nm['tasks']}")
+        print(f"  受月光影响 {r['affected_tasks']['moon']} 个任务，目标太暗 {r['affected_tasks']['dim']} 个"
+              f"（极限星等 13/14/15/16 等时分别 {'/'.join(str(v) for v in r['dim_by_limit'].values())} 个）")
+        print(f"  考虑月光：综合 {am['combined']:.4f}；再考虑目标亮度：{af['combined']:.4f}（覆盖 {af['covered']}，得分 {af['score']:.0f}）")
+        if "weather_combined_mean" in af:
+            print(f"  再考虑天气（{a['weather_years']} 年平均）：综合 {af['weather_combined_mean']:.4f}"
+                  f"（覆盖 {af['weather_covered_mean']:.0f}，得分 {af['weather_score_mean']:.0f}）；"
+                  f"只考虑天气时 {nm['weather_combined_mean']:.4f}")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(rows, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+        print("\n已写出", args.out)
+    return 0
+
+
 def cmd_windows(args) -> int:
     from .data import load
     from .visibility import get_windows
@@ -264,8 +304,19 @@ def main(argv=None) -> int:
             p.add_argument("--out", default="outputs/target_status.csv", help="目标状态表 CSV（同名 .json 为汇总）")
         else:
             p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("env", help="加分项：几份计划在月光、目标亮度、真实天气下的对比")
+    p.add_argument("plans", nargs="+", help="计划文件（第一份通常是标准计划）")
+    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--days", type=float)
+    p.add_argument("--moon-sep", type=float, default=30.0, help="月亮在地平线以上时，目标离月亮至少多少度")
+    p.add_argument("--m-std", type=float, default=6.0, help="目标在 1000 km、相位角 90° 时的视星等（赛题无尺寸数据，统一取典型值）")
+    p.add_argument("--limit-mag", type=float, default=15.0, help="望远镜极限星等，暗于它算看不到")
+    p.add_argument("--no-weather", action="store_true", help="不算天气（不需要云量数据）")
+    p.add_argument("--seconds-from-start", action="store_true")
+    p.add_argument("--out", default="outputs/env_compare.json")
     args = ap.parse_args(argv)
-    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status}[args.cmd](args)
+    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status,
+            "env": cmd_env}[args.cmd](args)
 
 
 if __name__ == "__main__":

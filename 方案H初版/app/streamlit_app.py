@@ -401,7 +401,60 @@ def page_explain():
                        "橙色带为观测时段，深色带为目标处于地球阴影；虚线为规则界限。前后各显示 5 分钟。")
 
 # ------------------------------------------------------------------ 天气与月光（加分项）
+def env_compare_section():
+    """加分项的核心：标准结果和考虑环境之后的结果并排（说明文档："输出标准结果和考虑之后的结果"）。"""
+    st.subheader("标准结果 vs 考虑环境之后的结果")
+    st.markdown("把计划放进同一个环境模型逐任务检查：**月光**（月亮在地平线以上、目标离月亮不到 30° 时天空太亮，算失败）、"
+                "**目标亮度**（按漫反射球估算视星等，暗于望远镜极限星等算看不到）、**天气**（过去 10 年同期每个站的真实逐小时云量，"
+                "观测期间每小时云量都 ≤ 30% 才算成功，取平均）。命令行：`python -m obsplan env 标准计划.csv 考虑环境的计划.csv`。")
+    path = SCHEME_DIR / "results" / "env_compare.json"
+    if path.exists():
+        rows = json.loads(path.read_text(encoding="utf-8"))
+        names = ["标准计划（不考虑环境）", "考虑月光规避的计划（规划时就避开月亮 30°）"]
+        tab = []
+        for name, r in zip(names, rows):
+            nm, af = r["nominal"], r["after_moon_dim"]
+            tab.append({"计划": name, "名义综合": nm["combined"], "受月光影响的任务": r["affected_tasks"]["moon"],
+                        "目标太暗的任务": r["affected_tasks"]["dim"], "考虑月光与亮度后的综合": af["combined"],
+                        "再考虑天气后的综合（10 年平均）": af.get("weather_combined_mean")})
+        df = pd.DataFrame(tab)
+        st.dataframe(df, hide_index=True, use_container_width=True,
+                     column_config={c: st.column_config.NumberColumn(format="%.4f") for c in
+                                    ("名义综合", "考虑月光与亮度后的综合", "再考虑天气后的综合（10 年平均）")})
+        long = df.melt(id_vars="计划", value_vars=["名义综合", "考虑月光与亮度后的综合"], var_name="口径", value_name="综合")
+        fig = px.bar(long, x="口径", y="综合", color="计划", barmode="group",
+                     color_discrete_sequence=["#8A93A3", ORANGE], title="同一个环境模型下两份计划的综合指标")
+        fig.update_layout(yaxis_range=[0.8, 1.0], height=360, legend_title_text="")
+        st.plotly_chart(fig, use_container_width=True)
+        if len(rows) >= 2:
+            a, b = rows[0], rows[1]
+            st.success(f"标准计划有 {a['affected_tasks']['moon']} 个任务撞上月光，考虑之后综合从 {a['nominal']['combined']:.3f} "
+                       f"掉到 {a['after_moon_dim']['combined']:.3f}；规划时就避开月亮的计划名义上只少 "
+                       f"{a['nominal']['combined'] - b['nominal']['combined']:.3f}，考虑环境之后是 {b['after_moon_dim']['combined']:.3f}。")
+    if st.button("对本页当前的计划做环境影响分析"):
+        st.session_state["env_run"] = run.run_id
+    if st.session_state.get("env_run") == run.run_id:
+        from obsplan.env_report import report as env_report
+        with st.spinner("逐任务计算月距、目标亮度并回放 10 年天气……"):
+            rep = env_report(pb.cfg, pb.ds, run.schedule())
+        k = st.columns(4)
+        k[0].metric("名义综合", f"{rep['nominal']['combined']:.4f}")
+        k[1].metric("受月光影响", f"{rep['affected_tasks']['moon']} 个任务")
+        k[2].metric("目标太暗", f"{rep['affected_tasks']['dim']} 个任务")
+        k[3].metric("考虑月光与亮度后", f"{rep['after_moon_dim']['combined']:.4f}",
+                    f"{rep['after_moon_dim']['combined'] - rep['nominal']['combined']:+.4f}")
+        if run.subset:
+            st.caption("这是演示模式（缩小规模）的结果：综合指标按全部 10000 颗目标归一，所以数值很小，看前后差值即可。")
+        if "weather_combined_mean" in rep["after_moon_dim"]:
+            st.caption(f"再考虑天气（过去 10 年平均）：综合 {rep['after_moon_dim']['weather_combined_mean']:.4f}；"
+                       f"目标亮度按 1000 km、相位角 90° 时 {rep['assumptions']['m_std']:g} 等、极限星等 "
+                       f"{rep['assumptions']['limit_mag']:g} 等估算（赛题没有目标尺寸，这是假设），极限星等取 13/14/15/16 等时太暗的任务分别 "
+                       f"{'/'.join(str(v) for v in rep['dim_by_limit'].values())} 个。")
+    st.divider()
+
+
 def page_weather():
+    env_compare_section()
     st.markdown("赛题基础部分不考虑天气；这里作为加分项：用 Open-Meteo 历史再分析数据取各站**过去 10 年同期**的逐小时总云量，"
                 f"云量 ≤ {CLOUD_THRESHOLD:g}% 视为可观测。首次使用需要联网（只发送四舍五入到 0.5° 的站点坐标），之后读缓存。")
     if st.button("读取历史云量并回放本计划", type="primary"):
