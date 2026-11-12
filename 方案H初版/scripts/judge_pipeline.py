@@ -214,6 +214,10 @@ def step_tune(cid: str, args) -> None:
         else:
             time.sleep(10)
     base = json.loads(base_path.read_text(encoding="utf-8"))
+    point = os.environ.get("JUDGE_TUNE_POINT")
+    if point is not None:                     # 只算阈值网格里的一个点（收尾时把最慢的场景拆得更细）
+        _tune_point(cid, todo, base, pb, mu, famou, int(point))
+        return
     pending = list(todo)
     while pending:
         busy = []
@@ -239,6 +243,39 @@ def step_tune(cid: str, args) -> None:
             if skip:
                 return
             time.sleep(30)
+
+
+def _tune_point(cid: str, todo, base: dict, pb, mu, famou, k: int) -> None:
+    """阈值网格的第 k 个点单独算，存 tune/<模型>/<场景>.p<k>.json；某个模型 8 个点都齐了就拼成正式结果。
+    点文件也可以从顺序调参的日志里补（日志每行 "场景 模型 tu tc 值"，值是完整精度的浮点数）。"""
+    from obsplan import judge
+    for path in todo:
+        tag = tag_of(path)
+        out = _tune_path(tag, cid)
+        if out.exists():
+            continue
+        tu, tc = TUNE_GRID[k]
+        pf = out.with_name(f"{cid}.p{k}.json")
+        if not pf.exists():
+            v = _end_to_end(pb, mu, judge.make_rule(judge.load_model(path), tu, tc, famou))
+            print(cid, tag, tu, tc, v, flush=True)
+            pf.write_text(json.dumps({"key": f"{tu},{tc}", "value": float(v)}), encoding="utf-8")
+        _tune_assemble(cid, tag, base)
+
+
+def _tune_assemble(cid: str, tag: str, base: dict) -> bool:
+    out = _tune_path(tag, cid)
+    if out.exists():
+        return True
+    parts = [out.with_name(f"{cid}.p{k}.json") for k in range(len(TUNE_GRID))]
+    if not all(p.exists() for p in parts):
+        return False
+    vals = [json.loads(p.read_text(encoding="utf-8")) for p in parts]
+    row = {**base, "model": tag, "judge": {v["key"]: v["value"] for v in vals}}
+    tmp = out.with_name(f"{cid}.json.tmp{os.getpid()}")
+    tmp.write_text(json.dumps(row, ensure_ascii=False, indent=1), encoding="utf-8")
+    os.replace(tmp, out)
+    return True
 
 
 def _metrics(cfg, ds, pb, sch, seconds, near=None) -> dict:
