@@ -222,6 +222,15 @@ def page_overview():
     for col, (label, value, note) in zip(k, tiles):
         col.metric(label, value)
         col.caption(note)
+    with st.expander("让 AI 助手用大白话解释这份计划"):
+        from obsplan.llm_assistant import api_key as qf_key, explain_plan
+        st.caption("配置了千帆 API key 时由文心大模型根据下面这些统计数字来写（只给它数字，不让它编造）；没有 key 或网络不通时用模板生成。"
+                   if qf_key() else "没有配置千帆 API key，用模板生成；配置方法见 README 的「大模型助手」。")
+        if st.button("生成说明", key="ov_explain"):
+            extra = {"gap_to_bound_pct": gap["gap_pct"]} if gap and not run.subset else {}
+            text, how = explain_plan(m, None, extra)
+            st.markdown(text)
+            st.caption(f"来源：{how}")
     c1, c2, c3 = st.columns(3)
     pri = pd.DataFrame({"优先级": ["高", "中", "低"],
                         "已覆盖": [m["covered_高"], m["covered_中"], m["covered_低"]],
@@ -850,6 +859,21 @@ def show_replan(got: dict):
 def page_replan():
     st.markdown("正式赛题没有突发情况（答疑 #32），这里演示系统应对突发事件的闭环：**状态更新 → 动态重规划 → 约束校验**。"
                 "选一个时刻和事件：此前已经开始的任务冻结不动，之后的时段用同一套价格协调重排，并统计对原计划的改动。")
+    from obsplan.llm_assistant import api_key as qf_key, parse_event
+    with st.container(border=True):
+        c_a, c_b = st.columns([5, 1])
+        say = c_a.text_input("用一句话描述突发事件（AI 助手）", key="rp_say", placeholder="例：8月3日12点起6号站停机6小时；目标 68131 升为高优先级；必须观测 63754",
+                             help="先用本地规则解析（不联网也能用），规则解析不了且配置了千帆 API key 时再请文心大模型理解；"
+                                  "解析结果逐项校验（站点、目标编号、时刻都必须在规划范围内）后才执行，规划和校验仍由程序完成。")
+        c_b.write("")
+        if c_b.button("解析并重排", key="rp_say_go", disabled=not say.strip()):
+            ev_say, how = parse_event(say, cfg, ds)
+            if ev_say is None:
+                st.warning(f"没能理解这句话。时刻要在规划期内（{utc_of(0):%m-%d %H:%M} 到 {utc_of(cfg.days * 86400):%m-%d %H:%M} UTC），"
+                           "写清时刻、几号站、停机几小时，或目标编号" + ("。" if qf_key() else "；也可以配置千帆 API key 让大模型帮忙理解。"))
+            else:
+                st.success(f"理解为：{ev_say.describe(cfg, ds)}（{how}）")
+                run_replan(ev_say, st.session_state.get("rp_mode", "minimal"))
     t0d = utc_of(0)
     t1d = utc_of(cfg.days * 86400)
     ev = None

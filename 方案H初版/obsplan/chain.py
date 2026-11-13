@@ -432,6 +432,7 @@ class Timeline:
         self.cap = cap
         self.max_q = mq
         self.scr = _Scratch(cap, self.n_units, mq)
+        self.fail_count = np.zeros(pb.n_targets, np.int64)             # 每颗目标试过几次没成功（AI 预测器的特征）
         self.stats = defaultdict(int)
         self.lp_k = int(os.environ.get("OBSPLAN_CHAIN_LPK", "40"))   # 线性规划只重排改动前后各几个任务（0 = 整条时间线）
 
@@ -618,7 +619,10 @@ class Timeline:
         if self.tg_cnt[x] >= 3:
             return 0.0
         prop = self._propose(x, self.n, self.scr, max_depth, min_gain, shift, retries, drop, root_mask, self.stats)
-        return 0.0 if prop is None else self._apply(prop)
+        if prop is None:
+            self.fail_count[x] += 1
+            return 0.0
+        return self._apply(prop)
 
     def _propose(self, x: int, tid: int, scr: _Scratch, max_depth: int, min_gain: float, shift: int, retries: int,
                  drop: bool, root_mask, stats) -> dict | None:
@@ -893,6 +897,7 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
                 if prop is None:                             # 批开始时的状态下找不到划算的链：算作这一遍没成功
                     for k_, v_ in stats[j].items():
                         tl.stats[k_] += v_
+                    tl.fail_count[x] += 1
                     continue
                 if not tl._still_valid(prop, changed_units, changed_tasks):
                     redo += 1
@@ -970,6 +975,11 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
     from .second_bounds import all_bounds
     cfg, ds = pb.cfg, pb.ds
     threads = default_threads() if threads is None else max(1, int(threads))
+    # AI 预测器（obsplan/chain_ai.py）：跳过"大概率又失败、又白白耗时"的目标；OBSPLAN_CHAIN_AI=1 打开
+    pred, ai_thr, ai_skipped = None, float(os.environ.get("OBSPLAN_CHAIN_AI_THR", "0.7")), 0
+    if os.environ.get("OBSPLAN_CHAIN_AI", "0") != "0":                   # 实测固定时间内不提分，默认关闭
+        from .chain_ai import features as ai_features, load_predictor
+        pred = load_predictor()
     t_start = time.time()
     deadline = t_start + minutes * 60 if minutes > 0 else None
     late = lambda: deadline is not None and time.time() > deadline          # noqa: E731
@@ -1000,6 +1010,10 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
             cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
             cand = cand[rng.permutation(len(cand))]
             cand = cand[np.argsort(-pb.P[cand], kind="stable")]
+            if pred is not None and len(cand):
+                keep = pred.prob(ai_features(tl, cand)) <= ai_thr
+                ai_skipped += int((~keep).sum())
+                cand = cand[keep]
             if threads > 1:
                 r = run_pass_parallel(tl, cand, threads=threads, max_depth=depth, verbose=verbose, deadline=deadline,
                                       shift=shift, retries=retries, drop=drop)
@@ -1033,4 +1047,5 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                 on_best(best, best_ev, best_used)
     best.algo = (sch.algo + " + " if sch.algo else "") + "按秒跨站弹射链"
     return best, {"start": e0, "best": best_ev, "extra_windows": best_used, "stats": stats_all, "passes": log,
-                  "seconds": round(time.time() - t_start, 1)}
+                  "seconds": round(time.time() - t_start, 1), "threads": threads,
+                  "ai_skipped": ai_skipped if pred is not None else None}

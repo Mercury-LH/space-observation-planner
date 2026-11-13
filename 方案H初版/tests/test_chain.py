@@ -130,3 +130,19 @@ def test_parallel_pass_is_legal_and_deterministic(sub):
         assert r["added"] > 0
         outs.append((r["added"], sorted(zip(out.station.tolist(), out.target.tolist(), out.start_s.tolist()))))
     assert outs[0] == outs[1]
+
+
+def test_chain_ai_features_and_model(sub):
+    """AI 预测器：特征有限、维数对；随包的模型能加载并给出 0～1 的概率。"""
+    from obsplan.chain_ai import FEATURES, features, load_predictor
+    sch, _ = lagrange.solve(sub, iters=20, verbose=False)
+    ref, _ = refine(sub, sch)
+    wL, wR = all_bounds(sub, None, workers=2, verbose=False)
+    tl = Timeline(sub, wL, wR, ref)
+    xs = np.nonzero((tl.tg_cnt > 0) & (tl.tg_cnt < 3))[0][:50]
+    F = features(tl, xs)
+    assert F.shape == (len(xs), len(FEATURES)) and np.isfinite(F).all()
+    pred = load_predictor()
+    if pred is not None:
+        p = pred.prob(F)
+        assert ((p >= 0) & (p <= 1)).all()
