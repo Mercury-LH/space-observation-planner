@@ -1,0 +1,40 @@
+{
+ "说明": "目前最好计划：长跑最终计划（0.991342）之后接弹射链（depth 4，rounds 30:0,0:0）。计划明细 CSV 含目标编号，按惯例不进 git（本机 outputs/final_best/longrun_chain_best.csv，md5 b36315b4e530438dc1f1b8158fbaa463）。",
+ "start": {
+  "covered": 9999,
+  "score": 29784.7,
+  "combined": 0.995338,
+  "tasks": 13193
+ },
+ "best": {
+  "covered": 9999,
+  "score": 29811.053,
+  "combined": 0.995776,
+  "tasks": 13227
+ },
+ "seconds": 687.8,
+ "stats": {
+  "找不到链": 3724,
+  "重排节奏回退": 5372,
+  "成功_深度1": 24,
+  "成功_深度3": 21,
+  "重排节奏成功": 41,
+  "成功_深度2": 29,
+  "成功_深度0": 7,
+  "不划算": 11,
+  "删重复换延长": 6,
+  "成功_深度3_删": 1,
+  "成功_深度0_删": 1
+ },
+ "structural_violations": {},
+ "skyfield": {
+  "tasks": 13227,
+  "skipped": 0,
+  "legal": true,
+  "violations": {},
+  "covered_valid": 9999,
+  "score_valid": 29811.05333333333
+ },
+ "upper_bound_by_second": 1.004687,
+ "gap_to_bound_pct": 0.891
+}

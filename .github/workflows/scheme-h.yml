@@ -1,0 +1,71 @@
+# 方案H初版在 Linux 和 Windows 上能否装好、跑通：测试（不含较慢的 Skyfield 逐秒校验）、界面检查、一键启动脚本。
+# 仓库检出到带空格和中文的目录，模拟评委电脑上常见的路径。PR 页面会显示分支最新提交的检查结果。
+name: 方案H 跨平台检查
+
+on:
+  push:
+    paths: ["方案H初版/**", "data/**", ".github/workflows/scheme-h.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        working-directory: 评委 测试/方案H初版
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: 评委 测试
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.12.10"
+          working-directory: 评委 测试/方案H初版
+          cache-dependency-glob: uv.lock
+      - name: 可见窗口缓存（数据或窗口代码变了才重算）
+        uses: actions/cache@v6
+        with:
+          path: 评委 测试/方案H初版/cache
+          key: windows-${{ runner.os }}-${{ hashFiles('评委 测试/data/*.zip', '评委 测试/方案H初版/obsplan/visibility.py', '评委 测试/方案H初版/obsplan/data.py', '评委 测试/方案H初版/obsplan/config.py') }}
+      - name: 安装依赖（与 uv.lock 不一致时报错）
+        run: uv sync --locked --extra app
+      - name: 测试
+        run: uv run --no-sync pytest -q -m "not slow"
+      - name: 界面检查（在界面里现算可见窗口，运行一次演示规划）
+        run: uv run --no-sync python scripts/check_app.py
+      - name: 一键启动脚本 start_app.sh
+        if: runner.os == 'Linux'
+        run: |
+          bash start_app.sh --server.headless true --server.port 8599 > start_app.log 2>&1 &
+          for i in $(seq 150); do
+            if curl -sf http://127.0.0.1:8599/_stcore/health; then echo; cat start_app.log; exit 0; fi
+            sleep 2
+          done
+          cat start_app.log
+          exit 1
+      - name: 一键启动脚本 start_app.bat
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item empty.txt -ItemType File -Force | Out-Null
+          $p = Start-Process cmd.exe -ArgumentList '/c start_app.bat --server.headless true --server.port 8599' `
+                 -RedirectStandardInput empty.txt -RedirectStandardOutput start_app.log -RedirectStandardError start_app.err `
+                 -NoNewWindow -PassThru
+          $ok = $false
+          foreach ($i in 1..150) {
+            try { if ((Invoke-WebRequest http://127.0.0.1:8599/_stcore/health -UseBasicParsing -TimeoutSec 2).Content -eq 'ok') { $ok = $true; break } } catch { }
+            Start-Sleep -Seconds 2
+          }
+          taskkill /T /F /PID $p.Id | Out-Null
+          Get-Content start_app.log, start_app.err -Encoding utf8
+          if (-not $ok) { exit 1 }

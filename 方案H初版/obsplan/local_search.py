@@ -16,9 +16,12 @@ from .greedy import State, _find_start
 from .problem import Problem
 
 RESERVED = -2
+NO_TASK = -9          # 不会出现在 t_task 里的编号：传给 _sep_ok_excl 表示不排除任何已有观测
+# 站点占用 owner 中小于 -1 的格是封锁的（-2 预留、-3 已过去/停机/固定任务），任何任务都不能占用；
+# t_task 为 -1 的观测记录是固定的（动态重规划里已执行或原样保留的观测），只参与次数与 48 小时间隔判定。
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _task_value(k, tg, m, t_cnt, P, frac, vc, vs):
     v = vs * P[tg[k]] * frac[m[k]]
     if t_cnt[tg[k]] == 1:
@@ -26,7 +29,7 @@ def _task_value(k, tg, m, t_cnt, P, frac, vc, vs):
     return v
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _detach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     """把任务 k 从站点占用和目标记录中摘下（不改 alive）。"""
     s = st[k]
@@ -45,7 +48,7 @@ def _detach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
             break
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _attach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     s = st[k]
     for c in range(a[k], a[k] + m[k] + 1):
@@ -58,7 +61,7 @@ def _attach(k, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task):
     t_cnt[i] = cnt + 1
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _sep_ok_excl(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task, gap):
     for x in range(t_cnt[i]):
         if t_task[i, x] == k:
@@ -69,7 +72,7 @@ def _sep_ok_excl(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task, gap):
     return True
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _relocate_option(k, st, tg, a, m, w, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                      w_st, w_k0, w_k1, t_ptr, t_win, gap, m_min, T):
     """任务 k 已被摘下。在它目标的所有窗口里找新位置，时长尽量不缩短。
@@ -87,10 +90,14 @@ def _relocate_option(k, st, tg, a, m, w, owner, t_cnt, t_obs_a, t_obs_m, t_task,
     return best_w, best_a, best_m
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
-                    w_st, w_k0, w_k1, t_ptr, t_win, P, frac, vc, vs, gap, m_min, max_pos):
-    """对每个未覆盖目标尝试一次最优插入。返回 (新任务数 n, 成功插入数)。"""
+                    w_st, w_k0, w_k1, t_ptr, t_win, P, frac, vc, vs, gap, m_min, max_pos, prune=True):
+    """对每个未覆盖目标尝试一次最优插入。返回 (新任务数 n, 成功插入数)。
+    剪枝（与逐个位置完整试探的结果逐位相同）：挡路任务的损失都 >= 0，插入收益不会超过 gain_base，
+    所以已找到收益 >= gain_base 的位置就停止扫描（后面不可能严格更好）；前面挡路任务的损失已使收益
+    <= 当前最好时，不再评估后面的挡路任务。被跳过的试探只会摘下再挂回挡路任务，改变的仅是观测记录的
+    排列顺序，而所有用到观测记录的判定都与顺序无关。prune=False 时不剪枝（测试用来核对结果相同）。"""
     T = owner.shape[1]
     inserted = 0
     cap = len(st)
@@ -102,6 +109,8 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
         best = (-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1)
         # best = (w, a, b1, b1_action, b1_w, b1_a, b1_m, b2, b2_action, b2_w, b2_a, b2_m)
         for p in range(t_ptr[u], t_ptr[u + 1]):
+            if prune and best_gain >= gain_base:
+                break
             wu = t_win[p]
             s = w_st[wu]
             k0, k1 = w_k0[wu], w_k1[wu]
@@ -110,17 +119,25 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
                 continue
             step = 1 if L < max_pos else (L + max_pos - 1) // max_pos
             for au in range(k0, k1 - m_min + 1, step):
-                if t_cnt[u] > 0 and not _sep_ok_excl(u, -1, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
+                if prune and best_gain >= gain_base:
+                    break
+                if t_cnt[u] > 0 and not _sep_ok_excl(u, NO_TASK, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
                     continue
                 b1, b2, nb = -1, -1, 0
+                blocked = False
                 for c in range(au, au + m_min + 1):
                     o = owner[s, c]
+                    if o < -1:
+                        blocked = True
+                        break
                     if o >= 0 and o != b1 and o != b2:
                         if nb == 0:
                             b1 = o
                         elif nb == 1:
                             b2 = o
                         nb += 1
+                if blocked:
+                    continue
                 if nb == 0:
                     if gain_base > best_gain:
                         best_gain = gain_base
@@ -133,6 +150,9 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
                 ok = True
                 acts = np.full((2, 5), -1, np.int64)
                 for bi in range(nb):
+                    if prune and gain_base - loss <= best_gain:   # 后面的挡路任务只会再增加损失
+                        ok = False
+                        break
                     b = b1 if bi == 0 else b2
                     vb = _task_value(b, tg, m, t_cnt, P, frac, vc, vs)
                     _detach(b, st, tg, a, m, owner, t_cnt, t_obs_a, t_obs_m, t_task)
@@ -217,7 +237,7 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
         for c in range(au, au + m_min + 1):
             if owner[s, c] != -1:
                 clear = False
-        if not clear or not _sep_ok_excl(u, -1, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
+        if not clear or not _sep_ok_excl(u, NO_TASK, au, m_min, t_cnt, t_obs_a, t_obs_m, t_task, gap):
             continue
         st[n], tg[n], a[n], m[n], w[n] = s, u, au, m_min, wu
         alive[n] = True
@@ -227,7 +247,7 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
     return n, inserted
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def _set_obs(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task):
     for x in range(t_cnt[i]):
         if t_task[i, x] == k:
@@ -235,7 +255,7 @@ def _set_obs(i, k, aa, mm, t_cnt, t_obs_a, t_obs_m, t_task):
             t_obs_m[i, x] = mm
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def extend_all(order, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                w_k0, w_k1, gap, m_max):
     """按给定顺序把任务向后、向前延长到最多 m_max 格。返回延长的总格数。"""
@@ -263,9 +283,10 @@ def extend_all(order, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m,
 
 
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_obs_m, t_task, w_k0, w_k1, gap):
-    """同站任务按时间顺序整体左移（direction=-1）或右移（+1），把碎片空隙并到一起。返回移动的任务数。"""
+    """同站任务按时间顺序整体左移（direction=-1）或右移（+1），把碎片空隙并到一起。返回移动的任务数。
+    移动时不越过封锁的格（动态重规划中已过去、停机或固定任务占用的时段）。"""
     moved = 0
     T = owner.shape[1]
     last_s, bound = -1, 0
@@ -277,7 +298,10 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
             last_s = s
             bound = 0 if direction < 0 else T - 1
         if direction < 0:
-            target = max(w_k0[w[k]], bound)
+            lo = max(w_k0[w[k]], bound)
+            target = a[k]
+            while target - 1 >= lo and owner[s, target - 1] == -1:
+                target -= 1
             if target < a[k] and _sep_ok_excl(tg[k], k, target, m[k], t_cnt, t_obs_a, t_obs_m, t_task, gap):
                 for c in range(a[k], a[k] + m[k] + 1):
                     owner[s, c] = -1
@@ -288,7 +312,10 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
                 moved += 1
             bound = a[k] + m[k] + 1
         else:
-            target = min(w_k1[w[k]] - m[k], bound - m[k])
+            hi = min(w_k1[w[k]] - m[k], bound - m[k])
+            target = a[k]
+            while target + 1 <= hi and owner[s, target + m[k] + 1] == -1:
+                target += 1
             if target > a[k] and _sep_ok_excl(tg[k], k, target, m[k], t_cnt, t_obs_a, t_obs_m, t_task, gap):
                 for c in range(a[k], a[k] + m[k] + 1):
                     owner[s, c] = -1
@@ -300,7 +327,7 @@ def compact(order, direction, st, tg, a, m, w, alive, owner, t_cnt, t_obs_a, t_o
             bound = a[k] - 1
     return moved
 
-@njit(cache=True)
+@njit(cache=True, nogil=True)
 def swap_repeat_for_extension(st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t_obs_m, t_task,
                               w_k0, w_k1, P, frac, vs, gap, m_max):
     """删除一个重复观测 r，让同站前后相邻任务延长占用腾出的格子；收益为正才接受。"""

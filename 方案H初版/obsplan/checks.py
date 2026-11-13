@@ -13,7 +13,12 @@ from .problem import Problem
 from .schedule import Schedule
 
 
-def structural_violations(pb: Problem, sch: Schedule) -> dict[str, list[int]]:
+def structural_violations(pb: Problem, sch: Schedule, by_second: bool = False,
+                          extra_windows: dict | None = None) -> dict[str, list[int]]:
+    """by_second：按秒精修后的计划——不要求对齐网格；任务可以越出网格窗口两端各至多 cell_s−1 秒
+    （精修按秒外推的范围，那几秒是否真的可见由 Skyfield 校验把关）。
+    extra_windows：网格上没有窗口、按秒补覆盖插入的目标的真实可见区间 {"station", "target", "L", "R"}（秒），
+    见 refine.near_windows。"""
     cfg = pb.cfg
     bad: dict[str, list[int]] = defaultdict(list)
     horizon = cfg.days * 86400
@@ -26,29 +31,38 @@ def structural_violations(pb: Problem, sch: Schedule) -> dict[str, list[int]]:
     # 窗口包含：任务 [a, a+m]（采样点）须落在同目标同站某个窗口 [k0, k1] 内
     a = sch.start_s // cfg.cell_s
     m = sch.dur_s // cfg.cell_s
+    slack = cfg.cell_s - 1
+    extra = defaultdict(list)
+    if extra_windows is not None:
+        for s, t, lo, hi in zip(extra_windows["station"], extra_windows["target"], extra_windows["L"], extra_windows["R"]):
+            extra[(int(t), int(s))].append((int(lo), int(hi)))
     for i in range(len(sch)):
         t, s = int(sch.target[i]), int(sch.station[i])
         ws = pb.t_win[pb.t_ptr[t]:pb.t_ptr[t + 1]]
         ws = ws[pb.w_st[ws] == s]
+        if by_second:
+            s0, e0 = sch.start_s[i], sch.start_s[i] + sch.dur_s[i]
+            ok = np.any((pb.w_k0[ws] * cfg.cell_s - slack <= s0) & (e0 <= pb.w_k1[ws] * cfg.cell_s + slack)) or \
+                any(lo <= s0 and e0 <= hi for lo, hi in extra.get((t, s), ()))
+            if not ok:
+                bad["不在合法窗口内"].append(i)
+            continue
         if not np.any((pb.w_k0[ws] <= a[i]) & (a[i] + m[i] <= pb.w_k1[ws])):
             bad["不在合法窗口内"].append(i)
         if sch.start_s[i] % cfg.cell_s or sch.dur_s[i] % cfg.cell_s:
             bad["未对齐时间网格"].append(i)
 
-    for s in np.unique(sch.station):
-        idx = np.nonzero(sch.station == s)[0]
-        idx = idx[np.argsort(sch.start_s[idx], kind="stable")]
-        for p, q in zip(idx[:-1], idx[1:]):
-            if sch.start_s[q] < sch.start_s[p] + sch.dur_s[p] + cfg.switch_s:
-                bad["站点冲突或切换不足"].append(int(q))
-
+    # 同站相邻任务（按开始时间）之间留切换时间；同一目标至多 3 次，相邻两次观测间隔 48 小时
     gap = cfg.repeat_gap_h * 3600
-    for t in np.unique(sch.target):
-        idx = np.nonzero(sch.target == t)[0]
-        idx = idx[np.argsort(sch.start_s[idx], kind="stable")]
-        if len(idx) > 3:
-            bad["同目标超过 3 次"].append(int(idx[3]))
-        for p, q in zip(idx[:-1], idx[1:]):
-            if sch.start_s[q] < sch.start_s[p] + sch.dur_s[p] + gap:
-                bad["48 小时间隔不足"].append(int(q))
+    order = np.lexsort((sch.start_s, sch.target))
+    first = np.r_[True, sch.target[order[1:]] != sch.target[order[:-1]]]
+    rank = np.arange(len(order)) - np.maximum.accumulate(np.where(first, np.arange(len(order)), 0))
+    if (rank == 3).any():
+        bad["同目标超过 3 次"] = [int(i) for i in order[rank == 3]]
+    for key, need, name in ((sch.station, cfg.switch_s, "站点冲突或切换不足"), (sch.target, gap, "48 小时间隔不足")):
+        order = np.lexsort((sch.start_s, key))
+        p, q = order[:-1], order[1:]
+        hit = (key[p] == key[q]) & (sch.start_s[q] < sch.start_s[p] + sch.dur_s[p] + need)
+        if hit.any():
+            bad[name] = [int(i) for i in q[hit]]
     return dict(bad)

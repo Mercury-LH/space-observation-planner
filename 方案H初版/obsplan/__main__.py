@@ -1,9 +1,10 @@
 """命令行入口。
 
-    uv run python -m obsplan plan [--mode fast|quality] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
+    uv run python -m obsplan plan [--mode fast|quality] [--chain 分钟] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
     uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
     uv run python -m obsplan windows [--refresh]
+    uv run python -m obsplan env 标准计划.csv [考虑环境的计划.csv ...] [--moon-sep 30]   # 加分项：环境影响对比
 
 validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
 （时间为 UTC 的 ISO 格式，或配合 --seconds-from-start 使用相对规划开始的秒数）；
@@ -141,11 +142,20 @@ def cmd_plan(args) -> int:
     if not args.manual_rule and not args.weather:           # 默认用伐谋演化并已采纳的放置规则（obsplan/evolved/）
         from .evolved import load_rule
         kw["rule"] = load_rule()
+        kw["portfolio"] = not args.rule_only                # 稳健模式：人工规则也排一份，取综合高的
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
+    pf = info.get("portfolio")
+    placement = {"rule": "伐谋规则", "manual": "人工规则"}[pf["picked"]] if pf else \
+        ("伐谋规则" if kw.get("rule") is not None else "人工规则")
     rinfo = None
     if not args.no_refine:
         from .refine import finish
         sch, rinfo = finish(pb, sch)
+    cinfo = None
+    if args.chain > 0 and not args.no_refine:
+        from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
+        sch, ci = improve(pb, sch, minutes=args.chain)
+        cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -160,13 +170,21 @@ def cmd_plan(args) -> int:
     status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
     export_status(status_rows, out / "target_status.csv")
     summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
+               "placement_rule": placement,
+               "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
+               "chain": cinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
                "target_status": summarize(status_rows)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
     print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
+    if cinfo is not None:
+        print(f"弹射链 {cinfo['seconds']:.0f} 秒：综合 {cinfo['start']['combined']:.6f} → {cinfo['best']['combined']:.6f}")
+    if pf is not None:
+        o = pf["objective"]
+        print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
     if check is not None:
         print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
     print("目标状态：" + describe(summary["target_status"]))
@@ -197,6 +215,45 @@ def cmd_status(args) -> int:
     return 0
 
 
+def cmd_env(args) -> int:
+    """加分项：把几份计划放进同一个环境模型（月光、目标亮度、过去 10 年真实天气），对比名义结果与考虑之后的结果。"""
+    from .data import load
+    from .env_report import report
+    cfg = _cfg(args)
+    ds = load(cfg)
+    rows = []
+    for path in args.plans:
+        sch, skipped = read_plan(cfg, ds, Path(path), args.seconds_from_start)
+        try:
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=not args.no_weather)
+        except OSError as e:                                    # 没网且没有云量缓存：只算月光与亮度
+            print(f"取不到历史云量（{e}），这次不算天气")
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=False)
+        r["plan"] = str(path)
+        rows.append(r)
+    a = rows[0]["assumptions"]
+    print(f"环境模型：月亮在地平线以上时目标离月亮 < {a['moon_sep_deg']:g}° 算失败；目标视星等暗于 {a['limit_mag']:g} 等算失败"
+          f"（1000 km、相位角 90° 时取 {a['m_std']:g} 等）；天气用过去 {a['weather_years'] or 0} 年同期真实云量（≤ 30% 算晴）")
+    for r in rows:
+        nm, am, af = r["nominal"], r["after_moon"], r["after_moon_dim"]
+        print(f"\n{r['plan']}")
+        print(f"  名义（不考虑环境）：综合 {nm['combined']:.4f}，覆盖 {nm['covered']}，得分 {nm['score']:.0f}，任务 {nm['tasks']}")
+        print(f"  受月光影响 {r['affected_tasks']['moon']} 个任务，目标太暗 {r['affected_tasks']['dim']} 个"
+              f"（极限星等 13/14/15/16 等时分别 {'/'.join(str(v) for v in r['dim_by_limit'].values())} 个）")
+        print(f"  考虑月光：综合 {am['combined']:.4f}；再考虑目标亮度：{af['combined']:.4f}（覆盖 {af['covered']}，得分 {af['score']:.0f}）")
+        if "weather_combined_mean" in af:
+            print(f"  再考虑天气（{a['weather_years']} 年平均）：综合 {af['weather_combined_mean']:.4f}"
+                  f"（覆盖 {af['weather_covered_mean']:.0f}，得分 {af['weather_score_mean']:.0f}）；"
+                  f"只考虑天气时 {nm['weather_combined_mean']:.4f}")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(rows, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+        print("\n已写出", args.out)
+    return 0
+
+
 def cmd_windows(args) -> int:
     from .data import load
     from .visibility import get_windows
@@ -207,7 +264,18 @@ def cmd_windows(args) -> int:
     return 0
 
 
+def _utf8_output() -> None:
+    """Windows 上输出被重定向到文件或管道时用本地编码（英文系统是 cp1252），印中文会报错，改用 UTF-8。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            "中文".encode(stream.encoding)
+        except (AttributeError, LookupError, TypeError, UnicodeEncodeError):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8")
+
+
 def main(argv=None) -> int:
+    _utf8_output()
     ap = argparse.ArgumentParser(prog="obsplan", description="空间目标观测规划（方案 H）")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("plan", "validate", "windows", "status"):
@@ -220,7 +288,11 @@ def main(argv=None) -> int:
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
             p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
+            p.add_argument("--chain", type=float, default=0.0,
+                           help="按秒精修之后再跑几分钟按秒跨站弹射链（0 = 不跑；见 obsplan/chain.py）")
             p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
+            p.add_argument("--rule-only", action="store_true",
+                           help="只用伐谋规则排一份（默认是稳健模式：伐谋、人工两条规则各排一份，取综合高的，用时基本不变）")
             p.add_argument("--out", default="outputs/plan")
         elif name == "validate":
             p.add_argument("plan")
@@ -232,8 +304,19 @@ def main(argv=None) -> int:
             p.add_argument("--out", default="outputs/target_status.csv", help="目标状态表 CSV（同名 .json 为汇总）")
         else:
             p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("env", help="加分项：几份计划在月光、目标亮度、真实天气下的对比")
+    p.add_argument("plans", nargs="+", help="计划文件（第一份通常是标准计划）")
+    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--days", type=float)
+    p.add_argument("--moon-sep", type=float, default=30.0, help="月亮在地平线以上时，目标离月亮至少多少度")
+    p.add_argument("--m-std", type=float, default=6.0, help="目标在 1000 km、相位角 90° 时的视星等（赛题无尺寸数据，统一取典型值）")
+    p.add_argument("--limit-mag", type=float, default=15.0, help="望远镜极限星等，暗于它算看不到")
+    p.add_argument("--no-weather", action="store_true", help="不算天气（不需要云量数据）")
+    p.add_argument("--seconds-from-start", action="store_true")
+    p.add_argument("--out", default="outputs/env_compare.json")
     args = ap.parse_args(argv)
-    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status}[args.cmd](args)
+    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status,
+            "env": cmd_env}[args.cmd](args)
 
 
 if __name__ == "__main__":

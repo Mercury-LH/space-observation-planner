@@ -20,15 +20,32 @@ from .schedule import Schedule
 
 @lru_cache(maxsize=1)
 def _sky(cache_dir: str):
-    from skyfield.api import Loader
-    load = Loader(cache_dir, verbose=False)
-    return load.timescale(builtin=True), load("de421.bsp")
+    from .ephemeris import load_de421
+    return load_de421(cache_dir)
 
 
-def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> dict:
+DE421_BYTES = 16788480      # 完整的 de421.bsp；下载中断会留下截断文件，Skyfield 读时报 "mmap length is greater than file size"
+
+
+def _ephemeris_dir(cfg: Config) -> str:
+    """星历所在目录：优先用本配置的缓存目录；那里没有完整文件时用项目默认缓存（合成场景各有缓存目录，
+    不必每个场景再下载一份 17 MB 的星历）。"""
+    for d in (Path(cfg.cache_dir), Path(Config().cache_dir)):
+        f = d / "de421.bsp"
+        if f.exists() and f.stat().st_size >= DE421_BYTES:
+            return str(d)
+    return str(Path(cfg.cache_dir))
+
+
+# Skyfield 算站点看太阳的视位置，每个时间点约占 22 KB 中间内存；最忙的站点有三四十万个任务秒，一次算完要 7–9 GB。
+# 按块计算（每块 2 万个时间点，约 0.45 GB），结果与一次算完逐位相同。
+SUN_CHUNK = 20000
+
+
+def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk: int = SUN_CHUNK) -> dict:
     from skyfield.api import EarthSatellite, wgs84
 
-    ts, eph = _sky(str(Path(cfg.cache_dir)))
+    ts, eph = _sky(_ephemeris_dir(cfg))
     earth, sun, moon = eph["earth"], eph["sun"], eph["moon"]
     st0 = cfg.start_dt
     n = len(sch)
@@ -57,7 +74,8 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0) -> di
         if len(idx) == 0:
             continue
         secs = np.concatenate([task_secs[i] for i in idx])
-        alt = (earth + sites[j]).at(times(secs)).observe(sun).apparent().altaz()[0].degrees
+        alt = np.concatenate([(earth + sites[j]).at(times(secs[c:c + chunk])).observe(sun).apparent().altaz()[0].degrees
+                              for c in range(0, len(secs), chunk)])
         pos = 0
         for i in idx:
             k = len(task_secs[i])

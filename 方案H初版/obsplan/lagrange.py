@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import time
 
+import numba
 import numpy as np
 from numba import njit, prange
 
@@ -21,15 +22,44 @@ from .problem import Problem
 from .schedule import Schedule
 
 
-@njit(parallel=True, cache=True)
+def target_work(t_ptr, t_win, w_k0, w_k1) -> np.ndarray:
+    """每颗目标在价格子问题里的计算量（全部窗口的格数之和）。"""
+    n = len(t_ptr) - 1
+    cells = (np.asarray(w_k1) - np.asarray(w_k0) + 1)[t_win].astype(np.float64)
+    return np.bincount(np.repeat(np.arange(n), np.diff(t_ptr)), weights=cells, minlength=n)
+
+
+def balanced_order(work: np.ndarray, n_chunks: int | None = None) -> np.ndarray:
+    """并行循环按线程静态分块，每个线程处理连续一段编号。高轨目标窗口长、计算量集中在少数编号段，
+    原顺序下一个线程要干六成以上的活（10 线程只快 1.6 倍）。这里按计算量从大到小蛇形轮流分到各分块，
+    各线程工作量接近。每颗目标独立计算、只写自己的输出，顺序不影响结果（逐位相同）。"""
+    c_n = max(1, int(n_chunks or numba.get_num_threads()))
+    idx = np.argsort(-np.asarray(work, float), kind="stable")
+    k = np.arange(len(idx))
+    r = k // c_n
+    c = np.where(r % 2 == 0, k % c_n, c_n - 1 - k % c_n)
+    return np.concatenate([idx[c == j] for j in range(c_n)]).astype(np.int64)
+
+
 def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
-                out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
+                out_total, out_task, out_cnt, qpref, use_q, beta, max_k, order=None):
+    """价格子问题（见 _subproblem_kernel）。order：目标处理顺序，默认按计算量均衡分到各线程。"""
+    if order is None:
+        order = balanced_order(target_work(t_ptr, t_win, w_k0, w_k1))
+    _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
+                       out_total, out_task, out_cnt, qpref, use_q, beta, max_k)
+
+
+@njit(parallel=True, cache=True)
+def _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
+                       out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
     """每颗目标独立求解：窗口内最优 (开始, 时长)，再在窗口间做 ≤3 次、间隔 ≥48h 的链式 DP。
     窗口间隔用放松的判定（前一窗口最早结束 + 48h <= 后一窗口最晚开始），保证对偶值是合法上界。
     首次观测价值 = (覆盖奖励 + 得分) × q，重复观测价值 = (得分 + 覆盖奖励 × beta) × q；
     不考虑天气时 q = 1、beta = 0，即原问题。"""
     N = len(t_ptr) - 1
-    for i in prange(N):
+    for j in prange(N):
+        i = order[j]
         p0, p1 = t_ptr[i], t_ptr[i + 1]
         nw = p1 - p0
         out_cnt[i] = 0
@@ -219,14 +249,20 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
 
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
-          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None) -> tuple[Schedule, dict]:
+          fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None,
+          portfolio: bool = False) -> tuple[Schedule, dict]:
     """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
     progress(fraction, text)：可选的进度回调（产品界面用）。
     cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。
     vc_target / max_obs_left / init_state：动态重规划用——每颗目标的覆盖奖励（已成功覆盖的为 0）、剩余可观测次数、
     返回预置了历史成功观测与过去时段占用的 State 的函数。
     rule：伐谋演化的放置规则（见 recover）：价格迭代照旧（用人工规则选最好一次），结束后用该价格按 rule 再恢复一次，
-    与伐谋评测的做法相同；None 时只用人工规则。"""
+    与伐谋评测的做法相同；None 时只用人工规则。
+    portfolio：稳健模式（需要 rule）。人工规则和伐谋规则各恢复一份计划，两份的局部搜索在两个线程里同时做
+    （局部搜索是单线程的 numba 代码，已放开 GIL），取目标值高的一份；一样高时取伐谋规则的。
+    伐谋规则是在赛题这一份数据上演化的，换了场景不保证更好，这样做在任何场景上都不会比人工规则差。
+    rule 也可以是几条规则的列表（只用于 portfolio）：人工规则加列表里每条规则各恢复一份，局部搜索并行，取目标值最高的；
+    一样高时按列表顺序优先，人工规则最后。"""
     t0 = time.time()
     if recover_at is None:                      # 在整个迭代过程中均匀做可行解恢复
         recover_at = tuple(range(0, iters, 50)) + (iters - 1,)
@@ -234,6 +270,7 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     mu = np.zeros((S, T))
     cand = candidates(pb)
     N = pb.n_targets
+    order = balanced_order(target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
     out_total = np.zeros(N)
     out_task = np.zeros((N, 3, 3), np.int64)
     out_cnt = np.zeros(N, np.int64)
@@ -253,14 +290,16 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     best_ub, best_lb, best_state, best_mu = np.inf, -np.inf, None, mu.copy()
     theta, stall, hist = 1.0, 0, []
     for it in range(iters):
-        if it in recover_at:
+        # 第一轮总要先恢复一次：步长 (L - best_lb) 需要一个有限的可行解值，否则价格变成 inf/NaN
+        # （默认 recover_at 含 0，这一条不改变默认结果；只防自定义 recover_at 不从 0 开始）
+        if it in recover_at or best_state is None:
             st = recover(pb, mu, cand, qw, beta if use_q else None, vct if vc_target is not None else None, init_state)
             lb = objective_weighted(pb, st, qw, beta, vct) if use_q else objective(pb, st)
             if lb > best_lb:
                 best_lb, best_state, best_mu = lb, st, mu.copy()
         pref = np.concatenate([np.zeros((S, 1)), np.cumsum(mu, axis=1)], axis=1)
         _subproblem(pref, pb.t_ptr, pb.t_win, pb.w_st, pb.w_k0, pb.w_k1, Pv, pb.frac, vct, pb.gap,
-                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta, maxk)
+                    pb.m_min, pb.m_max, out_total, out_task, out_cnt, qpref, use_q, beta, maxk, order=order)
         L = mu.sum() + out_total.sum()
         if L < best_ub - 1e-9:
             best_ub, stall = L, 0
@@ -280,16 +319,38 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
             break
         mu = np.maximum(0.0, mu + theta * (L - best_lb) / norm * g)
     lb_manual = best_lb
-    if rule is not None and not use_q and vc_target is None:
+    manual_state = best_state
+    use_rule = rule is not None and not use_q and vc_target is None
+    rules = list(rule) if isinstance(rule, (list, tuple)) else [rule]
+    if len(rules) > 1 and not portfolio:
+        raise ValueError("多条放置规则只用于稳健模式（portfolio=True）")
+    if use_rule:
         # 与伐谋评测一致：用最好一次可行解对应的价格，按演化出的放置规则重新恢复一次，再做局部搜索
-        best_state = recover(pb, best_mu, cand, init_state=init_state, rule=rule)
+        rule_states = [recover(pb, best_mu, cand, init_state=init_state, rule=r) for r in rules]
+        best_state = rule_states[0]
         best_lb = objective(pb, best_state)
-    ls_stats = {}
+    ls_stats, pf = {}, None
     if progress is not None:
         progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
-    if local_search:
-        ls_stats = improve(pb, best_state, repeat_min_priority=3.0 if fast else None)
+    rmp = 3.0 if fast else None
+    if local_search and portfolio and use_rule:
+        from concurrent.futures import ThreadPoolExecutor
+        names = ["rule"] if len(rules) == 1 else [f"rule{i}" for i in range(len(rules))]
+        arms = dict(zip(names, rule_states))
+        arms["manual"] = manual_state
+        with ThreadPoolExecutor(len(arms)) as ex:
+            futs = {k: ex.submit(improve, pb, s, repeat_min_priority=rmp) for k, s in arms.items()}
+            stats = {k: f.result() for k, f in futs.items()}
+        obj = {k: objective(pb, s) for k, s in arms.items()}
+        picked = max(arms, key=lambda k: (obj[k], -list(arms).index(k)))     # 一样高时取靠前的（人工规则最后）
+        pf = {"objective": obj, "picked": picked, "ls": stats}
+        ls_stats = stats[picked]
+        best_state = arms[picked]
+    elif local_search:
+        ls_stats = improve(pb, best_state, repeat_min_priority=rmp)
     sch = best_state.schedule(pb, name, time.time() - t0)
     info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "lb_manual_rule": lb_manual, "history": hist,
             "ls": ls_stats, "mu": best_mu}
+    if pf is not None:
+        info["portfolio"] = pf
     return sch, info

@@ -16,7 +16,7 @@ from .data import Dataset
 from .greedy import MANUAL_WEIGHTS, algo_priority, algo_weighted
 from .local_search import improve
 from .problem import Problem
-from .schedule import Schedule, evaluate, export_csv
+from .schedule import Schedule, evaluate, export_csv, score_ref
 from .target_status import orbit_class  # noqa: F401（界面沿用 app_backend.orbit_class）
 from .visibility import Windows
 
@@ -68,14 +68,93 @@ class Run:
                    per_task=pt, **meta)
 
 
+def run_name(run: Run) -> str:
+    """结果的显示名称：有标签用标签，否则是"算法 模式 · 月-日 时:分"（H+ = 用伐谋放置规则的方案 H）。"""
+    if run.notes.get("label"):
+        return run.notes["label"]
+    algo = run.algo
+    if algo == "H":
+        algo = "H 按天气" if run.notes.get("weather_aware") else ("H+" if run.notes.get("famou_rule") else "H")
+    rid = run.run_id
+    when = f"{rid[4:6]}-{rid[6:8]} {rid[9:11]}:{rid[11:13]}" if len(rid) >= 15 and rid[8] == "-" else rid
+    return " ".join(x for x in (algo, run.notes.get("mode", "")) if x) + f" · {when}"
+
+
+def scope_metrics(cfg: Config, ds: Dataset, run: Run) -> dict:
+    """结果所在范围：参与规划的目标（mask，全量为 None）、目标数，以及按这个范围归一的综合指标。
+    演示结果只排了一部分目标，按全部目标归一的综合值会低得没有意义，所以改用参与目标的个数和满分参考。"""
+    m = run.metrics
+    if not run.subset:
+        return {"mask": None, "targets": ds.n_targets, "combined": float(m["combined"])}
+    mask = subset_mask(ds.n_targets, run.subset["target_frac"], run.subset.get("seed", 0))
+    n = int(mask.sum())
+    ref = score_ref(cfg, ds) * float(ds.priority[mask].sum()) / max(float(ds.priority.sum()), 1e-9)
+    return {"mask": mask, "targets": n,
+            "combined": float(cfg.w_cov * m["covered"] / max(n, 1) + cfg.w_score * m["score"] / max(ref, 1e-9))}
+
+
+BOUNDS_FILE = Path(__file__).resolve().parents[1] / "results" / "bounds.json"
+# 这些参数与算上界时（默认配置）一致，上界才适用；月光规避只会让可选的任务更少，上界仍然成立
+_BOUND_FIELDS = ("elev_margin", "sun_margin", "sunlit_margin_km", "obs_min_s", "obs_max_s", "switch_s",
+                 "repeat_gap_h", "priority_score", "w_cov", "w_score", "score_ref")
+
+
+def optimality_gap(cfg: Config, run: Run, path: Path | None = None) -> dict | None:
+    """全量结果离可证明上界还差多少（上界由 scripts/bound_experiment.py 算好，存在 results/bounds.json）。
+    没有上界文件、演示子集、或场景与规则参数和算上界时不同，返回 None。
+    网格计划用 30 秒格点口径的上界；按秒精修或插入过按秒任务的计划用按秒口径的上界（更大，对两种计划都成立）。"""
+    path = path or BOUNDS_FILE
+    if run.subset or not path.exists():
+        return None
+    try:
+        b = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    base = Config()
+    key = cfg.scenario_key().replace(f"_moon{cfg.moon_sep_deg:g}", "") if cfg.moon_sep_deg > 0 else cfg.scenario_key()
+    if b.get("scenario") != key or any(getattr(cfg, f) != getattr(base, f) for f in _BOUND_FIELDS):
+        return None
+    cell = cfg.cell_s
+    on_grid = bool((np.asarray(run.start_s) % cell == 0).all() and (np.asarray(run.dur_s) % cell == 0).all())
+    refined = bool(run.notes.get("refine", {}).get("refined")) or not on_grid
+    scope = "second" if refined else "grid"
+    ub = b.get(scope, {}).get("best_ub")
+    if not ub:
+        return None
+    value = float(run.metrics["combined"])
+    return {"scope": scope, "label": "按秒口径" if refined else "30 秒格点口径", "ub": float(ub),
+            "gap_pct": 100.0 * (float(ub) - value) / float(ub)}
+
+
 def list_runs(folder: Path) -> list[Path]:
     return sorted(folder.glob("*.npz"), key=lambda p: p.stat().st_mtime, reverse=True)
 
 
+def load_problem(cfg: Config) -> tuple[Dataset, Problem, dict]:
+    """读数据、算（或读缓存的）可见窗口、建问题实例，并记下各步用时（界面"演示"页用）。"""
+    from .data import load
+    from .visibility import get_windows
+    t0 = time.time()
+    ds = load(cfg)
+    t1 = time.time()
+    cached = (Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz").exists()
+    win = get_windows(cfg, ds)
+    t2 = time.time()
+    pb = Problem.build(cfg, ds, win)
+    t3 = time.time()
+    return ds, pb, {"load_s": t1 - t0, "windows_s": t2 - t1, "windows_cached": cached, "build_s": t3 - t2}
+
+
+def subset_mask(n_targets: int, target_frac: float, seed: int = 0) -> np.ndarray:
+    """演示模式下参与规划的目标（固定种子，同一比例每次选到同一批）。"""
+    if target_frac >= 1:
+        return np.ones(n_targets, bool)
+    return np.random.default_rng(seed).random(n_targets) < target_frac
+
+
 def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: int = 0) -> Problem:
     """演示模式：只保留部分目标和指定站点。"""
-    rng = np.random.default_rng(seed)
-    keep_t = rng.random(pb.n_targets) < target_frac if target_frac < 1 else np.ones(pb.n_targets, bool)
+    keep_t = subset_mask(pb.n_targets, target_frac, seed)
     keep_s = np.zeros(pb.n_stations, bool)
     keep_s[list(stations)] = True
     sel = keep_t[pb.w_tg] & keep_s[pb.w_st]
@@ -127,8 +206,9 @@ def simulate_days(pb: Problem, year: int, threshold: float = CLOUD_THRESHOLD, pr
 
 def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weather: bool = False,
                  fast: bool = False, refine_seconds: bool = True, full_problem: bool = True,
-                 evolved_rule: bool = True) -> Run:
+                 evolved_rule: bool = True, chain_minutes: float = 0.0) -> Run:
     """refine_seconds：网格计划之后做按秒精修（窗口两端外推到真实边界，线性规划重新分配时长）。
+    chain_minutes：按秒精修之后再跑几分钟按秒跨站弹射链（obsplan/chain.py；0 = 不跑；演示子集上不跑）。
     full_problem：pb 是否为完整问题；演示子集上不做"按秒补覆盖"。
     evolved_rule：H 的放置规则用伐谋演化并已采纳的版本（obsplan/evolved/），否则用人工的"价值 − 价格"。"""
     cfg = pb.cfg
@@ -146,8 +226,13 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
         elif evolved_rule:
             from .evolved import load_rule
             kw["rule"] = load_rule()
+            kw["portfolio"] = True          # 稳健模式：人工规则也排一份，取综合高的（两份局部搜索并发，用时基本不变）
             notes["famou_rule"] = kw["rule"] is not None
         sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, fast=fast, **kw)
+        if "portfolio" in info:
+            pf = info["portfolio"]
+            notes["famou_rule"] = pf["picked"] == "rule"
+            notes["rule_pick"] = {"picked": pf["picked"], "objective": {k: float(v) for k, v in pf["objective"].items()}}
         notes["mode"] = "快速" if fast else "高质量"
         mu = info["mu"].astype(np.float32)
         notes["ub_relaxed"] = float(info["ub_relaxed"])
@@ -169,6 +254,12 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             progress(0.97, "按秒精修：探查真实可见边界、插入按秒才可见的目标、重新分配观测时长……")
         sch, fi = finish(pb, sch, near=full_problem)
         notes["refine"], notes["insert"] = fi["refine"], fi["insert"]
+        if chain_minutes > 0 and full_problem:
+            from .chain import improve as chain_improve
+            if progress:
+                progress(0.98, f"按秒跨站弹射链（最多 {chain_minutes:g} 分钟）：把高优先级任务的延长换成多一次观测……")
+            sch, ci = chain_improve(pb, sch, minutes=chain_minutes)
+            notes["chain"] = {"minutes": chain_minutes, "seconds": ci["seconds"], "start": ci["start"], "best": ci["best"]}
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"
@@ -327,11 +418,76 @@ def pass_profile(pb: Problem, run: Run, i: int, pad_s: int = 300) -> dict:
 
 def validate_run(pb: Problem, run: Run) -> Run:
     from .validator import validate
+    t0 = time.time()
     chk = validate(pb.cfg, pb.ds, run.schedule())
     run.validation = {"legal": chk["legal"], "violations": chk["violations"],
-                      "margins": [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]]}
+                      "margins": [chk["min_elev_margin"], chk["max_elev_margin"], chk["sun_margin"]],
+                      "seconds": round(time.time() - t0, 1)}
     run.per_task = chk["per_task"].astype(np.float32)
     return run
+
+
+def near_for(pb: Problem, run: Run) -> dict | None:
+    """全量运行里"按秒补覆盖"插入的目标在网格上没有窗口，结构检查要对照它们的真实可见区间。"""
+    if run.subset or not run.notes.get("insert", {}).get("added"):
+        return None
+    from .refine import near_windows
+    return near_windows(pb)
+
+
+def structural_check(pb: Problem, run: Run) -> dict[str, int]:
+    """快速结构检查（obsplan/checks.py，按秒精修后的口径）：各类违规的任务数，空字典表示全部合法。"""
+    from .checks import structural_violations
+    bad = structural_violations(pb, run.schedule(), by_second=True, extra_windows=near_for(pb, run))
+    return {k: len(v) for k, v in bad.items()}
+
+
+# ------------------------------------------------------------------ 突发事件重规划（obsplan/replan.py）
+def replan_run(pb: Problem, run: Run, event, mode: str = "minimal", fast: bool = True, progress=None) -> dict:
+    """在当前结果上处理突发事件：冻结事件时刻前已执行的任务，用价格协调重排之后的时段。"""
+    from .replan import replan
+    return replan(pb, run.schedule(), event, mode=mode, iters=150 if fast else 300, fast=fast,
+                  extra_windows=near_for(pb, run), progress=progress)
+
+
+def replan_changed(res: dict) -> np.ndarray:
+    """新计划里与原计划不完全相同的任务（移动、新增，以及跟着按秒微调过的保留任务）。"""
+    st = res["new_status"]
+    return np.nonzero(((st == "移动") | (st == "新增") | ((st == "保留") & ~res["pinned"])))[0]
+
+
+def validate_replan(pb: Problem, res: dict, include_kept: bool = False) -> dict:
+    """Skyfield 逐秒校验重排后的计划：默认只校验改动过的任务（其余任务与原计划完全相同），也可校验事件后的全部任务。"""
+    from .validator import validate
+    sch = res["schedule"]
+    idx = np.nonzero(res["new_status"] != "冻结")[0] if include_kept else replan_changed(res)
+    part = Schedule(sch.station[idx], sch.target[idx], sch.start_s[idx], sch.dur_s[idx])
+    t0 = time.time()
+    chk = validate(pb.cfg, res["ds"], part) if len(idx) else {"legal": True, "violations": {}}
+    return {"legal": chk["legal"], "violations": chk["violations"], "tasks": int(len(idx)),
+            "scope": "事件后的全部任务" if include_kept else "改动过的任务", "seconds": round(time.time() - t0, 1)}
+
+
+def schedule_csv_bytes(cfg: Config, ds: Dataset, sch: Schedule, name: str) -> bytes:
+    tmp = Path(cfg.cache_dir) / f"_export_{name}.csv"
+    export_csv(cfg, ds, sch, tmp)
+    data = tmp.read_bytes()
+    tmp.unlink(missing_ok=True)
+    return data
+
+
+def save_replan(run: Run, res: dict, folder: Path) -> Run:
+    """把重排后的计划另存为一份结果，其他页签（甘特图、目标状态、校验、导出）都能直接查看。"""
+    sch = res["schedule"]
+    refined = bool(res["refine"].get("refined") or run.notes.get("refine", {}).get("refined"))
+    notes = {k: run.notes[k] for k in ("mode", "famou_rule", "rule_pick") if k in run.notes}
+    notes.update({"label": f"重排：{res['describe']}", "refine": {"refined": refined},
+                  "replan": {"from": run.run_id, "mode": res["mode"], "event": res["describe"], "diff": res["diff"]}})
+    new = Run(time.strftime("%Y%m%d-%H%M%S") + f"-{run.algo}R", run.algo, dict(run.cfg), dict(run.subset),
+              sch.station.astype(np.int64), sch.target.astype(np.int64), sch.start_s.astype(np.int64),
+              sch.dur_s.astype(np.int64), res["after"], float(res["seconds"]), notes=notes)
+    new.save(folder)
+    return new
 
 
 def csv_bytes(pb: Problem, run: Run) -> bytes:
