@@ -110,3 +110,23 @@ def test_fine_dual_equals_grid_dual_on_same_windows(sub):
                   (sub.win.k1.astype(np.int64) * r).astype(np.int32), sub.win.dark, fcfg.n_cells + 1, sub.win.sgp4_failed)
     pf = Problem.build(fcfg, sub.ds, win)
     assert Dual(pf).value(warm_start(pf, mu, sub.cfg.cell_s)) == pytest.approx(grid, abs=1e-9)
+
+
+def test_parallel_pass_is_legal_and_deterministic(sub):
+    """多线程弹射链：结果合法（结构检查 0 违规），报的增量等于实际增量，两次运行完全相同（与线程调度无关）。"""
+    from obsplan.chain import run_pass_parallel
+    sch, _ = lagrange.solve(sub, iters=20, verbose=False)
+    ref, _ = refine(sub, sch)
+    wL, wR = all_bounds(sub, None, workers=2, verbose=False)
+    outs = []
+    for _ in range(2):
+        tl = Timeline(sub, wL, wR, ref)
+        before = tl.score_points()
+        cand = np.nonzero((tl.tg_cnt > 0) & (tl.tg_cnt < np.minimum(3, sub.max_obs)) & (sub.P >= 5))[0]
+        r = run_pass_parallel(tl, cand, threads=4, max_depth=3, verbose=False, batch=8)
+        out, L, R, used = tl.schedule()
+        assert not structural_violations(sub, out, by_second=True)
+        assert tl.score_points() - before == pytest.approx(r["gain_points"], abs=1e-6)
+        assert r["added"] > 0
+        outs.append((r["added"], sorted(zip(out.station.tolist(), out.target.tolist(), out.start_s.tolist()))))
+    assert outs[0] == outs[1]
