@@ -31,8 +31,10 @@ from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain
 from obsplan.replan import KINDS, MODES, STATUS_ORDER, Event, busiest_station, suggest_targets  # noqa: E402
 from obsplan.target_status import STATUS, describe, summarize  # noqa: E402
 from obsplan.config import Config  # noqa: E402
+from obsplan.tiers import CHAIN_CHOICES, RECOMMENDED_CHAIN_MIN, chain_help, chain_label  # noqa: E402
 
 RUNS = SCHEME_DIR / "outputs" / "app_runs"
+BUNDLED = SCHEME_DIR / "results" / "app_runs"      # 随仓库提供的全量结果（推荐档、最好计划）：全新克隆第一次打开就能看
 BLUE, ORANGE, AQUA, NAVY = "#2a78d6", "#eb6834", "#1baf7a", "#14213D"
 PRI_COLORS = {"高": ORANGE, "中": BLUE, "低": AQUA}
 CHANGE_COLORS = {"冻结": "#b9bfca", "保留": BLUE, "移动": ORANGE, "删除": "#d1495b", "新增": AQUA}
@@ -61,7 +63,8 @@ def problem_for(run: Run):
 
 # ------------------------------------------------------------------ 侧栏：选择结果 / 新建规划
 st.sidebar.title("🛰️ 观测规划")
-runs = list_runs(RUNS)
+runs = list_runs(RUNS)                              # 自己跑出来的结果在前（新的在前），随仓库提供的排在后面
+runs += [p for p in sorted(BUNDLED.glob("*.npz")) if p.stem not in {q.stem for q in runs}]
 labels = {}
 for p in runs:
     try:
@@ -99,12 +102,11 @@ with st.sidebar.expander("新建规划", expanded=not labels):
                                "勾选时人工规则也会同时排一份，自动取综合高的（稳健模式），换一份数据也不会比人工规则差，用时基本不变")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
                             help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
-    chain_min = st.select_slider("按秒跨站弹射链（推荐）", options=[0, 0.5, 1, 2, 5, 10], value=0.5,
-                                 format_func=lambda m: "不跑" if m == 0 else ("30 秒" if m == 0.5 else f"{m} 分钟"),
-                                 disabled=not refine_on,
+    chain_min = st.select_slider("按秒跨站弹射链（推荐）", options=list(CHAIN_CHOICES), value=RECOMMENDED_CHAIN_MIN,
+                                 format_func=chain_label, disabled=not refine_on,
                                  help="按秒精修之后，把高优先级任务的「延长」换成「给另一颗高优先级目标多观测一次」"
                                       "（同样 150 秒，前者 2.5 分、后者 3 分），一条链可以跨站、跨夜连环挪动任务腾位置。"
-                                      "快速模式（M1 Pro 约 47 秒）之后：30 秒 0.969 → 0.984，1 分钟 0.985，2 分钟 0.986。"
+                                      + chain_help() +
                                       "按时间截停，电脑越快结果略好。演示模式（缩小规模）下不跑")
     st.markdown("**演示模式**（缩小规模，几秒出结果）")
     frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)

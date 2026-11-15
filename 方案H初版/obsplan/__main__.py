@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 
 from .config import Config
+from .tiers import RECOMMENDED_CHAIN_MIN, TEN_MINUTE_CHAIN_MIN, local_search_kw
 
 STATION_KEYS = ("station_id", "站点", "station", "观测站")
 TARGET_KEYS = ("target_id", "目标编号", "norad", "satnum", "目标")
@@ -145,6 +146,10 @@ def cmd_plan(args) -> int:
         from .evolved import load_rule
         kw["rule"] = load_rule()
         kw["portfolio"] = not args.rule_only                # 稳健模式：人工规则也排一份，取综合高的
+    chain_min = 0.0 if args.no_refine else max(0.0, args.chain)
+    ls_kw = local_search_kw(fast, chain_min)
+    if ls_kw:
+        kw["ls_kw"] = ls_kw
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
     t_solve = time.time()
     pf = info.get("portfolio")
@@ -156,9 +161,9 @@ def cmd_plan(args) -> int:
         sch, rinfo = finish(pb, sch)
     t_refine = time.time()
     cinfo = None
-    if args.chain > 0 and not args.no_refine:
+    if chain_min > 0:
         from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
-        sch, ci = improve(pb, sch, minutes=args.chain)
+        sch, ci = improve(pb, sch, minutes=chain_min)
         cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
@@ -173,7 +178,8 @@ def cmd_plan(args) -> int:
     from .target_status import export as export_status
     status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
     export_status(status_rows, out / "target_status.csv")
-    summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
+    summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "chain_minutes": chain_min,
+               "weather_aware": bool(args.weather),
                "placement_rule": placement,
                "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
@@ -294,8 +300,9 @@ def main(argv=None) -> int:
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
             p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
             p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
-            p.add_argument("--chain", type=float, default=0.0,
-                           help="按秒精修之后再跑几分钟按秒跨站弹射链（0 = 不跑；见 obsplan/chain.py）")
+            p.add_argument("--chain", type=float, default=RECOMMENDED_CHAIN_MIN,
+                           help=f"按秒精修之后再跑几分钟按秒跨站弹射链（默认 {RECOMMENDED_CHAIN_MIN:g} = 推荐档，全程约两分钟；"
+                                f"{TEN_MINUTE_CHAIN_MIN:g} = 十分钟档；0 = 不跑，结果逐字节可复现；见 obsplan/chain.py）")
             p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
             p.add_argument("--rule-only", action="store_true",
                            help="只用伐谋规则排一份（默认是稳健模式：伐谋、人工两条规则各排一份，取综合高的，用时基本不变）")

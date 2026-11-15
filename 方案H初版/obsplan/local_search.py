@@ -380,7 +380,8 @@ def swap_repeat_for_extension(st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, 
 
 
 def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbose=False,
-            repeat_min_priority: float | None = None, repair_key=None, repeat_key=None, extend_key=None) -> dict:
+            repeat_min_priority: float | None = None, repair_key=None, repeat_key=None, extend_key=None,
+            tier_min_priority: float | None = None) -> dict:
     """局部搜索主流程：
     每轮：覆盖修复（可挤让） -> 左压紧 + 补空 -> 重复观测插入（可挤让） -> 右压紧 + 补空；
     最后：重复观测换延长 -> 延长到 240 秒。
@@ -426,6 +427,8 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
         acts.sort(key=lambda x: -x[0])
         added = ext = 0
         for _, kind, P in acts:
+            if kind == 0 and tier_min_priority is not None and P < tier_min_priority:
+                continue                            # 低于这个优先级的目标不补重复观测（时间留给后面的延长和弹射链）
             if kind == 0:
                 sel = pb.P[pb.w_tg[cw]] == P
                 n0 = state.n

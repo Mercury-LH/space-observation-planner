@@ -51,6 +51,12 @@ def test_optimality_gap(cfg, pb, tmp_path):
     assert np.isclose(g["gap_pct"], 100 * (1.0027 - run.metrics["combined"]) / 1.0027) and g["gap_pct"] > 0
     run.notes = {"refine": {"refined": True}}                                 # 按秒精修过：按秒口径的上界
     assert ab.optimality_gap(cfg, run, path)["ub"] == 1.0058
+    fine = tmp_path / "bound_second_fine.json"                                # 更紧的按秒上界：同场景才用
+    fine.write_text(json.dumps({"scenario": cfg.scenario_key(), "combined_ub": 1.0047}), encoding="utf-8")
+    assert ab.optimality_gap(cfg, run, path)["ub"] == 1.0047
+    fine.write_text(json.dumps({"scenario": "别的场景", "combined_ub": 1.0047}), encoding="utf-8")
+    assert ab.optimality_gap(cfg, run, path)["ub"] == 1.0058
+    fine.unlink()
     run.notes, run.start_s = {}, run.start_s + 1                              # 起止不在格点上也算按秒计划
     assert ab.optimality_gap(cfg, run, path)["scope"] == "second"
     assert ab.optimality_gap(cfg.with_(moon_sep_deg=20.0), run, path)["scope"] == "second"   # 月光规避：上界仍成立

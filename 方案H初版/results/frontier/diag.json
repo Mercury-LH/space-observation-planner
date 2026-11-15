@@ -1,0 +1,25 @@
+{
+ "esc_d12": {
+  "高": {
+   "cnt1_stuck": 0,
+   "cnt1_open": 114,
+   "cnt2_stuck": 155,
+   "cnt2_open": 463,
+   "cnt0": 0
+  },
+  "中": {
+   "cnt1_stuck": 0,
+   "cnt1_open": 3815,
+   "cnt2_stuck": 42,
+   "cnt2_open": 100,
+   "cnt0": 0
+  },
+  "低": {
+   "cnt1_stuck": 0,
+   "cnt1_open": 3966,
+   "cnt2_stuck": 0,
+   "cnt2_open": 0,
+   "cnt0": 0
+  }
+ }
+}

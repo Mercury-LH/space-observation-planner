@@ -250,7 +250,7 @@ def recover(pb: Problem, mu: np.ndarray, cand, q: np.ndarray | None = None, beta
 def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
           verbose=True, name="H 价格协调（新算法）", progress=None, cell_weight=None, backup=None,
           fast: bool = False, vc_target=None, max_obs_left=None, init_state=None, rule=None,
-          portfolio: bool = False) -> tuple[Schedule, dict]:
+          portfolio: bool = False, ls_kw: dict | None = None) -> tuple[Schedule, dict]:
     """fast：快速模式，局部搜索中"挤让插入重复观测"只对高、中优先级目标做（全量约快 4 倍，质量差约 0.05%）。
     progress(fraction, text)：可选的进度回调（产品界面用）。
     cell_weight：(站点, 格) 晴空概率，给定时按期望价值规划（加分项：考虑天气）；backup：每颗目标的重复观测备份系数。
@@ -333,13 +333,15 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     if progress is not None:
         progress(0.92, "局部搜索：挤让插入、压紧、补空、延长……")
     rmp = 3.0 if fast else None
+    ls_kw = dict(ls_kw or {})                   # 局部搜索的额外开关（见 local_search.improve）
+    rmp = ls_kw.pop("repeat_min_priority", rmp)
     if local_search and portfolio and use_rule:
         from concurrent.futures import ThreadPoolExecutor
         names = ["rule"] if len(rules) == 1 else [f"rule{i}" for i in range(len(rules))]
         arms = dict(zip(names, rule_states))
         arms["manual"] = manual_state
         with ThreadPoolExecutor(len(arms)) as ex:
-            futs = {k: ex.submit(improve, pb, s, repeat_min_priority=rmp) for k, s in arms.items()}
+            futs = {k: ex.submit(improve, pb, s, repeat_min_priority=rmp, **ls_kw) for k, s in arms.items()}
             stats = {k: f.result() for k, f in futs.items()}
         obj = {k: objective(pb, s) for k, s in arms.items()}
         picked = max(arms, key=lambda k: (obj[k], -list(arms).index(k)))     # 一样高时取靠前的（人工规则最后）
@@ -347,7 +349,7 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
         ls_stats = stats[picked]
         best_state = arms[picked]
     elif local_search:
-        ls_stats = improve(pb, best_state, repeat_min_priority=rmp)
+        ls_stats = improve(pb, best_state, repeat_min_priority=rmp, **ls_kw)
     sch = best_state.schedule(pb, name, time.time() - t0)
     info = {"ub_relaxed": best_ub, "lb_before_ls": best_lb, "lb_manual_rule": lb_manual, "history": hist,
             "ls": ls_stats, "mu": best_mu}

@@ -58,7 +58,14 @@ def main() -> int:
     if args.verify:
         mu = np.load(ROOT / "results" / "dual_prices_second_c10.npz")["mu"]
         assert args.cell == 10 and (mu >= 0).all()
-        print(f"价格证书重算的按秒上界：{Dual(pf).value(mu):.6f}（{time.time() - t0:.0f}s）", flush=True)
+        ub = float(Dual(pf).value(mu))
+        print(f"价格证书重算的按秒上界：{ub:.6f}（{time.time() - t0:.0f}s）", flush=True)
+        # 网页"离可证明的上界还差多少"读这个文件（obsplan/app_backend.py 的 optimality_gap）
+        out = {"口径": "按秒口径（真实按秒窗口，10 秒细网格上的对偶上界；对任何按秒合法的计划都成立）",
+               "scenario": cfg.scenario_key(), "cell_s": args.cell, "windows": int(len(pf.w_st)),
+               "combined_ub": round(ub, 6), "prices": "results/dual_prices_second_c10.npz",
+               "verify": "uv run python scripts/second_dual_bound.py --verify", "time": time.strftime("%Y-%m-%d %H:%M:%S")}
+        Path(args.out).write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
         return 0
     assert args.target > 0, "需要 --target（已知最好计划的综合值）"
     ckpt = ROOT / "outputs" / "fable" / f"dual_second_c{args.cell}{args.tag}.npz"

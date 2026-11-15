@@ -121,6 +121,13 @@ def optimality_gap(cfg: Config, run: Run, path: Path | None = None) -> dict | No
     ub = b.get(scope, {}).get("best_ub")
     if not ub:
         return None
+    if refined:                                         # 更紧的按秒上界（scripts/second_dual_bound.py --verify 写出）
+        try:
+            f = json.loads(path.with_name("bound_second_fine.json").read_text(encoding="utf-8"))
+            if f.get("scenario") == key and 0 < float(f["combined_ub"]) < float(ub):
+                ub = float(f["combined_ub"])
+        except (OSError, ValueError, KeyError):
+            pass
     value = float(run.metrics["combined"])
     return {"scope": scope, "label": "按秒口径" if refined else "30 秒格点口径", "ub": float(ub),
             "gap_pct": 100.0 * (float(ub) - value) / float(ub)}
@@ -228,6 +235,10 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             kw["rule"] = load_rule()
             kw["portfolio"] = True          # 稳健模式：人工规则也排一份，取综合高的（两份局部搜索并发，用时基本不变）
             notes["famou_rule"] = kw["rule"] is not None
+        from .tiers import local_search_kw
+        ls_kw = local_search_kw(fast, chain_minutes if (refine_seconds and full_problem) else 0.0)
+        if ls_kw:
+            kw["ls_kw"] = ls_kw
         sch, info = lagrange.solve(pb, iters=iters, verbose=False, progress=progress, fast=fast, **kw)
         if "portfolio" in info:
             pf = info["portfolio"]

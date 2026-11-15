@@ -213,6 +213,21 @@ def _pattern_mask(x, ks, ke, w_skip, c_ptr, c_w, c_l, c_r, gap, dmin, mask):
     return n
 
 
+@njit(cache=True)
+def _open_mask(targets, c_ptr, c_l, c_r, tk_s, tk_e, tg_tasks, gap, dmin):
+    """每颗目标：它的候选里有没有"与已有观测隔 48 小时后还放得下一次"的时间段（只看时间，不看那里有没有空位）。"""
+    out = np.zeros(len(targets), np.bool_)
+    sa = np.empty(4, np.int64)
+    sb = np.empty(4, np.int64)
+    for i in range(len(targets)):
+        x = targets[i]
+        for ci in range(c_ptr[x], c_ptr[x + 1]):
+            if _slots(x, -1, c_l[ci], c_r[ci], tk_s, tk_e, tg_tasks, gap, dmin, sa, sb) > 0:
+                out[i] = True
+                break
+    return out
+
+
 @njit(cache=True, nogil=True)
 def _search(new_tid, max_depth, max_q, D, c_ptr, c_unit, c_l, c_r, tk_tg, tk_s, tk_e, tk_w, tg_tasks, tg_cnt,
             seq2, ulen, A2, B2, lo2, hi2, unit_ok, gap, dmin, sw, visited, stamp, ban_unit, ban_task, attempt,
@@ -428,7 +443,7 @@ class Timeline:
         self.unit_ok = np.ones(self.n_units, bool)
         for u in range(self.n_units):
             self.refresh(u)
-        mq = 60000
+        mq = int(os.environ.get("OBSPLAN_CHAIN_MAXQ", "60000"))     # 一次搜链最多展开多少个"待安置任务"
         self.cap = cap
         self.max_q = mq
         self.scr = _Scratch(cap, self.n_units, mq)
@@ -470,7 +485,14 @@ class Timeline:
     # ---------- 线性规划：给定各时间线的新顺序，重新定起止 ----------
     def lp(self, new_seqs: dict, override: dict, dropped=()):
         """new_seqs：{时间线: 任务编号的新顺序}；override：{任务: (新窗口, 参考开始时间)}（新任务或换了位置的任务）。
-        返回 (这些时间线的新得分, {任务: (开始, 结束)})；不可行返回 None。"""
+        返回 (这些时间线的新得分, {任务: (开始, 结束)})；不可行返回 None。
+        先只重排改动前后各 lp_k 个任务；这一带排得太满、空隙在更远处时局部规划会无解，这时放宽到整条时间线再解一次。"""
+        res = self._lp(new_seqs, override, dropped, self.lp_k)
+        if res is None and self.lp_k > 0:
+            res = self._lp(new_seqs, override, dropped, 0)
+        return res
+
+    def _lp(self, new_seqs: dict, override: dict, dropped, lp_k: int):
         from ortools.linear_solver import pywraplp
         dmin, dmax, sw, gap = self.dmin, self.dmax, self.sw, self.gap
         kx = 0.4 / (dmax - dmin)
@@ -479,7 +501,7 @@ class Timeline:
         local, fixed_pts = {}, 0.0
         for u, seq in new_seqs.items():
             n_new = len(seq)
-            if self.lp_k <= 0:
+            if lp_k <= 0:
                 local[u] = (0, n_new, int(self.wall_lo[u]), int(self.wall_hi[u]) - sw)
                 continue
             cur = self.seq[u]
@@ -490,9 +512,9 @@ class Timeline:
             j0 = 0
             while j0 < m - i0 and seq[n_new - 1 - j0] == cur[len(cur) - 1 - j0] and seq[n_new - 1 - j0] not in override:
                 j0 += 1
-            a, b = max(0, i0 - self.lp_k), min(n_new, n_new - j0 + self.lp_k)
+            a, b = max(0, i0 - lp_k), min(n_new, n_new - j0 + lp_k)
             if b <= a:
-                a, b = max(0, i0 - self.lp_k), min(n_new, i0 + self.lp_k)
+                a, b = max(0, i0 - lp_k), min(n_new, i0 + lp_k)
             wlo, whi = int(self.wall_lo[u]), int(self.wall_hi[u]) - sw
             if a > 0:
                 wlo = max(wlo, int(self.tk_e[seq[a - 1]]) + sw)
@@ -612,20 +634,46 @@ class Timeline:
 
     # ---------- 弹射链 ----------
     def try_add(self, x: int, max_depth: int = 2, min_gain: float = 1e-6, shift: int = 4, retries: int = 6,
-                drop: bool = True, root_mask=None) -> float:
+                drop: bool = True, root_mask=None, drop_below: float | None = None, pattern: int = 0) -> float:
         """给目标 x 多加一次观测。成功返回得分增量（分），否则 0。root_mask：只允许新观测用这些候选。
         shift：顶出一个任务后，新任务可以插在它前后几个位置以内；retries：一条链不划算时禁用出问题的那一步再搜几次；
-        drop：允许直接删掉优先级更低的重复观测来腾位置。"""
+        drop：允许直接删掉优先级更低的重复观测来腾位置。
+        pattern：留节奏（见 _propose_pattern）。0 = 不管；1 = 优先放在留得住节奏的位置，放不进再随便放；2 = 只放这样的位置。"""
         if self.tg_cnt[x] >= 3:
             return 0.0
-        prop = self._propose(x, self.n, self.scr, max_depth, min_gain, shift, retries, drop, root_mask, self.stats)
+        if pattern and root_mask is None:
+            prop = self._propose_pattern(x, self.n, self.scr, max_depth, min_gain, shift, retries, drop, self.stats,
+                                         strict=int(pattern) >= 2)
+        else:
+            prop = self._propose(x, self.n, self.scr, max_depth, min_gain, shift, retries, drop, root_mask, self.stats,
+                                 drop_below)
         if prop is None:
             self.fail_count[x] += 1
             return 0.0
         return self._apply(prop)
 
+    def _propose_pattern(self, x: int, tid: int, scr: _Scratch, max_depth: int, min_gain: float, shift: int,
+                         retries: int, drop: bool, stats, strict: bool = False) -> dict | None:
+        """留节奏：目标 x 只有一次观测、最多能排三次时，第二次只放在"放完之后第三次还有窗口可用"的候选里
+        （6 天里排三次要两两隔 48 小时，第二次随手一放，第三次常常就无处可放了）。这样的候选都放不进去时，
+        strict 为假就再不加限制地找一次——先拿到第二次观测的分；为真就放弃（留给后面更深的搜索）。
+        其他情况与 _propose 相同。"""
+        if self.tg_cnt[x] == 1 and self.pb.max_obs[x] >= 3:
+            K = int(self.tg_tasks[x, 0])
+            nm = _pattern_mask(x, int(self.tk_s[K]), int(self.tk_e[K]), -1, self.c_ptr, self.c_w, self.c_l, self.c_r,
+                               self.gap, self.dmin, self.root_mask)       # 只写 x 自己那一段，线程之间不冲突
+            if nm > 0:
+                prop = self._propose(x, tid, scr, max_depth, min_gain, shift, retries, drop, self.root_mask, stats)
+                if prop is not None:
+                    stats["留节奏"] += 1
+                    return prop
+                stats["留节奏失败"] += 1
+                if strict:
+                    return None
+        return self._propose(x, tid, scr, max_depth, min_gain, shift, retries, drop, None, stats)
+
     def _propose(self, x: int, tid: int, scr: _Scratch, max_depth: int, min_gain: float, shift: int, retries: int,
-                 drop: bool, root_mask, stats) -> dict | None:
+                 drop: bool, root_mask, stats, drop_below: float | None = None) -> dict | None:
         """在当前状态上给目标 x 找一条划算的链（含"不划算就禁用一步再搜"），只读状态、不改计划。
         tid：新观测临时用的任务编号。返回提交所需的全部内容，找不到返回 None。多个线程可以同时调用（各用各的 scr）。"""
         self.tk_tg[tid] = x
@@ -640,15 +688,18 @@ class Timeline:
                 self.tk_tg, self.tk_s, self.tk_e, self.tk_w, self.tg_tasks, self.tg_cnt, self.seq2, self.ulen,
                 self.A2, self.B2, self.lo2, self.hi2, self.unit_ok, self.gap, self.dmin, self.sw,
                 scr.visited, scr.stamp, scr.ban_unit, scr.ban_task, scr.attempt,
-                qt, qp, qc, qk, qa, qu, qd, self.P, float(self.P[x]) if drop else 0.0,
+                qt, qp, qc, qk, qa, qu, qd, self.P,
+                (float(self.P[x]) if drop_below is None else float(drop_below)) if drop else 0.0,
                 self.all_ok if root_mask is None else root_mask)
             if e < 0:
                 stats["找不到链"] += 1
                 return None
             new_seqs, override, steps = {}, {}, []          # steps：(时间线, 被顶出/删掉的任务或 −1)
+            recipe = []                                     # (时间线, 插入的任务, 插在谁前面（−1 = 末尾）, 拿掉的任务或 −1)
             u = int(self.c_unit[ci])
             seq = list(self.seq[u])
             dropped = ()
+            recipe.append((u, int(qt[e]), seq[int(k)] if k < len(seq) else -1, int(Y) if mode else -1))
             if mode == 0:
                 seq.insert(int(k), int(qt[e]))
                 steps.append((u, -1))
@@ -667,6 +718,7 @@ class Timeline:
                 seq = list(self.seq[u])
                 j = seq.index(int(qt[e]))
                 kk = int(qk[e])
+                recipe.append((u, int(qt[par]), seq[kk] if kk < len(seq) else -1, int(qt[e])))
                 seq.insert(kk, int(qt[par]))
                 del seq[j + 1 if kk <= j else j]
                 new_seqs[u] = seq
@@ -684,7 +736,8 @@ class Timeline:
                 gain = new - old
                 if gain >= min_gain:
                     return {"x": int(x), "tid": int(tid), "new_seqs": new_seqs, "override": override, "times": times,
-                            "dropped": dropped, "gain": float(gain), "key": f"成功_深度{depth}" + ("_删" if mode else "")}
+                            "dropped": dropped, "gain": float(gain), "recipe": recipe, "min_gain": min_gain,
+                            "key": f"成功_深度{depth}" + ("_删" if mode else "")}
                 stats["不划算"] += 1
                 # 哪一步丢的延长最多，就禁用哪一步再搜
                 loss = []
@@ -742,11 +795,55 @@ class Timeline:
                         return False
         return True
 
-    def try_drop(self, y: int, min_gain: float = 1e-6, force: bool = False):
+    def _rebase(self, prop: dict) -> dict | None:
+        """同一批里前面的方案已经改动了状态，这个方案不能原样提交时：按它的配方（每条时间线上插入谁、插在谁前面、
+        拿掉谁）在最新的顺序上重做一遍，只重解线性规划——线性规划会按最新的起止时间重新检查窗口、切换和 48 小时间隔，
+        可行且仍然划算就返回新方案。比重新搜链便宜得多（约 2 毫秒）。做不了返回 None。"""
+        x, tid = prop["x"], prop["tid"]
+        if self.tg_cnt[x] >= 3:
+            return None
+        for y in prop["dropped"]:
+            if not self.alive[y] or self.tg_cnt[self.tk_tg[y]] < 2:
+                return None
+        new_seqs = {}
+        for u, ins, anchor, rem in prop["recipe"]:
+            if u in new_seqs or not self.unit_ok[u]:
+                return None
+            seq = list(self.seq[u])
+            if rem >= 0:
+                if not self.alive[rem] or self.tk_unit[rem] != u:
+                    return None
+            if anchor < 0:
+                k = len(seq)
+            elif self.alive[anchor] and self.tk_unit[anchor] == u:
+                k = seq.index(anchor)
+            else:
+                return None
+            seq.insert(k, ins)
+            if rem >= 0:
+                seq.remove(rem)
+            if len(seq) > self.maxlen - 2:
+                return None
+            new_seqs[u] = seq
+        self.tk_tg[tid] = x
+        self.tk_w[tid] = -1
+        old = self.units_score(new_seqs.keys())
+        res = self.lp(new_seqs, prop["override"], prop["dropped"])
+        if res is None:
+            return None
+        new, times = res
+        if new - old < prop["min_gain"]:
+            return None
+        out = dict(prop)
+        out.update(new_seqs=new_seqs, times=times, gain=float(new - old))
+        return out
+
+    def try_drop(self, y: int, min_gain: float = 1e-6, force: bool = False, last: bool = False):
         """删掉一个重复观测，把腾出的时间交给同一条时间线上的其他任务延长；总分变高才接受。
-        force：不管划不划算都删（复合动作的第一步用），返回得分变化；规划不可行返回 None。"""
+        force：不管划不划算都删（复合动作的第一步用），返回得分变化；规划不可行返回 None。
+        last：连目标唯一的一次观测也允许删（只给"换位置"用：删完马上在别处重新放，放不回去就整体回退）。"""
         x = int(self.tk_tg[y])
-        if not self.alive[y] or self.tg_cnt[x] < 2 or self.tk_w[y] < 0:
+        if not self.alive[y] or (self.tg_cnt[x] < 2 and not last) or self.tk_w[y] < 0:
             return None if force else 0.0
         u = int(self.tk_unit[y])
         seq = [p for p in self.seq[u] if p != y]
@@ -761,6 +858,28 @@ class Timeline:
         if not force:
             self.stats["删重复换延长"] += 1
         return float(new - old)
+
+    # ---------- 副本（多线程重排节奏：每个线程在自己的副本上试，试成了再落到正本） ----------
+    _STATE = ("tk_st", "tk_tg", "tk_s", "tk_e", "tk_w", "tk_unit", "alive", "tg_tasks", "tg_cnt", "seq2", "ulen",
+              "A2", "B2", "lo2", "hi2", "unit_ok", "root_mask", "fail_count")
+
+    def clone(self) -> "Timeline":
+        """可变状态各自一份、窗口和候选等只读数据共用的副本。"""
+        import copy
+        c = copy.copy(self)
+        for k in self._STATE:
+            setattr(c, k, getattr(self, k).copy())
+        c.seq = [list(q) for q in self.seq]
+        c.scr = _Scratch(self.cap, self.n_units, self.max_q)
+        c.stats = defaultdict(int)
+        return c
+
+    def sync_from(self, src: "Timeline") -> None:
+        """把自己的计划状态改成和 src 一样（统计数字不动）。"""
+        self.n = src.n
+        for k in self._STATE:
+            getattr(self, k)[...] = getattr(src, k)
+        self.seq = [list(q) for q in src.seq]
 
     # ---------- 快照（复合动作失败时整体回退） ----------
     def snapshot(self):
@@ -822,6 +941,66 @@ class Timeline:
             self.stats["重排节奏回退"] += 1
         return 0.0
 
+    def relocate(self, y: int, max_depth: int = 1, min_total: float = 1e-6, shift: int = 4, retries: int = 6) -> float:
+        """换位置：把任务 y 从原处拿走（腾出的时间交给旁边的任务延长），再给同一颗目标在别的窗口重新放一次，
+        放的时候可以顶掉优先级不高于它的重复观测。两步合起来总分变高才保留，否则整体回退。
+        单独看，"拿走"和"重新放"都不一定涨分，所以弹射链和"删重复换延长"都找不到这种改动。
+        典型的收获：中、低优先级任务从高优先级任务旁边搬到只有中优先级重复观测的地方，原位置让高优先级任务延长。"""
+        x = int(self.tk_tg[y])
+        if not self.alive[y] or self.tk_w[y] < 0:
+            return 0.0
+        cnt, w_old = int(self.tg_cnt[x]), int(self.tk_w[y])
+        lo, hi = int(self.c_ptr[x]), int(self.c_ptr[x + 1])
+        self.root_mask[lo:hi] = self.c_w[lo:hi] != w_old              # 不放回原来那个窗口
+        if not self.root_mask[lo:hi].any():
+            return 0.0
+        snap = self.snapshot()
+        g0 = self.try_drop(y, force=True, last=True)
+        if g0 is not None:
+            prop = self._propose(x, self.n, self.scr, max_depth, min_total - g0, shift, retries, True, self.root_mask,
+                                 self.stats, float(self.P[x]) + 1e-9)
+            if prop is not None:
+                g1 = self._apply(prop)
+                if self.tg_cnt[x] == cnt:
+                    self.root_mask[lo:hi] = 0
+                    self.stats["换位置成功"] += 1
+                    return float(g0 + g1)
+        self.restore(snap)
+        self.root_mask[lo:hi] = 0
+        self.stats["换位置回退"] += 1
+        return 0.0
+
+
+def relocate_pass(tl: Timeline, tasks=None, max_depth: int = 1, min_absorb: float = 0.05, deadline: float | None = None,
+                  **kw) -> dict:
+    """逐个任务试"换位置"（Timeline.relocate）。先用一次线性规划估计"拿走它以后旁边的任务能多延长多少分"，
+    不到 min_absorb 分的直接跳过（拿走了也没人用得上这段时间）。tasks 默认是全部任务，优先级低的先试。"""
+    t0 = time.time()
+    if tasks is None:
+        tasks = np.nonzero(tl.alive[:tl.n] & (tl.tk_w[:tl.n] >= 0))[0]
+        tasks = tasks[np.argsort(tl.P[tl.tk_tg[tasks]], kind="stable")]
+    kx = 0.4 / (tl.dmax - tl.dmin)
+    ok, total, tried = 0, 0.0, 0
+    for y in tasks:
+        if deadline is not None and time.time() > deadline:
+            break
+        y = int(y)
+        if not tl.alive[y] or tl.tk_w[y] < 0:
+            continue
+        u = int(tl.tk_unit[y])
+        res = tl.lp({u: [p for p in tl.seq[u] if p != y]}, {}, (y,))
+        if res is None:
+            continue
+        val = float(tl.P[tl.tk_tg[y]]) * (0.6 + kx * (tl.tk_e[y] - tl.tk_s[y] - tl.dmin))
+        if res[0] - tl.units_score([u]) + val < min_absorb:
+            continue
+        tried += 1
+        g = tl.relocate(y, max_depth=max_depth, **kw)
+        if g > 0:
+            ok += 1
+            total += g
+    return {"tried": tried, "scanned": int(len(tasks)), "relocated": ok, "gain_points": total, "seconds": time.time() - t0}
+
 
 def run_pass(tl: Timeline, targets, max_depth: int = 2, verbose: bool = True, log_every: int = 200,
              deadline: float | None = None, **kw) -> dict:
@@ -850,7 +1029,8 @@ def default_threads() -> int:
 
 def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 2, verbose: bool = True,
                       log_every: int = 200, deadline: float | None = None, min_gain: float = 1e-6, shift: int = 4,
-                      retries: int = 6, drop: bool = True, batch: int | None = None, redo: bool | None = None) -> dict:
+                      retries: int = 6, drop: bool = True, batch: int | None = None, redo: bool | None = None,
+                      pattern: int = 0) -> dict:
     """多线程版 run_pass：每批 threads 颗目标，各线程在同一个状态上同时找链、解线性规划（只读，不改计划），
     然后主线程按原来的顺序逐个提交；提交前检查是否与本批前面已提交的方案冲突（动过同一条时间线、要删的观测已不在、
     同目标观测不再隔 48 小时），冲突的就在最新状态上单独重找。搜链（numba，不占全局解释器锁）占大头，所以能并行。
@@ -859,8 +1039,10 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
     综合比单线程高 0.0003～0.0004。提速不大，因为同一站同一夜的时间线大家都在抢，一批里约三成方案冲突、要单线程重找。"""
     import queue
     from concurrent.futures import ThreadPoolExecutor
-    batch = int(os.environ.get("OBSPLAN_CHAIN_BATCH", 0)) or (batch or 8)     # 批次固定 8：结果与核数无关
+    batch = batch or int(os.environ.get("OBSPLAN_CHAIN_BATCH", 0)) or 8       # 批次固定（默认 8）：结果与核数无关
     redo_on = (os.environ.get("OBSPLAN_CHAIN_REDO", "1") != "0") if redo is None else redo
+    rebase_on = os.environ.get("OBSPLAN_CHAIN_REBASE", "1") != "0"
+    defer_on = os.environ.get("OBSPLAN_CHAIN_DEFER", "1") != "0"
     t0 = time.time()
     total, ok, redo = 0.0, 0, 0
     t_prop = t_redo = 0.0
@@ -872,19 +1054,25 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
     def job(x, tid, st):
         scr = pool.get()
         try:
+            if pattern:
+                return tl._propose_pattern(x, tid, scr, max_depth, min_gain, shift, retries, drop, st,
+                                           strict=int(pattern) >= 2)
             return tl._propose(x, tid, scr, max_depth, min_gain, shift, retries, drop, None, st)
         finally:
             pool.put(scr)
     with ThreadPoolExecutor(threads) as ex:
         i, n_done = 0, 0
+        n_first = len(targets)                               # 之后追加在队尾的是"冲突后推迟重找"的目标
         while i < len(targets):
             if deadline is not None and time.time() > deadline:
                 break
             cur_b = [x for x in targets[i:i + batch] if tl.tg_cnt[x] < 3]
+            defer = defer_on and i < n_first                 # 第一轮的冲突推迟到队尾（仍然多线程找）；队尾那一轮再冲突才当场重找
             i += batch
             if tl.n + 2 * batch >= tl.cap:                   # 临时编号放在数组尾部，快满时退回单线程
                 for x in cur_b:
-                    g = tl.try_add(x, max_depth=max_depth, min_gain=min_gain, shift=shift, retries=retries, drop=drop)
+                    g = tl.try_add(x, max_depth=max_depth, min_gain=min_gain, shift=shift, retries=retries, drop=drop,
+                                   pattern=pattern)
                     total, ok = total + g, ok + (g > 0)
                 continue
             stats = [defaultdict(int) for _ in cur_b]
@@ -900,12 +1088,26 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
                     tl.fail_count[x] += 1
                     continue
                 if not tl._still_valid(prop, changed_units, changed_tasks):
+                    rb = tl._rebase(prop) if rebase_on else None
+                    if rb is not None:                       # 配方在最新状态上仍然可行、划算：直接提交
+                        for k_, v_ in stats[j].items():
+                            tl.stats[k_] += v_
+                        tl.stats["并行冲突改期"] += 1
+                        g = tl._apply(rb)
+                        changed_units.update(tl.last_change[0])
+                        changed_tasks.update(tl.last_change[1])
+                        total, ok = total + g, ok + 1
+                        continue
                     redo += 1
                     tl.stats["并行冲突重找"] += 1
+                    if defer:
+                        targets.append(x)
+                        continue
                     if not redo_on:                          # 冲突的这一遍放弃，下一遍在新状态上再试
                         continue
                     tr = time.time()
-                    g = tl.try_add(x, max_depth=max_depth, min_gain=min_gain, shift=shift, retries=retries, drop=drop)
+                    g = tl.try_add(x, max_depth=max_depth, min_gain=min_gain, shift=shift, retries=retries, drop=drop,
+                                   pattern=pattern)
                     t_redo += time.time() - tr
                     if g > 0:
                         changed_units.update(tl.last_change[0])
@@ -922,7 +1124,7 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
             if verbose and n_done % log_every < batch:
                 print(f"  [弹射链·{threads} 线程] {n_done}/{len(targets)}  成功 {ok}  重找 {redo}  累计 +{total:.1f} 分  "
                       f"{time.time() - t0:.0f}s", flush=True)
-    return {"tried": len(targets), "added": ok, "gain_points": total, "seconds": time.time() - t0, "redo": redo,
+    return {"tried": n_first, "added": ok, "gain_points": total, "seconds": time.time() - t0, "redo": redo,
             "t_propose": round(t_prop, 1), "t_redo": round(t_redo, 1)}
 
 
@@ -937,6 +1139,27 @@ def drop_pass(tl: Timeline, max_priority: float = 3.0) -> dict:
                 total += g
                 ok += 1
     return {"dropped": ok, "gain_points": total}
+
+
+def cover_pass(tl: Timeline, max_depth: int = 4, shift: int = 4, retries: int = 6,
+               deadline: float | None = None) -> dict:
+    """没覆盖到的目标逐个找链。多覆盖一颗在综合指标里值 vc / vs 分（赛题口径约 3 分），所以丢的得分只要比这少就接受；
+    腾位置时可以直接删掉任何优先级的重复观测（一次 120 秒的高优先级重复观测也只值 3 分，还不算新观测自己的得分）。"""
+    pb = tl.pb
+    bonus = float(pb.vc / pb.vs)
+    unc = np.nonzero((tl.tg_cnt == 0) & (pb.max_obs > 0) & (np.diff(tl.c_ptr) > 0))[0]
+    unc = unc[np.argsort(-pb.P[unc], kind="stable")]
+    t0 = time.time()
+    ok, pts = 0, 0.0
+    for x in unc:
+        if deadline is not None and time.time() > deadline:
+            break
+        g = tl.try_add(int(x), max_depth=max_depth, min_gain=-bonus + 1e-6, shift=shift, retries=retries,
+                       drop_below=1e9)
+        if tl.tg_cnt[x] > 0:
+            ok += 1
+            pts += g
+    return {"tried": int(len(unc)), "covered": ok, "gain_points": pts, "seconds": time.time() - t0}
 
 
 def repattern_pass(tl: Timeline, targets, max_depth: int = 3, verbose: bool = True, log_every: int = 100,
@@ -960,14 +1183,76 @@ def repattern_pass(tl: Timeline, targets, max_depth: int = 3, verbose: bool = Tr
     return {"tried": len(targets), "repatterned": ok, "gain_points": total, "seconds": time.time() - t0}
 
 
+def repattern_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 3, verbose: bool = True,
+                            deadline: float | None = None, **kw) -> dict:
+    """多线程版 repattern_pass。重排节奏是"删一次 → 换位置重放 → 补第三次"的复合动作，要改状态，不能像弹射链那样只读地找；
+    所以每个线程拿一份计划副本，各自在副本上试一颗目标（绝大多数会失败并回退，时间都花在失败的搜链上，这部分不占全局锁）。
+    一批试完后按顺序处理成功的：这一批里第一个成功的，正本还没变，直接把副本的状态抄过来；后面成功的在正本的最新状态上重做一遍。
+    批次固定为 8、处理顺序固定，结果与线程调度和核数无关。"""
+    from concurrent.futures import ThreadPoolExecutor
+    t0 = time.time()
+    batch = 8
+    targets = [int(x) for x in targets]
+    needy = defaultdict(list)
+    for x in targets:
+        for u in np.unique(tl.c_unit[tl.c_ptr[x]:tl.c_ptr[x + 1]]):
+            needy[int(u)].append(int(x))
+    clones = [tl.clone() for _ in range(batch)]
+    dirty = [False] * batch
+    total, ok, copied, redone = 0.0, 0, 0, 0
+    with ThreadPoolExecutor(threads) as ex:
+        for i in range(0, len(targets), batch):
+            if deadline is not None and time.time() > deadline:
+                break
+            cur = [x for x in targets[i:i + batch] if tl.tg_cnt[x] == 2]
+            for j in range(len(cur)):
+                if dirty[j]:
+                    clones[j].sync_from(tl)
+                    dirty[j] = False
+            futs = [ex.submit(clones[j].repattern, x, max_depth, needy, **kw) for j, x in enumerate(cur)]
+            gains = [f.result() for f in futs]
+            changed = False
+            for j, (x, g) in enumerate(zip(cur, gains)):
+                tl.stats["重排节奏回退"] += clones[j].stats.pop("重排节奏回退", 0)
+                clones[j].stats.clear()
+                if g <= 0:
+                    continue
+                dirty[j] = True
+                if not changed:                              # 正本还是这一批开始时的状态：直接采用副本的结果
+                    tl.sync_from(clones[j])
+                    tl.stats["重排节奏成功"] += 1
+                    copied += 1
+                else:                                        # 正本已经变了：在最新状态上重做
+                    g = tl.repattern(x, max_depth=max_depth, needy_in_unit=needy, **kw)
+                    redone += 1
+                if g > 0:
+                    changed = True
+                    total += g
+                    ok += 1
+            if changed:
+                dirty = [True] * batch
+    return {"tried": len(targets), "repatterned": ok, "gain_points": total, "seconds": time.time() - t0,
+            "copied": copied, "redone": redone}
+
+
 def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, rounds: str = "0:0,40:0,40:20,0:0",
-            passes: int = 4, shift: int = 4, retries: int = 6, drop: bool = True, repattern: bool = True,
+            passes: int = 1, shift: int = 4, retries: int = 6, drop: bool = True, repattern: bool = True,
             repattern_depth: int = 3, min_priority: float = 5.0, seed: int = 0, extra_windows: dict | None = None,
             bounds=None, workers: int = 4, verbose: bool = False, on_best=None,
-            threads: int | None = None) -> tuple[Schedule, dict]:
-    """弹射链的整套流程（scripts/chain_run.py 与 `obsplan plan --chain` 共用）：依次按 rounds 里的时间线切法，
-    每种切法做若干遍"弹射链 → 重排节奏"，每种切法结束后全局按秒精修一次，只保留变好的。
+            threads: int | None = None, cover: bool = True, pattern: bool = True,
+            cycles: int | None = None, staged: bool = True, fill: bool = True,
+            reserve_s: float = 4.0) -> tuple[Schedule, dict]:
+    """弹射链的整套流程（scripts/chain_run.py 与 `obsplan plan --chain` 共用）：按 rounds 里的时间线切法轮换，
+    每种切法：删低价值重复 → 补覆盖 → 弹射链一遍（留节奏）→ 删低价值重复 → 重排节奏（先做"节奏卡死"的目标）
+    → 全局按秒精修，只保留变好的。一轮切法都做完后再从头轮换，直到整整一轮没有变好或者到时间。
     minutes：总时长上限（0 = 不限）。bounds：全部窗口的按秒真实区间 (L, R)，不给时读缓存或现算（第一次约十几秒）。
+    passes：每种切法里"弹射链 → 重排节奏"最多做几遍（实测同一种切法做第 2 遍以后收获很少，换切法更划算，所以默认 1）。
+    cycles：切法最多轮换几轮（默认：限时的时候不限轮数，不限时的时候最多 6 轮）。
+    cover：先给没覆盖到的目标找链；pattern：放第二次观测时给第三次留位置。
+    staged：弹射链先浅后深——先只找深度 1 以内的链，再深度 2，最后才用到 depth。浅的链又快又不折腾别的任务，
+    实测深度 1、2 两层几秒钟就拿到一遍里八成多的分。
+    fill：每种切法的最后，给优先级低于 min_priority 的目标补重复观测（只往空当里直接塞），再删一遍不划算的重复观测。
+    reserve_s：限时的时候给每轮收尾的便宜步骤（补低优先级、删重复、全局精修）留出的秒数——耗时的搜索提前这么多秒停。
     on_best(sch, ev, used)：每次变好时回调（存盘用）。返回最好计划和统计。"""
     from pathlib import Path
     from .refine import refine
@@ -981,7 +1266,8 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
         from .chain_ai import features as ai_features, load_predictor
         pred = load_predictor()
     t_start = time.time()
-    deadline = t_start + minutes * 60 if minutes > 0 else None
+    hard = t_start + minutes * 60 if minutes > 0 else None
+    deadline = None if hard is None else max(t_start + 0.5 * minutes * 60, hard - reserve_s)   # 耗时搜索的截止时间
     late = lambda: deadline is not None and time.time() > deadline          # noqa: E731
     say = print if verbose else (lambda *a, **k: None)
 
@@ -998,53 +1284,133 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
     e0 = ev(sch)
     best, best_ev, best_used = sch, e0, None
     stats_all, log = {}, []
-    for spec in [r for r in rounds.split(",") if r]:
-        if late():
-            break
-        piece, offset = (int(v) for v in spec.split(":"))
-        tl = Timeline(pb, wL, wR, best, piece=piece, offset=offset, extra_windows=extra_windows)
-        if tl.unmatched or not tl.unit_ok.all():
-            say(f"  [弹射链] 切法 {spec}：{tl.unmatched} 个任务对不上窗口、{int((~tl.unit_ok).sum())} 条时间线不可行")
-        drop_pass(tl)
-        for k in range(passes):
-            cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
-            cand = cand[rng.permutation(len(cand))]
-            cand = cand[np.argsort(-pb.P[cand], kind="stable")]
-            if pred is not None and len(cand):
-                keep = pred.prob(ai_features(tl, cand)) <= ai_thr
-                ai_skipped += int((~keep).sum())
-                cand = cand[keep]
-            if threads > 1:
-                r = run_pass_parallel(tl, cand, threads=threads, max_depth=depth, verbose=verbose, deadline=deadline,
-                                      shift=shift, retries=retries, drop=drop)
-            else:
-                r = run_pass(tl, cand, max_depth=depth, verbose=verbose, deadline=deadline, shift=shift,
-                             retries=retries, drop=drop)
-            r.update(spec=spec, step="chain", **{"pass": k})
-            log.append(r)
-            if repattern and not late():
-                cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt == 2) & (pb.max_obs >= 3))[0]
-                cand = cand[rng.permutation(len(cand))]
-                rp = repattern_pass(tl, cand, max_depth=repattern_depth, verbose=verbose, deadline=deadline,
-                                    shift=shift, retries=retries, drop=drop)
-                rp.update(spec=spec, step="repattern", **{"pass": k})
-                log.append(rp)
-                r["added"] += rp["repatterned"]
-            say(f"  [弹射链] 切法 {spec} 第 {k} 遍：加入 {r['added']} 次（{time.time() - t_start:.0f}s）")
-            if r["added"] == 0 or late():
+    specs = [r for r in rounds.split(",") if r]
+    deep_batch = int(os.environ.get("OBSPLAN_CHAIN_DEEP_BATCH", "32"))   # 深层搜索大多失败、不改状态：批次大一些，线程不空等
+    n_cycles = cycles if cycles is not None else (10 ** 6 if deadline is not None else 6)
+
+    def note(rec, spec, step, k, tl):
+        rec.update(spec=spec, step=step, elapsed=round(time.time() - t_start, 1), points=round(tl.score_points(), 1),
+                   **{"pass": k})
+        log.append(rec)
+
+    for cyc in range(n_cycles):
+        cyc_best = best_ev["combined"]
+        for spec in specs:
+            if late():
                 break
-        for k_, v_ in tl.stats.items():
-            stats_all[k_] = stats_all.get(k_, 0) + v_
-        cur, L, R, used = tl.schedule()
-        e1 = ev(cur)
-        ref, _ = refine(pb, cur, bounds=(L, R))           # 全局按秒精修：同目标 48 小时间隔按真实约束重新定时
-        e2 = ev(ref)
-        if e2["combined"] >= e1["combined"]:
-            cur, e1 = ref, e2
-        if e1["combined"] > best_ev["combined"]:
-            best, best_ev, best_used = cur, e1, used
-            if on_best is not None:
-                on_best(best, best_ev, best_used)
+            piece, offset = (int(v) for v in spec.split(":"))
+            tl = Timeline(pb, wL, wR, best, piece=piece, offset=offset, extra_windows=extra_windows)
+            if tl.unmatched or not tl.unit_ok.all():
+                say(f"  [弹射链] 切法 {spec}：{tl.unmatched} 个任务对不上窗口、{int((~tl.unit_ok).sum())} 条时间线不可行")
+            drop_pass(tl)
+            if cover:
+                cp = cover_pass(tl, max_depth=max(depth, 4), shift=shift, retries=retries, deadline=deadline)
+                note(cp, spec, "cover", 0, tl)
+                say(f"  [弹射链] 切法 {spec}：补覆盖 {cp['covered']}/{cp['tried']} 颗（{cp['seconds']:.1f}s）")
+            for k in range(passes):
+                cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+                cand = cand[rng.permutation(len(cand))]
+                cand = cand[np.argsort(-pb.P[cand], kind="stable")]
+                if pattern:                                  # 只有一次观测的先做：它们的第二次要挑位置
+                    cand = cand[np.argsort(tl.tg_cnt[cand], kind="stable")]
+                if pred is not None and len(cand):
+                    keep = pred.prob(ai_features(tl, cand)) <= ai_thr
+                    ai_skipped += int((~keep).sum())
+                    cand = cand[keep]
+                added = [0]
+
+                def chain_stage(d, pat, batch):
+                    left = cand[tl.tg_cnt[cand] < np.minimum(3, pb.max_obs[cand])]
+                    if late() or not len(left):
+                        return
+                    if threads > 1:
+                        rd = run_pass_parallel(tl, left, threads=threads, max_depth=d, verbose=verbose, deadline=deadline,
+                                               shift=shift, retries=retries, drop=drop, pattern=pat, batch=batch)
+                    else:
+                        rd = run_pass(tl, left, max_depth=d, verbose=verbose, deadline=deadline, shift=shift,
+                                      retries=retries, drop=drop, pattern=pat)
+                    rd["depth"] = d
+                    added[0] += rd["added"]
+                    note(rd, spec, "chain", k, tl)
+
+                def repattern_stage(only_stuck):
+                    if not repattern or late():
+                        return
+                    two = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt == 2) & (pb.max_obs >= 3))[0]
+                    two = two[rng.permutation(len(two))]
+                    opened = _open_mask(two, tl.c_ptr, tl.c_l, tl.c_r, tl.tk_s, tl.tk_e, tl.tg_tasks, tl.gap, tl.dmin)
+                    groups = [("repattern_stuck", two[~opened])] + ([] if only_stuck else [("repattern_open", two[opened])])
+                    for name, grp in groups:
+                        if late() or not len(grp):
+                            continue
+                        if threads > 1:
+                            rp = repattern_pass_parallel(tl, grp, threads=threads, max_depth=repattern_depth,
+                                                         verbose=verbose, deadline=deadline, shift=shift, retries=retries,
+                                                         drop=drop, pattern=1 if pattern else 0)
+                        else:
+                            rp = repattern_pass(tl, grp, max_depth=repattern_depth, verbose=verbose, deadline=deadline,
+                                                shift=shift, retries=retries, drop=drop, pattern=1 if pattern else 0)
+                        note(rp, spec, name, k, tl)
+                        added[0] += rp["repatterned"]
+
+                dp = {"dropped": 0, "gain_points": 0.0}
+
+                def drop_stage():
+                    d_ = drop_pass(tl)                       # 新插进来的高优先级任务让旁边的低价值重复观测不再划算
+                    dp["dropped"] += d_["dropped"]
+                    dp["gain_points"] += d_["gain_points"]
+
+                def fill_stage():
+                    """高优先级放不进去的零碎空当：给其余目标补重复观测（只直接塞，不顶别人），再删一遍不划算的重复观测。"""
+                    if not fill:
+                        return
+                    low = np.nonzero((pb.P < min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+                    low = low[rng.permutation(len(low))]
+                    low = low[np.argsort(-pb.P[low], kind="stable")]
+                    if len(low):
+                        if threads > 1:
+                            rf = run_pass_parallel(tl, low, threads=threads, max_depth=0, verbose=False, shift=shift,
+                                                   retries=retries, drop=False)
+                        else:
+                            rf = run_pass(tl, low, max_depth=0, verbose=False, shift=shift, retries=retries, drop=False)
+                        note(rf, spec, "fill", k, tl)
+                    drop_stage()
+
+                if staged and depth > 2:
+                    # 实测几种顺序里这一种最好：浅层弹射链 → 最深一层 → 重排节奏（先卡死的）→ 补其余目标。
+                    # （把重排节奏或深度 3 提到最深一层之前、或者提前补其余目标，同样时间里都更差，见 README。）
+                    for d in (1, 2):                         # 浅层：第二次观测只放留得住节奏的位置
+                        chain_stage(d, 2 if pattern else 0, None)
+                    drop_stage()
+                    # 最深一层也只放留得住节奏的位置：否则只有一次观测的目标每颗要搜两遍（先限定、失败了再不限定），而深层搜索很贵
+                    chain_stage(depth, 2 if pattern else 0, deep_batch)
+                    repattern_stage(False)
+                    if pattern:                              # 实在留不住节奏的：浅层、不限定位置，先拿到第二次观测的分
+                        chain_stage(2, 0, None)
+                else:
+                    chain_stage(depth, 1 if pattern else 0, None)
+                    drop_stage()
+                    repattern_stage(False)
+                drop_stage()
+                fill_stage()
+                note(dp, spec, "drop", k, tl)
+                say(f"  [弹射链] 切法 {spec} 第 {k} 遍：加入 {added[0]} 次（{time.time() - t_start:.0f}s）")
+                if added[0] == 0 or late():
+                    break
+            for k_, v_ in tl.stats.items():
+                stats_all[k_] = stats_all.get(k_, 0) + v_
+            cur, L, R, used = tl.schedule()
+            e1 = ev(cur)
+            ref, _ = refine(pb, cur, bounds=(L, R))           # 全局按秒精修：同目标 48 小时间隔按真实约束重新定时
+            e2 = ev(ref)
+            if e2["combined"] >= e1["combined"]:
+                cur, e1 = ref, e2
+            if e1["combined"] > best_ev["combined"]:
+                best, best_ev, best_used = cur, e1, used
+                if on_best is not None:
+                    on_best(best, best_ev, best_used)
+        if late() or best_ev["combined"] <= cyc_best + 1e-9:
+            break
     best.algo = (sch.algo + " + " if sch.algo else "") + "按秒跨站弹射链"
     return best, {"start": e0, "best": best_ev, "extra_windows": best_used, "stats": stats_all, "passes": log,
                   "seconds": round(time.time() - t_start, 1), "threads": threads,
