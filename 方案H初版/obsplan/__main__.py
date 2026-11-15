@@ -108,10 +108,12 @@ def cmd_validate(args) -> int:
     print(f"Skyfield 逐秒校验 {time.time() - t:.0f} 秒：{'全部合法' if chk['legal'] else '发现违规'}")
     for k, v in chk["violations"].items():
         print(f"  {k}：{v} 个任务")
-    print(f"按规则复算（只计合法任务）：覆盖 {ev['covered']} 颗，得分 {ev['score']:.1f}，重复观测 {ev['repeat_tasks']} 次")
+    print(f"按规则复算（只计合法任务）：覆盖 {ev['covered']} 颗，得分 {ev['score']:.1f}，综合 {ev['combined']:.6f}，"
+          f"重复观测 {ev['repeat_tasks']} 次")
     if args.out:
         rep = {"plan": str(args.plan), "tasks": len(sch), "skipped": len(skipped), "legal": chk["legal"],
                "violations": chk["violations"], "covered_valid": ev["covered"], "score_valid": ev["score"],
+               "combined_valid": ev["combined"],
                "config": json.loads(cfg.to_json())}
         Path(args.out).write_text(json.dumps(rep, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
         print("报告已写入", args.out)
@@ -144,6 +146,7 @@ def cmd_plan(args) -> int:
         kw["rule"] = load_rule()
         kw["portfolio"] = not args.rule_only                # 稳健模式：人工规则也排一份，取综合高的
     sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
+    t_solve = time.time()
     pf = info.get("portfolio")
     placement = {"rule": "伐谋规则", "manual": "人工规则"}[pf["picked"]] if pf else \
         ("伐谋规则" if kw.get("rule") is not None else "人工规则")
@@ -151,6 +154,7 @@ def cmd_plan(args) -> int:
     if not args.no_refine:
         from .refine import finish
         sch, rinfo = finish(pb, sch)
+    t_refine = time.time()
     cinfo = None
     if args.chain > 0 and not args.no_refine:
         from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
@@ -173,7 +177,9 @@ def cmd_plan(args) -> int:
                "placement_rule": placement,
                "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
                "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
-               "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
+               "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1),
+                           "solve": round(t_solve - t1, 1), "refine": round(t_refine - t_solve, 1),
+                           "chain": round(t2 - t_refine, 1)}, "refine": rinfo,
                "chain": cinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
                "target_status": summarize(status_rows)}
