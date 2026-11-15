@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080e1b">
+<title>空间观测任务规划</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700&family=Noto+Sans+SC:wght@400;500&family=Noto+Serif+SC:wght@500;600&display=swap">
+<style>
+:root{color-scheme:dark;--ink:#eaf4ff;--muted:#a3b6ca;--line:#263e56;--cyan:#8fe6ff;--panel:#101f31;--mono:'IBM Plex Mono',monospace}
+*{box-sizing:border-box}
+body{margin:0;background:#080e1b;color:var(--ink);font-family:'Noto Sans SC','DengXian','PingFang SC',sans-serif}
+button,a{font:inherit}
+button{cursor:pointer;color:inherit}
+button:focus-visible,a:focus-visible{outline:2px solid var(--cyan);outline-offset:4px}
+.scene{position:relative;isolation:isolate;min-height:100svh;overflow:hidden;background:radial-gradient(ellipse at 22% 96%,#524b48 0,transparent 47%),linear-gradient(168deg,#111c30,#090e19 58%,#202733)}
+.nightscape{position:absolute;inset:0;z-index:-3;width:100%;height:100%;object-fit:cover;object-position:45% bottom;pointer-events:none}
+#sky{position:absolute;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none}
+.scene::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(105deg,transparent 30%,#080c16a3 83%);pointer-events:none}
+.utility{position:absolute;z-index:4;inset:0 0 auto;height:32px}
+.utility[data-open]{height:102px}
+.menu-toggle{position:absolute;inset:0 0 auto;width:100%;height:32px;border:0;background:transparent}
+.menu-toggle span{opacity:0}
+.menu-toggle:focus-visible{outline-offset:-4px}
+.menu-toggle:focus-visible span{opacity:1}
+.menu{position:absolute;inset:24px 0 auto;width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:0 max(5vw,12px);background:transparent;opacity:0;visibility:hidden;transform:translateY(calc(-100% - 24px));transition:transform .25s,opacity .2s,visibility .25s}
+.utility[data-open] .menu{opacity:1;visibility:visible;transform:translateY(0)}
+.menu a,.menu button{display:flex;justify-content:center;align-items:center;gap:clamp(9px,1.4vw,19px);min-height:76px;padding:8px 0;background:transparent;border:0;color:var(--ink);font:700 clamp(20px,1.95vw,29px)/1.2 'Bricolage Grotesque','Segoe UI',sans-serif;letter-spacing:.01em;text-shadow:0 2px 12px #030609;text-decoration:none;transition:color .2s}
+.menu a:is(:hover,:focus-visible),.menu button:is(:hover,:focus-visible){color:#b5e8fa}
+.menu .utility-icon{width:1em;height:.76em;flex:none;fill:none;stroke:currentColor;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 4px #030609)}
+.menu .orbit-icon{width:1.28em;height:.98em;stroke-width:2.65}
+.menu [download] .utility-icon{--orbit:#7eb9f7;--arrow:#c5f2ff}
+.menu #upload .utility-icon{--orbit:#c1a0f6;--arrow:#b6f1d6}
+.orbit-ring{stroke:var(--orbit)}
+.orbit-arrow{stroke:var(--arrow);stroke-width:2.95}
+.orbit-star{fill:#ffd175;stroke:none}
+.menu #tools .utility-icon{width:1.16em;height:.86em;color:#c4b3fa}
+.layout{width:min(1260px,90%);margin:auto;min-height:100svh;display:grid;grid-template-columns:1.1fr 1fr;gap:clamp(24px,5vw,85px);align-items:center;padding:86px 0 70px}
+.visual{position:absolute;inset:0;pointer-events:none}
+.station{display:block;width:100%;height:100%}
+.content{grid-column:2;position:relative;z-index:2;padding-bottom:14px;min-width:0;text-shadow:0 2px 20px #0b0c14}
+h1{font:600 clamp(31px,3.9vw,63px)/1.3 'Noto Serif SC','SimSun','Songti SC',serif;letter-spacing:.035em;margin:0 0 clamp(36px,6vw,74px)}
+h1 span{display:block;color:#c3cbd5;margin-top:8px;font-weight:500}
+.actions{display:flex;gap:clamp(8px,2.2vw,32px);align-items:stretch}
+.action{--accent:#d0d9e5;position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-height:68px;padding:0 0 16px;background:transparent;border:0;border-bottom:1px solid #a4b3c34f;text-align:left;text-decoration:none;color:var(--accent);transition:color .22s,opacity .22s,transform .22s,border-color .22s}
+.action:first-child{flex:1.15;--accent:#f3dbb1;border-color:#f3dbb19c}
+.action strong{font:600 clamp(13px,1.3vw,18px)/1.55 'Noto Serif SC','SimSun','Songti SC',serif;letter-spacing:.045em}
+.action .arrow{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .22s}
+.actions:has(.action:is(:hover,:focus-visible)) .action:not(:is(:hover,:focus-visible)){opacity:.55}
+.action:is(:hover,:focus-visible){color:#fff3dd;transform:translateY(-4px);border-color:currentColor}
+.action:is(:hover,:focus-visible) .arrow{transform:translate(3px,-2px)}
+.status{position:absolute;z-index:2;bottom:18px;right:5%;max-width:90%;margin:0;color:var(--cyan);font-size:13px;background:#0c1827;border-radius:7px;padding:10px 14px}
+.status:empty{display:none}
+dialog{background:#111f30;color:var(--ink);border:1px solid #43637e;border-radius:14px;width:min(420px,90vw);padding:24px}
+dialog::backdrop{background:#040910bb}
+dialog h2{margin:0 0 12px;font-size:20px}
+dialog p{line-height:1.65;color:var(--muted);overflow-wrap:anywhere}
+dialog button{background:#1d354c;border:1px solid #43637e;border-radius:6px;padding:8px 14px}
+@media(max-width:760px){.nightscape{object-position:23% bottom}.layout{grid-template-columns:1fr;align-items:start;padding:112px 0 max(290px,65vw)}.content{grid-column:1}h1{font-size:clamp(26px,7.7vw,45px);margin-bottom:28px}.action{min-height:69px}.menu a,.menu button{gap:7px;font-size:clamp(14px,4.1vw,19px);letter-spacing:.025em}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important}.action:is(:hover,:focus-visible){transform:none}}
+</style>
+</head>
+<body>
+<main class="scene">
+  <img class="nightscape" src="observatory-station-v2.png" alt="" fetchpriority="high">
+  <canvas id="sky" aria-hidden="true"></canvas>
+    <nav class="utility" aria-label="数据工具">
+      <button class="menu-toggle" type="button" lang="en" aria-expanded="false" aria-controls="utility-menu"><span>Tools</span></button>
+      <div class="menu" id="utility-menu" inert>
+        <a download="站址模板.txt" href="data:text/plain;charset=utf-8,001%3A%20116.40%2C%2039.90%2C%2050%0A" lang="en"><svg class="utility-icon orbit-icon" viewBox="0 -2 32 28" aria-hidden="true"><path class="orbit-ring" d="M20 4C14 3 3 9 2.5 16.5c-.4 4.2 6.1 5.2 13.1 3.1C22 17.7 27 13.7 28.3 10"/><path class="orbit-star" d="M26.2 .5c.5 3.3 1.8 4.5 5 5-3.2.5-4.5 1.7-5 5-.5-3.3-1.8-4.5-5-5 3.2-.5 4.5-1.7 5-5Z"/><path class="orbit-arrow" d="M15 1v23m-5-5 5 5 5-5"/></svg>Download</a>
+        <button id="upload" type="button" lang="en"><svg class="utility-icon orbit-icon" viewBox="0 -2 32 28" aria-hidden="true"><g transform="translate(32 0) scale(-1 1)"><path class="orbit-ring" d="M20 4C14 3 3 9 2.5 16.5c-.4 4.2 6.1 5.2 13.1 3.1C22 17.7 27 13.7 28.3 10"/><path class="orbit-star" d="M26.2 .5c.5 3.3 1.8 4.5 5 5-3.2.5-4.5 1.7-5 5-.5-3.3-1.8-4.5-5-5 3.2-.5 4.5-1.7 5-5Z"/></g><path class="orbit-arrow" d="M17 24V1m-5 5 5-5 5 5"/></svg>Upload</button>
+        <button id="tools" type="button" lang="en"><svg class="utility-icon" viewBox="0 0 26 20" aria-hidden="true"><path d="M16 2a5 5 0 0 0-5.7 6.5L3.9 15a1.9 1.9 0 0 0 2.7 2.7l6.4-6.4a5 5 0 0 0 6.5-5.7L16.4 8l-2.7-2.7L16 2Z" fill="currentColor" stroke="none"/><path d="M21 10.5c0 2.9 1.7 4.5 4.5 4.5-2.8 0-4.5 1.6-4.5 4.5 0-2.9-1.7-4.5-4.5-4.5 2.8 0 4.5-1.6 4.5-4.5Z" fill="currentColor" stroke="none"/></svg>Tools</button>
+      </div>
+      <input id="files" type="file" hidden multiple accept=".txt,.tle,.json">
+    </nav>
+  <div class="layout">
+    <section class="visual" aria-label="地面观测站">
+      <canvas class="station" id="station" aria-hidden="true"></canvas>
+    </section>
+    <section class="content" aria-labelledby="title">
+      <h1 id="title">空间目标<span>自主观测任务规划</span></h1>
+      <div class="actions">
+        <button type="button" class="action" data-detail="读取当前配置，运行规划器并生成观测任务表。"><svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M9 4h7v7"/></svg><strong>运行观测规划</strong></button>
+        <button type="button" class="action" data-detail="调整算法、时间范围、最低仰角和运行规模。"><svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M9 4h7v7"/></svg><strong>配置与调整</strong></button>
+        <button type="button" class="action" data-detail="查阅观测任务和约束校验结果，导出 CSV 或 JSON。"><svg class="arrow" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16 16 4M9 4h7v7"/></svg><strong>查看与导出</strong></button>
+      </div>
+    </section>
+  </div>
+  <p class="status" role="status"></p>
+</main>
+<dialog aria-labelledby="dialog-title">
+  <h2 id="dialog-title"></h2>
+  <p id="dialog-text"></p>
+  <form method="dialog"><button>关闭</button></form>
+</dialog>
+<script>
+const menu = document.querySelector('.utility');
+const toggle = menu.querySelector('.menu-toggle');
+const menuItems = menu.querySelector('.menu');
+const dialog = document.querySelector('dialog');
+const fileInput = document.querySelector('#files');
+
+function setMenu(open) {
+  menu.toggleAttribute('data-open', open);
+  toggle.setAttribute('aria-expanded', open);
+  menuItems.inert = !open;
+}
+
+menu.addEventListener('pointerenter', event => {
+  if (event.pointerType === 'mouse') setMenu(true);
+});
+menu.addEventListener('pointerleave', () => {
+  if (!menuItems.querySelector(':focus-visible')) setMenu(false);
+});
+toggle.addEventListener('click', event => {
+  setMenu(event.pointerType === 'mouse' || !menu.hasAttribute('data-open'));
+});
+menu.addEventListener('focusout', event => {
+  if (!menu.contains(event.relatedTarget) && !menu.matches(':hover')) setMenu(false);
+});
+menu.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  toggle.focus();
+  setMenu(false);
+});
+document.addEventListener('pointerdown', event => {
+  if (!menu.contains(event.target)) setMenu(false);
+});
+
+function showDialog(title, detail) {
+  document.querySelector('#dialog-title').textContent = title;
+  document.querySelector('#dialog-text').textContent = detail;
+  dialog.showModal();
+}
+
+document.querySelectorAll('.action').forEach(button => {
+  button.addEventListener('click', () => {
+    showDialog(button.querySelector('strong').textContent, button.dataset.detail);
+  });
+});
+
+document.querySelector('#tools').addEventListener('click', () => {
+  showDialog('输入格式', '轨道数据使用带名称行的三行 TLE。站址使用「编号: 经度, 纬度, 海拔」，海拔单位为米。优先级使用高、中、低三份目标编号文本。');
+});
+document.querySelector('#upload').addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => {
+  if (!fileInput.files.length) return;
+  document.querySelector('.status').textContent = `已在浏览器中选取 ${fileInput.files.length} 个文件，等待接入后端。`;
+  showDialog('已选文件', Array.from(fileInput.files, file => file.name).join('、'));
+});
+
+</script>
+<script src="scene.js"></script>
+</body>
+</html>

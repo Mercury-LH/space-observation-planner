@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>运行观测规划 · 空间观测</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600&display=swap">
+  <link rel="stylesheet" href="workspace.css">
+  <script src="workspace.js" defer></script>
+</head>
+<body data-page="run">
+  <div class="run-sky" aria-hidden="true"></div>
+  <header class="topbar">
+    <span class="home">空间观测工作台</span>
+    <nav aria-label="工作台">
+      <a href="run.html" aria-current="page">运行规划</a>
+      <a href="config.html">配置与调整</a>
+      <a href="results.html">查看与导出</a>
+    </nav>
+  </header>
+  <main class="workspace">
+    <section id="run">
+      <div class="run-grid">
+        <div class="run-overview">
+          <header class="heading">
+            <div class="run-heading-row">
+              <h1>运行观测规划</h1>
+              <button id="start-run" class="primary" type="button" disabled>启动规划 <span aria-hidden="true">↗</span></button>
+            </div>
+            <p class="feedback" id="run-feedback" role="status"></p>
+            <p id="connection" class="feedback" role="status"></p>
+          </header>
+          <section class="panel spotlight run-config">
+            <div class="panel-head"><h2>当前配置</h2><a href="config.html">调整配置 ↗</a></div>
+            <dl class="parameters" id="run-settings"></dl>
+          </section>
+          <div class="day-cycle">
+            <div class="day-cycle-day" aria-hidden="true"></div>
+            <div class="day-cycle-twilight" aria-hidden="true"></div>
+            <p class="day-cycle-date" hidden><time id="scenery-date"></time><span id="scenery-count"></span></p>
+          </div>
+        </div>
+        <section class="panel run-monitor" id="progress-panel">
+            <div class="panel-head"><h2>运行进度</h2><output id="run-state" class="tag">待运行</output></div>
+            <ol class="stages">
+              <li>计算可见窗口</li><li>生成观测任务</li><li>提交校验结果</li>
+            </ol>
+            <progress id="run-progress" max="100" value="0" aria-label="可见窗口计算进度"></progress>
+            <p id="progress-message" class="muted">启动后显示规划器报告的进度。</p>
+          <div class="monitor-switch" role="group" aria-label="运行详情">
+            <button id="show-log" type="button" aria-controls="monitor-log" aria-pressed="true">运行日志</button>
+            <button id="show-preview" type="button" aria-controls="run-preview" aria-pressed="false" disabled>任务预览</button>
+            <a id="view-output" href="results.html" hidden>完整任务表 ↗</a>
+          </div>
+          <div class="monitor-content" tabindex="0" aria-label="运行详情内容">
+            <div id="monitor-log">
+              <p id="events-idle" class="muted">启动规划后，运行事件会在这里依次出现。</p>
+              <ol id="run-events" class="run-events" aria-label="最近运行事件"></ol>
+              <details class="raw-log">
+                <summary>查看原始日志</summary>
+                <pre id="run-log" tabindex="0">等待启动。</pre>
+              </details>
+            </div>
+            <section id="run-preview" class="run-preview" aria-label="本轮任务预览" hidden>
+              <p id="preview-summary" class="muted"></p>
+              <div id="preview-table" class="table-scroll" tabindex="0" aria-label="本轮任务表">
+                <table><thead><tr><th>目标</th><th>站点</th><th>优先级</th><th>开始（UTC）</th><th>结束（UTC）</th><th>时长</th></tr></thead><tbody id="preview-rows"></tbody></table>
+              </div>
+            </section>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

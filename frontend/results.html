@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>查看与导出 · 空间观测</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600&display=swap">
+  <link rel="stylesheet" href="workspace.css">
+  <script src="workspace.js" defer></script>
+</head>
+<body data-page="results">
+  <div class="run-sky" aria-hidden="true"></div>
+  <header class="topbar">
+    <span class="home">空间观测工作台</span>
+    <nav aria-label="工作台">
+      <a href="run.html">运行规划</a>
+      <a href="config.html">配置与调整</a>
+      <a href="results.html" aria-current="page">查看与导出</a>
+    </nav>
+  </header>
+  <main class="workspace">
+    <section id="results">
+      <header class="heading">
+        <h1>查看与导出</h1>
+        <p id="result-source" role="status">正在读取已完成的规划。</p>
+        <div class="exports" id="exports" hidden><a class="primary" href="/api/results/schedule.csv">CSV ↓</a><a class="quiet" href="/api/results/metrics.json">指标 JSON ↓</a></div>
+      </header>
+      <div id="result-content" hidden>
+        <aside class="result-overview">
+          <div class="metrics" id="metrics"></div>
+          <details class="panel validation"><summary>约束校验详情</summary><ul id="validation-rows"></ul><p id="result-provenance" class="muted"></p></details>
+        </aside>
+        <section class="panel result-panel">
+          <div class="panel-head"><h2>观测任务表</h2><span id="task-count" class="muted"></span></div>
+          <div class="filters"><label>搜索 <input id="task-search" type="search" placeholder="目标或站点编号"></label>
+            <label>优先级 <select id="priority-filter"><option value="">全部</option><option value="HIGH">高</option><option value="MEDIUM">中</option><option value="LOW">低</option></select></label></div>
+          <div class="table-scroll" tabindex="0" aria-label="观测任务">
+            <table><thead><tr><th>目标</th><th>站点</th><th>优先级</th><th>开始（UTC）</th><th>结束（UTC）</th><th>时长</th></tr></thead><tbody id="task-rows"></tbody></table>
+          </div>
+          <div class="pagination"><button id="prev" class="quiet" type="button">上一页</button><span id="page-label"></span><button id="next" class="quiet" type="button">下一页</button></div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

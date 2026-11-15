@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>配置与调整 · 空间观测</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600&family=Noto+Serif+SC:wght@600&display=swap">
+  <link rel="stylesheet" href="workspace.css">
+  <script src="workspace.js" defer></script>
+</head>
+<body data-page="config">
+  <div class="run-sky" aria-hidden="true"></div>
+  <header class="topbar">
+    <span class="home">空间观测工作台</span>
+    <nav aria-label="工作台">
+      <a href="run.html">运行规划</a>
+      <a href="config.html" aria-current="page">配置与调整</a>
+      <a href="results.html">查看与导出</a>
+    </nav>
+  </header>
+  <main class="workspace">
+
+    <section id="config">
+      <header class="heading"><h1>配置与调整</h1><p id="connection" class="feedback" role="status"></p></header>
+      <div class="panel config-panel spotlight">
+        <section class="data-panel" aria-labelledby="config-data-title">
+          <h2 id="config-data-title">数据来源</h2>
+          <dl class="parameters"><div><dt>目标轨道</dt><dd>数据/轨道.txt</dd></div><div><dt>观测站</dt><dd>数据/站址.txt</dd></div><div><dt>目标优先级</dt><dd>优先级/</dd></div></dl>
+        </section>
+        <form id="config-form" class="config-form" aria-labelledby="config-parameters-title">
+          <div class="panel-head"><h2 id="config-parameters-title">规划参数</h2><button id="reset-config" class="quiet" type="button">恢复默认</button></div>
+          <div class="fields">
+            <label>开始时间（UTC） <input name="start" type="datetime-local" required></label>
+            <label>结束时间（UTC） <input name="end" type="datetime-local" required></label>
+            <label>规划器 <select name="planner">
+              <option value="scheme_g">方案 G · AI 筛选与 CP-SAT</option>
+              <option value="ai_greedy">AI 权重贪心</option>
+              <option value="priority_greedy">优先级贪心</option>
+              <option value="random_greedy">随机基线</option>
+            </select></label>
+            <label>最低仰角（°） <input name="elevation" type="number" min="0" max="84.9" step="0.1" required></label>
+            <label>目标数上限 <input name="targets" type="number" min="1" max="10000" required></label>
+            <label>站点数上限 <input name="stations" type="number" min="1" max="10" required></label>
+          </div>
+          <div class="form-footer"><button class="primary" type="submit">保存配置</button><a href="run.html">前往运行 ↗</a><output id="config-feedback" role="status"></output></div>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>
