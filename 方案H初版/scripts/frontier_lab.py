@@ -131,6 +131,8 @@ def cmd_chain(a) -> int:
         kw["rounds"] = a.rounds
     if a.no_repattern:
         kw["repattern"] = False
+    if a.cover is not None:
+        kw["cover"] = bool(a.cover)
     t0 = time.time()
     c0 = time.process_time()
     out, info = chain.improve(pb, sch, minutes=a.minutes, verbose=a.verbose, **kw)
@@ -167,6 +169,7 @@ def main() -> int:
     c.add_argument("--seed", type=int)
     c.add_argument("--rounds")
     c.add_argument("--no-repattern", action="store_true")
+    c.add_argument("--cover", type=int, help="1 / 0：弹射链开头是否先给没覆盖到的目标找链")
     c.add_argument("--profile", action="store_true")
     c.add_argument("--verbose", action="store_true")
     c.add_argument("--save", help="把结果计划存成这个名字")
