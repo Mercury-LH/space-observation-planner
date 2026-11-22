@@ -1,0 +1,58 @@
+{
+  "iterations": [
+    {
+      "iters": 30,
+      "combined_grid": 0.9462,
+      "planning_s": 82.2
+    },
+    {
+      "iters": 60,
+      "combined_grid": 0.9498,
+      "planning_s": 86.3
+    },
+    {
+      "iters": 100,
+      "combined_grid": 0.9553,
+      "planning_s": 82.0
+    },
+    {
+      "iters": 150,
+      "combined_grid": 0.9529,
+      "planning_s": 81.7
+    },
+    {
+      "iters": 200,
+      "combined_grid": 0.9554,
+      "planning_s": 90.3
+    },
+    {
+      "iters": 300,
+      "combined_grid": 0.9544,
+      "planning_s": 104.7
+    }
+  ],
+  "modes": [
+    {
+      "mode": "快速",
+      "iters": 150,
+      "windows_s": 31.2,
+      "planning_s": 49.3,
+      "refine_s": 3.8,
+      "total_s": 84.3,
+      "covered": 9953,
+      "score": 27965.2,
+      "combined": 0.9628
+    },
+    {
+      "mode": "高质量",
+      "iters": 300,
+      "windows_s": 37.4,
+      "planning_s": 112.3,
+      "refine_s": 3.7,
+      "total_s": 153.3,
+      "covered": 9987,
+      "score": 28083.7,
+      "combined": 0.9664
+    }
+  ]
+}

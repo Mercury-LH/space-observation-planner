@@ -1,0 +1,22 @@
+[
+  {
+    "name": "当前（默认）",
+    "elev_margin": 0.02,
+    "sun_margin": 0.05,
+    "sunlit_margin_km": 10.0,
+    "observable": 9999,
+    "covered": 9987,
+    "score": 28083.7,
+    "combined": 0.9664
+  },
+  {
+    "name": "保守",
+    "elev_margin": 0.1,
+    "sun_margin": 0.2,
+    "sunlit_margin_km": 30.0,
+    "observable": 9999,
+    "covered": 9987,
+    "score": 27997.1,
+    "combined": 0.965
+  }
+]

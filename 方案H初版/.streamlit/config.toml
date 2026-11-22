@@ -1,0 +1,14 @@
+# 只在本机提供服务，不对局域网开放；不发送使用统计
+[server]
+address = "127.0.0.1"
+port = 8501
+headless = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+primaryColor = "#eb6834"
+backgroundColor = "#fbfbf8"
+secondaryBackgroundColor = "#eef2f8"
+textColor = "#14213D"

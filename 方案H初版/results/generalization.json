@@ -1,0 +1,701 @@
+{
+ "rows": [
+  {
+   "catalog_id": "v2-cat-480",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 3727,
+   "n_stations": 9,
+   "start": "2027-09-20",
+   "observable": 3713,
+   "windows_s": 0.0,
+   "mode": "quality",
+   "H": {
+    "covered": 3716,
+    "score": 25977.133,
+    "combined": 1.658321,
+    "tasks": 8948,
+    "repeat_tasks": 5232,
+    "seconds": 76.5,
+    "violations": 0,
+    "near_added": 3
+   },
+   "H+": {
+    "covered": 3716,
+    "score": 25661.603,
+    "combined": 1.644234,
+    "tasks": 9002,
+    "repeat_tasks": 5286,
+    "seconds": 72.2,
+    "violations": 0,
+    "near_added": 3
+   },
+   "稳健": {
+    "covered": 3716,
+    "score": 25977.133,
+    "combined": 1.658321,
+    "tasks": 8948,
+    "repeat_tasks": 5232,
+    "seconds": 72.1,
+    "violations": 0,
+    "near_added": 3,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 1.62816,
+     "manual": 1.650832
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-481",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 9864,
+   "n_stations": 9,
+   "start": "2027-01-21",
+   "observable": 9802,
+   "windows_s": 0.0,
+   "mode": "quality",
+   "H": {
+    "covered": 9763,
+    "score": 31936.413,
+    "combined": 1.059268,
+    "tasks": 12833,
+    "repeat_tasks": 3070,
+    "seconds": 462.2,
+    "violations": 0,
+    "near_added": 1
+   },
+   "H+": {
+    "covered": 9587,
+    "score": 32103.053,
+    "combined": 1.053291,
+    "tasks": 12944,
+    "repeat_tasks": 3357,
+    "seconds": 465.9,
+    "violations": 0,
+    "near_added": 4
+   },
+   "稳健": {
+    "covered": 9763,
+    "score": 31936.413,
+    "combined": 1.059268,
+    "tasks": 12833,
+    "repeat_tasks": 3070,
+    "seconds": 463.4,
+    "violations": 0,
+    "near_added": 1,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 1.044614,
+     "manual": 1.053024
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-482",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 3346,
+   "n_stations": 8,
+   "start": "2027-06-16",
+   "observable": 3346,
+   "windows_s": 15.9,
+   "mode": "quality",
+   "H": {
+    "covered": 3346,
+    "score": 24751.423,
+    "combined": 1.560472,
+    "tasks": 7417,
+    "repeat_tasks": 4071,
+    "seconds": 34.4,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 3346,
+    "score": 24797.427,
+    "combined": 1.562443,
+    "tasks": 7415,
+    "repeat_tasks": 4069,
+    "seconds": 27.0,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 3346,
+    "score": 24797.427,
+    "combined": 1.562443,
+    "tasks": 7415,
+    "repeat_tasks": 4069,
+    "seconds": 25.1,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 1.547095,
+     "manual": 1.54644
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-483",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 6659,
+   "n_stations": 10,
+   "start": "2027-10-19",
+   "observable": 6262,
+   "windows_s": 30.8,
+   "mode": "quality",
+   "H": {
+    "covered": 6241,
+    "score": 34832.057,
+    "combined": 1.313601,
+    "tasks": 11870,
+    "repeat_tasks": 5629,
+    "seconds": 197.0,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 6238,
+    "score": 35128.807,
+    "combined": 1.320575,
+    "tasks": 11720,
+    "repeat_tasks": 5482,
+    "seconds": 168.5,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 6238,
+    "score": 35128.807,
+    "combined": 1.320575,
+    "tasks": 11720,
+    "repeat_tasks": 5482,
+    "seconds": 186.8,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 1.305941,
+     "manual": 1.300883
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-484",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 8429,
+   "n_stations": 9,
+   "start": "2027-09-22",
+   "observable": 8414,
+   "windows_s": 31.2,
+   "mode": "quality",
+   "H": {
+    "covered": 8416,
+    "score": 32706.493,
+    "combined": 1.089194,
+    "tasks": 11924,
+    "repeat_tasks": 3508,
+    "seconds": 224.8,
+    "violations": 0,
+    "near_added": 2
+   },
+   "H+": {
+    "covered": 8416,
+    "score": 33178.543,
+    "combined": 1.097709,
+    "tasks": 12376,
+    "repeat_tasks": 3960,
+    "seconds": 242.4,
+    "violations": 0,
+    "near_added": 2
+   },
+   "稳健": {
+    "covered": 8416,
+    "score": 33178.543,
+    "combined": 1.097709,
+    "tasks": 12376,
+    "repeat_tasks": 3960,
+    "seconds": 258.3,
+    "violations": 0,
+    "near_added": 2,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 1.094716,
+     "manual": 1.084694
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-485",
+   "group": "core",
+   "stress_type": null,
+   "n_targets": 10081,
+   "n_stations": 14,
+   "start": "2027-09-07",
+   "observable": 10064,
+   "windows_s": 53.6,
+   "mode": "quality",
+   "H": {
+    "covered": 10055,
+    "score": 41825.71,
+    "combined": 1.249244,
+    "tasks": 16572,
+    "repeat_tasks": 6517,
+    "seconds": 345.1,
+    "violations": 0,
+    "near_added": 2
+   },
+   "H+": {
+    "covered": 10062,
+    "score": 43336.38,
+    "combined": 1.276699,
+    "tasks": 16467,
+    "repeat_tasks": 6405,
+    "seconds": 399.7,
+    "violations": 0,
+    "near_added": 4
+   },
+   "稳健": {
+    "covered": 10062,
+    "score": 43336.38,
+    "combined": 1.276699,
+    "tasks": 16467,
+    "repeat_tasks": 6405,
+    "seconds": 404.1,
+    "violations": 0,
+    "near_added": 4,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 1.267618,
+     "manual": 1.238652
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-570",
+   "group": "stress",
+   "stress_type": "high_load",
+   "n_targets": 12933,
+   "n_stations": 6,
+   "start": "2027-02-12",
+   "observable": 12413,
+   "windows_s": 40.6,
+   "mode": "quality",
+   "H": {
+    "covered": 9352,
+    "score": 16757.283,
+    "combined": 0.617423,
+    "tasks": 9622,
+    "repeat_tasks": 270,
+    "seconds": 197.6,
+    "violations": 0,
+    "near_added": 1
+   },
+   "H+": {
+    "covered": 9220,
+    "score": 16813.537,
+    "combined": 0.613179,
+    "tasks": 9332,
+    "repeat_tasks": 112,
+    "seconds": 196.1,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 9352,
+    "score": 16757.283,
+    "combined": 0.617423,
+    "tasks": 9622,
+    "repeat_tasks": 270,
+    "seconds": 224.4,
+    "violations": 0,
+    "near_added": 1,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 0.609552,
+     "manual": 0.612972
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-575",
+   "group": "stress",
+   "stress_type": "low_load",
+   "n_targets": 1941,
+   "n_stations": 14,
+   "start": "2027-04-22",
+   "observable": 1941,
+   "windows_s": 11.2,
+   "mode": "quality",
+   "H": {
+    "covered": 1941,
+    "score": 15926.353,
+    "combined": 1.850378,
+    "tasks": 5259,
+    "repeat_tasks": 3318,
+    "seconds": 25.4,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 1941,
+    "score": 15689.533,
+    "combined": 1.830298,
+    "tasks": 5166,
+    "repeat_tasks": 3225,
+    "seconds": 15.0,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 1941,
+    "score": 15926.353,
+    "combined": 1.850378,
+    "tasks": 5259,
+    "repeat_tasks": 3318,
+    "seconds": 14.0,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 1.821452,
+     "manual": 1.845532
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-580",
+   "group": "stress",
+   "stress_type": "leo_polar",
+   "n_targets": 8858,
+   "n_stations": 11,
+   "start": "2027-06-18",
+   "observable": 8858,
+   "windows_s": 36.8,
+   "mode": "quality",
+   "H": {
+    "covered": 7968,
+    "score": 25049.063,
+    "combined": 0.918917,
+    "tasks": 10330,
+    "repeat_tasks": 2362,
+    "seconds": 50.9,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 7828,
+    "score": 25704.257,
+    "combined": 0.923286,
+    "tasks": 10188,
+    "repeat_tasks": 2360,
+    "seconds": 33.8,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 7828,
+    "score": 25704.257,
+    "combined": 0.923286,
+    "tasks": 10188,
+    "repeat_tasks": 2360,
+    "seconds": 38.0,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 0.912997,
+     "manual": 0.907088
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-585",
+   "group": "stress",
+   "stress_type": "high_orbit",
+   "n_targets": 9028,
+   "n_stations": 8,
+   "start": "2027-08-01",
+   "observable": 9028,
+   "windows_s": 34.2,
+   "mode": "quality",
+   "H": {
+    "covered": 8709,
+    "score": 25246.69,
+    "combined": 0.918342,
+    "tasks": 10609,
+    "repeat_tasks": 1900,
+    "seconds": 609.1,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 8355,
+    "score": 26230.5,
+    "combined": 0.915727,
+    "tasks": 10674,
+    "repeat_tasks": 2319,
+    "seconds": 502.8,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 8709,
+    "score": 25246.69,
+    "combined": 0.918342,
+    "tasks": 10609,
+    "repeat_tasks": 1900,
+    "seconds": 664.1,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 0.908762,
+     "manual": 0.913135
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-590",
+   "group": "stress",
+   "stress_type": "high_priority",
+   "n_targets": 6586,
+   "n_stations": 8,
+   "start": "2027-10-06",
+   "observable": 5960,
+   "windows_s": 25.8,
+   "mode": "quality",
+   "H": {
+    "covered": 5946,
+    "score": 35128.97,
+    "combined": 1.061756,
+    "tasks": 10629,
+    "repeat_tasks": 4683,
+    "seconds": 82.1,
+    "violations": 0,
+    "near_added": 6
+   },
+   "H+": {
+    "covered": 5948,
+    "score": 35280.33,
+    "combined": 1.064538,
+    "tasks": 10718,
+    "repeat_tasks": 4770,
+    "seconds": 89.6,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 5948,
+    "score": 35280.33,
+    "combined": 1.064538,
+    "tasks": 10718,
+    "repeat_tasks": 4770,
+    "seconds": 137.7,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "rule",
+    "grid_objective": {
+     "rule": 1.059964,
+     "manual": 1.05627
+    }
+   }
+  },
+  {
+   "catalog_id": "v2-cat-595",
+   "group": "stress",
+   "stress_type": "regional_network",
+   "n_targets": 10478,
+   "n_stations": 5,
+   "start": "2027-06-17",
+   "observable": 9961,
+   "windows_s": 31.7,
+   "mode": "quality",
+   "H": {
+    "covered": 5795,
+    "score": 13117.48,
+    "combined": 0.486883,
+    "tasks": 5795,
+    "repeat_tasks": 0,
+    "seconds": 104.0,
+    "violations": 0,
+    "near_added": 0
+   },
+   "H+": {
+    "covered": 5553,
+    "score": 13585.497,
+    "combined": 0.48284,
+    "tasks": 5556,
+    "repeat_tasks": 3,
+    "seconds": 103.2,
+    "violations": 0,
+    "near_added": 0
+   },
+   "稳健": {
+    "covered": 5795,
+    "score": 13117.48,
+    "combined": 0.486883,
+    "tasks": 5795,
+    "repeat_tasks": 0,
+    "seconds": 138.4,
+    "violations": 0,
+    "near_added": 0,
+    "picked": "manual",
+    "grid_objective": {
+     "rule": 0.481045,
+     "manual": 0.484656
+    }
+   }
+  }
+ ],
+ "summary": {
+  "quality": {
+   "all": {
+    "H+ 相对 H": {
+     "scenes": 12,
+     "combined_diff_mean": 8.5e-05,
+     "combined_diff_ci95": [
+      -0.006253,
+      0.00678
+     ],
+     "combined_diff_median": -0.000322,
+     "combined_diff_min": -0.02008,
+     "score_rel_mean": 0.0123,
+     "covered_diff_mean": -86.5,
+     "better": 6,
+     "worse": 6,
+     "equal": 0
+    },
+    "稳健 相对 H": {
+     "scenes": 12,
+     "combined_diff_mean": 0.004339,
+     "combined_diff_ci95": [
+      0.000977,
+      0.009115
+     ],
+     "combined_diff_median": 0.000985,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": 0.00762,
+     "covered_diff_mean": -11.17,
+     "better": 6,
+     "worse": 0,
+     "equal": 6
+    },
+    "稳健 相对 H+": {
+     "scenes": 12,
+     "combined_diff_mean": 0.004254,
+     "combined_diff_ci95": [
+      0.001205,
+      0.00822
+     ],
+     "combined_diff_median": 0.001308,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": -0.00443,
+     "covered_diff_mean": 75.33,
+     "better": 6,
+     "worse": 0,
+     "equal": 6
+    }
+   },
+   "core": {
+    "H+ 相对 H": {
+     "scenes": 6,
+     "combined_diff_mean": 0.004142,
+     "combined_diff_ci95": [
+      -0.005715,
+      0.014828
+     ],
+     "combined_diff_median": 0.004472,
+     "combined_diff_min": -0.014087,
+     "score_rel_mean": 0.009,
+     "covered_diff_mean": -28.67,
+     "better": 4,
+     "worse": 2,
+     "equal": 0
+    },
+    "稳健 相对 H": {
+     "scenes": 6,
+     "combined_diff_mean": 0.007486,
+     "combined_diff_ci95": [
+      0.001491,
+      0.016309
+     ],
+     "combined_diff_median": 0.004472,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": 0.01015,
+     "covered_diff_mean": 0.67,
+     "better": 4,
+     "worse": 0,
+     "equal": 2
+    },
+    "稳健 相对 H+": {
+     "scenes": 6,
+     "combined_diff_mean": 0.003344,
+     "combined_diff_ci95": [
+      0.0,
+      0.00804
+     ],
+     "combined_diff_median": 0.0,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": 0.00118,
+     "covered_diff_mean": 29.33,
+     "better": 2,
+     "worse": 0,
+     "equal": 4
+    }
+   },
+   "stress": {
+    "H+ 相对 H": {
+     "scenes": 6,
+     "combined_diff_mean": -0.003972,
+     "combined_diff_ci95": [
+      -0.010924,
+      0.001498
+     ],
+     "combined_diff_median": -0.003329,
+     "combined_diff_min": -0.02008,
+     "score_rel_mean": 0.0156,
+     "covered_diff_mean": -144.33,
+     "better": 2,
+     "worse": 4,
+     "equal": 0
+    },
+    "稳健 相对 H": {
+     "scenes": 6,
+     "combined_diff_mean": 0.001192,
+     "combined_diff_ci95": [
+      0.0,
+      0.002648
+     ],
+     "combined_diff_median": 0.0,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": 0.00508,
+     "covered_diff_mean": -23.0,
+     "better": 2,
+     "worse": 0,
+     "equal": 4
+    },
+    "稳健 相对 H+": {
+     "scenes": 6,
+     "combined_diff_mean": 0.005164,
+     "combined_diff_ci95": [
+      0.00111,
+      0.011421
+     ],
+     "combined_diff_median": 0.003329,
+     "combined_diff_min": 0.0,
+     "score_rel_mean": -0.01003,
+     "covered_diff_mean": 121.33,
+     "better": 4,
+     "worse": 0,
+     "equal": 2
+    }
+   }
+  }
+ }
+}

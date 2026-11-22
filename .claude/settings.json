@@ -1,0 +1,19 @@
+{
+  "env": {
+    "BASH_MAX_TIMEOUT_MS": "5400000"
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/scripts/cloud_setup.sh",
+            "timeout": 600
+          }
+        ]
+      }
+    ]
+  }
+}

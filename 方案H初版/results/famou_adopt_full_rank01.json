@@ -1,0 +1,41 @@
+{
+  "program": "outputs/famou/hrecover_full_top/strategy_rank01.py",
+  "full_eval": {
+    "ratio_vs_manual": 1.0083232298519837,
+    "validity": 1,
+    "error_info": null
+  },
+  "full": {
+    "grid": {
+      "covered": 9994,
+      "score": 28013.300000000003,
+      "combined": 0.9656254207970195,
+      "tasks": 12368
+    },
+    "refined": {
+      "covered": 9994,
+      "score": 28538.393333333333,
+      "combined": 0.9743589271062028,
+      "tasks": 12368
+    },
+    "plan_seconds": 114.7,
+    "refine_seconds": 3.2
+  },
+  "full_baseline": {
+    "grid": {
+      "covered": 9987,
+      "score": 27358.8,
+      "combined": 0.9543895848579602,
+      "tasks": 12506
+    },
+    "refined": {
+      "covered": 9987,
+      "score": 28083.676666666666,
+      "combined": 0.9664459461557227,
+      "tasks": 12506
+    },
+    "plan_seconds": 98.4,
+    "refine_seconds": 3.4
+  },
+  "plan_csv": "results/plan_H_evolved_full_rank01.csv"
+}

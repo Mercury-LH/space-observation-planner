@@ -1,0 +1,43 @@
+# 方案H初版的 Docker 镜像：构建，再在容器里跑命令行规划、Skyfield 校验、界面检查和网页服务。
+# 构建和全量规划较慢，只在 Docker 相关文件变化或手动触发时运行。
+# GitHub 私有仓库的机器只有 7 GB 内存，全量逐秒校验峰值约 9 GB，所以全量只规划、校验用 1 天的场景。
+name: 方案H Docker
+
+on:
+  push:
+    paths:
+      - "方案H初版/Dockerfile"
+      - "方案H初版/Dockerfile.dockerignore"
+      - "方案H初版/pyproject.toml"
+      - "方案H初版/uv.lock"
+      - ".github/workflows/scheme-h-docker.yml"
+  workflow_dispatch:
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - name: 构建镜像
+        run: docker build -f 方案H初版/Dockerfile -t obsplan .
+      - name: 命令行：默认规则全量快速规划
+        run: |
+          mkdir -p out && chmod 777 out
+          docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --mode fast --out /out/plan
+          python3 -c "import json; d = json.load(open('out/plan/summary.json')); print(d['metrics'], d['seconds'])"
+      - name: 命令行：规划 1 天并做 Skyfield 逐秒校验
+        run: |
+          docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --days 1 --validate --out /out/day1
+          python3 -c "import json; v = json.load(open('out/day1/summary.json'))['validation']; print(v); assert v['legal']"
+      - name: 界面检查
+        run: docker run --rm obsplan python scripts/check_app.py
+      - name: 网页服务
+        run: |
+          docker run -d --name app -p 8501:8501 obsplan
+          for i in $(seq 60); do
+            if curl -sf http://127.0.0.1:8501/_stcore/health; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs app
+          exit 1

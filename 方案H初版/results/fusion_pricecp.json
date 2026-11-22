@@ -1,0 +1,161 @@
+{
+  "scenario": "2026-08-01_6d_sun-6_lit_el10-85_c30",
+  "config": {
+    "h_iters": 300,
+    "time_limit_per_block": 6.0,
+    "workers": 8,
+    "k_win_tried": [
+      1,
+      2
+    ]
+  },
+  "h_baseline_this_run": {
+    "covered": 9987,
+    "score": 27358.8,
+    "combined": 0.9544,
+    "seconds": 101.3
+  },
+  "existing_results_for_reference": {
+    "H（精修后）": {
+      "covered": 9987,
+      "score": 28084,
+      "combined": 0.9664
+    },
+    "G+（精修后，当前最好）": {
+      "covered": 9992,
+      "score": 28182,
+      "combined": 0.9683
+    },
+    "E（精修后）": {
+      "covered": 9999,
+      "score": 26986,
+      "combined": 0.9488
+    }
+  },
+  "runs": [
+    {
+      "k_win": 1,
+      "time_limit_per_block": 6.0,
+      "workers": 8,
+      "cpsat_seconds": 292.7,
+      "grid": {
+        "covered": 8272,
+        "score": 24368.8,
+        "combined": 0.8189,
+        "violations": {},
+        "structural_ok": true
+      },
+      "local_search": {
+        "covered": 9982,
+        "score": 27829.3,
+        "combined": 0.962,
+        "violations": {},
+        "structural_ok": true,
+        "stats": {
+          "inserted": 1715,
+          "repeats": 1281,
+          "moved": 15801,
+          "swaps": 568,
+          "extended_cells": 1,
+          "time": {
+            "覆盖修复": 3.6,
+            "压紧与补空": 0.1,
+            "重复观测插入": 29.9,
+            "分档补空": 0.1,
+            "换延长与延长": 0.0
+          },
+          "tier_added": 33,
+          "tier_ext": 1139
+        },
+        "seconds": 33.9
+      },
+      "refined": {
+        "covered": 9982,
+        "score": 28229.5,
+        "combined": 0.9686,
+        "refine_info": {
+          "refine": {
+            "refined": true,
+            "seconds_bounds": 0.0,
+            "seconds_lp": 0.5,
+            "dur_before": 131.60762314608468,
+            "dur_after": 132.4399446707139,
+            "tasks_longer": 1681
+          },
+          "insert": {
+            "near_candidates": 0,
+            "tried": 0,
+            "added": 0,
+            "deleted_repeats": 0
+          }
+        },
+        "seconds": 4.0
+      },
+      "total_seconds": 330.5
+    },
+    {
+      "k_win": 2,
+      "time_limit_per_block": 6.0,
+      "workers": 8,
+      "cpsat_seconds": 265.2,
+      "grid": {
+        "covered": 543,
+        "score": 1062.0,
+        "combined": 0.0448,
+        "violations": {},
+        "structural_ok": true
+      },
+      "local_search": {
+        "covered": 9998,
+        "score": 27035.5,
+        "combined": 0.9496,
+        "violations": {},
+        "structural_ok": true,
+        "stats": {
+          "inserted": 9455,
+          "repeats": 3389,
+          "moved": 41876,
+          "swaps": 489,
+          "extended_cells": 1,
+          "time": {
+            "覆盖修复": 5.9,
+            "压紧与补空": 0.1,
+            "重复观测插入": 30.7,
+            "分档补空": 0.1,
+            "换延长与延长": 0.0
+          },
+          "tier_added": 142,
+          "tier_ext": 3946
+        },
+        "seconds": 36.8
+      },
+      "refined": {
+        "covered": 9998,
+        "score": 27785.1,
+        "combined": 0.962,
+        "refine_info": {
+          "refine": {
+            "refined": true,
+            "seconds_bounds": 0.0,
+            "seconds_lp": 0.5,
+            "dur_before": 135.17813023033395,
+            "dur_after": 137.32461943093966,
+            "tasks_longer": 3102
+          },
+          "insert": {
+            "near_candidates": 0,
+            "tried": 0,
+            "added": 0,
+            "deleted_repeats": 0
+          }
+        },
+        "seconds": 3.6
+      },
+      "total_seconds": 305.6
+    }
+  ],
+  "skipped": [],
+  "best_k_win": 1,
+  "beats_g_plus": true,
+  "total_seconds": 738.0
+}

@@ -1,0 +1,19 @@
+{
+ "start": {
+  "covered": 9999,
+  "score": 29811.053,
+  "combined": 0.995776,
+  "tasks": 13227
+ },
+ "best": {
+  "covered": 9999,
+  "score": 29924.753,
+  "combined": 0.997667,
+  "tasks": 13222,
+  "repeat_tasks": 3223
+ },
+ "violations": {},
+ "method": "长跑(195轮) + 按秒跨站弹射链(depth<=10) + 多线程深度换位置(depth<=2) + 精确1D凸规划",
+ "final": true,
+ "time": "2026-11-22 00:25:04"
+}

@@ -1,0 +1,11 @@
+# 方案H：让伐谋演化价格协调的放置规则（8 月口径）
+project_name: "space-observation-planner"
+cloud_type: "hybrid"
+initial_program: "init.py"
+evaluator: "evaluator.py"
+system_message: "prompt.md"
+evolve_config:
+  max_iterations: 100
+timeouts:
+  heartbeat_wait_hours: 2
+  evaluation_wait_hours: 2

@@ -1,0 +1,1924 @@
+{
+ "description": "scripts/long_run.py：从 H+ 网格计划出发，每轮 生成一份新计划 → 解合并（CP-SAT 分块）→ 局部搜索，只接受变好的",
+ "start": {
+  "combined": 0.965625,
+  "covered": 9994,
+  "score": 28013.3
+ },
+ "final": {
+  "round": 100,
+  "grid": {
+   "covered": 9999,
+   "score": 29365.2,
+   "combined": 0.988361,
+   "tasks": 12719
+  },
+  "refined": {
+   "covered": 9999,
+   "score": 29484.923,
+   "combined": 0.990352,
+   "tasks": 12719
+  },
+  "time": "2026-11-10 12:27:59"
+ },
+ "validation": {
+  "tool": "Skyfield 逐秒校验（obsplan validate）",
+  "tasks": 12719,
+  "all_legal": true,
+  "seconds": 77,
+  "covered": 9999,
+  "score": 29484.9,
+  "repeat_tasks": 2720
+ },
+ "notes": [
+  "minutes 为各轮 生成+合并+局部搜索 的累计用时（不含每轮约 4 秒的按秒精修）；运行期间机器上同时在跑其他实验，用时偏大",
+  "第 77–100 轮是第二次续跑（--resume --hours 3），其中第 80、86、87、93、96、98 轮没有变好（不接受，最好计划不变）",
+  "第 0–9 轮时价格迭代有一个首轮恢复的缺陷（7ec1242 已修），10 个设置里 7 个给出同一份退化的新计划",
+  "计划明细 results/plan_longrun.csv 含目标编号，不提交"
+ ],
+ "rounds": [
+  {
+   "round": 0,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965625,
+   "pool": 383433,
+   "grid_best": 0.971497,
+   "refined": {
+    "covered": 9998,
+    "score": 28681.377,
+    "combined": 0.976937,
+    "tasks": 12429
+   },
+   "minutes": 3.0
+  },
+  {
+   "round": 1,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.948648,
+   "pool": 535750,
+   "grid_best": 0.97415,
+   "refined": {
+    "covered": 9999,
+    "score": 28794.687,
+    "combined": 0.978872,
+    "tasks": 12469
+   },
+   "minutes": 7.5
+  },
+  {
+   "round": 2,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95439,
+   "pool": 638024,
+   "grid_best": 0.976054,
+   "refined": {
+    "covered": 9999,
+    "score": 28889.01,
+    "combined": 0.98044,
+    "tasks": 12488
+   },
+   "minutes": 12.3
+  },
+  {
+   "round": 3,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.948648,
+   "pool": 634897,
+   "grid_best": 0.97676,
+   "refined": {
+    "covered": 9999,
+    "score": 28911.463,
+    "combined": 0.980814,
+    "tasks": 12508
+   },
+   "minutes": 16.9
+  },
+  {
+   "round": 4,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.948648,
+   "pool": 505729,
+   "grid_best": 0.976984,
+   "refined": {
+    "covered": 9999,
+    "score": 28919.78,
+    "combined": 0.980952,
+    "tasks": 12512
+   },
+   "minutes": 20.1
+  },
+  {
+   "round": 5,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.960783,
+   "pool": 627967,
+   "grid_best": 0.977894,
+   "refined": {
+    "covered": 9999,
+    "score": 28970.417,
+    "combined": 0.981794,
+    "tasks": 12525
+   },
+   "minutes": 24.7
+  },
+  {
+   "round": 6,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.948648,
+   "pool": 625294,
+   "grid_best": 0.978268,
+   "refined": {
+    "covered": 9999,
+    "score": 28987.82,
+    "combined": 0.982084,
+    "tasks": 12528
+   },
+   "minutes": 29.5
+  },
+  {
+   "round": 7,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.948648,
+   "pool": 504378,
+   "grid_best": 0.978391,
+   "refined": {
+    "covered": 9999,
+    "score": 28991.873,
+    "combined": 0.982151,
+    "tasks": 12532
+   },
+   "minutes": 32.2
+  },
+  {
+   "round": 8,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.948648,
+   "pool": 504181,
+   "grid_best": 0.978451,
+   "refined": {
+    "covered": 9999,
+    "score": 28994.833,
+    "combined": 0.982201,
+    "tasks": 12533
+   },
+   "minutes": 35.1
+  },
+  {
+   "round": 9,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.948648,
+   "pool": 504225,
+   "grid_best": 0.978508,
+   "refined": {
+    "covered": 9999,
+    "score": 28997.587,
+    "combined": 0.982246,
+    "tasks": 12535
+   },
+   "minutes": 37.3
+  },
+  {
+   "round": 10,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962387,
+   "pool": 499985,
+   "grid_best": 0.97887,
+   "refined": {
+    "covered": 9999,
+    "score": 29015.327,
+    "combined": 0.982541,
+    "tasks": 12549
+   },
+   "minutes": 41.7
+  },
+  {
+   "round": 11,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963626,
+   "pool": 615351,
+   "grid_best": 0.979655,
+   "refined": {
+    "covered": 9999,
+    "score": 29054.08,
+    "combined": 0.983186,
+    "tasks": 12561
+   },
+   "minutes": 47.4
+  },
+  {
+   "round": 12,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.955266,
+   "pool": 630805,
+   "grid_best": 0.980217,
+   "refined": {
+    "covered": 9999,
+    "score": 29077.697,
+    "combined": 0.983579,
+    "tasks": 12577
+   },
+   "minutes": 52.2
+  },
+  {
+   "round": 13,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962617,
+   "pool": 633408,
+   "grid_best": 0.980721,
+   "refined": {
+    "covered": 9999,
+    "score": 29103.53,
+    "combined": 0.984008,
+    "tasks": 12582
+   },
+   "minutes": 57.3
+  },
+  {
+   "round": 14,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966487,
+   "pool": 617556,
+   "grid_best": 0.981102,
+   "refined": {
+    "covered": 9999,
+    "score": 29122.627,
+    "combined": 0.984326,
+    "tasks": 12589
+   },
+   "minutes": 62.4
+  },
+  {
+   "round": 15,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962161,
+   "pool": 614355,
+   "grid_best": 0.981402,
+   "refined": {
+    "covered": 9999,
+    "score": 29139.207,
+    "combined": 0.984602,
+    "tasks": 12585
+   },
+   "minutes": 66.9
+  },
+  {
+   "round": 16,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954187,
+   "pool": 630008,
+   "grid_best": 0.981758,
+   "refined": {
+    "covered": 9999,
+    "score": 29156.81,
+    "combined": 0.984895,
+    "tasks": 12588
+   },
+   "minutes": 70.9
+  },
+  {
+   "round": 17,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963761,
+   "pool": 629410,
+   "grid_best": 0.982125,
+   "refined": {
+    "covered": 9999,
+    "score": 29172.07,
+    "combined": 0.985148,
+    "tasks": 12596
+   },
+   "minutes": 75.3
+  },
+  {
+   "round": 18,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.967658,
+   "pool": 614132,
+   "grid_best": 0.982601,
+   "refined": {
+    "covered": 9999,
+    "score": 29193.94,
+    "combined": 0.985512,
+    "tasks": 12602
+   },
+   "minutes": 80.5
+  },
+  {
+   "round": 19,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953329,
+   "pool": 628525,
+   "grid_best": 0.982837,
+   "refined": {
+    "covered": 9999,
+    "score": 29205.007,
+    "combined": 0.985696,
+    "tasks": 12608
+   },
+   "minutes": 85.6
+  },
+  {
+   "round": 20,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964097,
+   "pool": 629615,
+   "grid_best": 0.98312,
+   "refined": {
+    "covered": 9999,
+    "score": 29217.837,
+    "combined": 0.98591,
+    "tasks": 12615
+   },
+   "minutes": 89.7
+  },
+  {
+   "round": 21,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962064,
+   "pool": 613854,
+   "grid_best": 0.983398,
+   "refined": {
+    "covered": 9999,
+    "score": 29231.293,
+    "combined": 0.986133,
+    "tasks": 12622
+   },
+   "minutes": 94.0
+  },
+  {
+   "round": 22,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953323,
+   "pool": 630336,
+   "grid_best": 0.983773,
+   "refined": {
+    "covered": 9999,
+    "score": 29250.24,
+    "combined": 0.986449,
+    "tasks": 12629
+   },
+   "minutes": 98.7
+  },
+  {
+   "round": 23,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962673,
+   "pool": 630547,
+   "grid_best": 0.984011,
+   "refined": {
+    "covered": 9999,
+    "score": 29267.2,
+    "combined": 0.986731,
+    "tasks": 12626
+   },
+   "minutes": 102.8
+  },
+  {
+   "round": 24,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964681,
+   "pool": 612708,
+   "grid_best": 0.984204,
+   "refined": {
+    "covered": 9999,
+    "score": 29273.837,
+    "combined": 0.986841,
+    "tasks": 12634
+   },
+   "minutes": 106.9
+  },
+  {
+   "round": 25,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962187,
+   "pool": 614767,
+   "grid_best": 0.984326,
+   "refined": {
+    "covered": 9999,
+    "score": 29280.743,
+    "combined": 0.986956,
+    "tasks": 12633
+   },
+   "minutes": 110.8
+  },
+  {
+   "round": 26,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.955968,
+   "pool": 631609,
+   "grid_best": 0.984499,
+   "refined": {
+    "covered": 9999,
+    "score": 29288.847,
+    "combined": 0.987091,
+    "tasks": 12634
+   },
+   "minutes": 114.1
+  },
+  {
+   "round": 27,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963114,
+   "pool": 634020,
+   "grid_best": 0.984672,
+   "refined": {
+    "covered": 9999,
+    "score": 29297.807,
+    "combined": 0.98724,
+    "tasks": 12644
+   },
+   "minutes": 117.9
+  },
+  {
+   "round": 28,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965595,
+   "pool": 617977,
+   "grid_best": 0.984848,
+   "refined": {
+    "covered": 9999,
+    "score": 29308.557,
+    "combined": 0.987419,
+    "tasks": 12644
+   },
+   "minutes": 122.0
+  },
+  {
+   "round": 29,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95329,
+   "pool": 628625,
+   "grid_best": 0.984999,
+   "refined": {
+    "covered": 9999,
+    "score": 29314.723,
+    "combined": 0.987521,
+    "tasks": 12645
+   },
+   "minutes": 125.6
+  },
+  {
+   "round": 30,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964513,
+   "pool": 629285,
+   "grid_best": 0.985136,
+   "refined": {
+    "covered": 9999,
+    "score": 29322.987,
+    "combined": 0.987659,
+    "tasks": 12645
+   },
+   "minutes": 129.5
+  },
+  {
+   "round": 31,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966499,
+   "pool": 610782,
+   "grid_best": 0.985302,
+   "refined": {
+    "covered": 9999,
+    "score": 29329.933,
+    "combined": 0.987774,
+    "tasks": 12653
+   },
+   "minutes": 134.3
+  },
+  {
+   "round": 32,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954838,
+   "pool": 627790,
+   "grid_best": 0.985375,
+   "refined": {
+    "covered": 9999,
+    "score": 29334.347,
+    "combined": 0.987847,
+    "tasks": 12653
+   },
+   "minutes": 138.0
+  },
+  {
+   "round": 33,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963325,
+   "pool": 630326,
+   "grid_best": 0.985452,
+   "refined": {
+    "covered": 9999,
+    "score": 29338.1,
+    "combined": 0.98791,
+    "tasks": 12658
+   },
+   "minutes": 141.2
+  },
+  {
+   "round": 34,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965494,
+   "pool": 612939,
+   "grid_best": 0.985566,
+   "refined": {
+    "covered": 9999,
+    "score": 29344.12,
+    "combined": 0.98801,
+    "tasks": 12661
+   },
+   "minutes": 144.9
+  },
+  {
+   "round": 35,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.961848,
+   "pool": 617330,
+   "grid_best": 0.985636,
+   "refined": {
+    "covered": 9999,
+    "score": 29349.287,
+    "combined": 0.988096,
+    "tasks": 12659
+   },
+   "minutes": 148.0
+  },
+  {
+   "round": 36,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.952537,
+   "pool": 633040,
+   "grid_best": 0.985703,
+   "refined": {
+    "covered": 9999,
+    "score": 29351.817,
+    "combined": 0.988138,
+    "tasks": 12661
+   },
+   "minutes": 151.0
+  },
+  {
+   "round": 37,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962659,
+   "pool": 631220,
+   "grid_best": 0.985748,
+   "refined": {
+    "covered": 9999,
+    "score": 29354.633,
+    "combined": 0.988185,
+    "tasks": 12660
+   },
+   "minutes": 154.1
+  },
+  {
+   "round": 38,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965794,
+   "pool": 612416,
+   "grid_best": 0.985836,
+   "refined": {
+    "covered": 9999,
+    "score": 29357.57,
+    "combined": 0.988234,
+    "tasks": 12661
+   },
+   "minutes": 158.0
+  },
+  {
+   "round": 39,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.951837,
+   "pool": 626022,
+   "grid_best": 0.985887,
+   "refined": {
+    "covered": 9999,
+    "score": 29361.487,
+    "combined": 0.988299,
+    "tasks": 12661
+   },
+   "minutes": 161.1
+  },
+  {
+   "round": 40,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966146,
+   "pool": 629230,
+   "grid_best": 0.985927,
+   "refined": {
+    "covered": 9999,
+    "score": 29363.59,
+    "combined": 0.988334,
+    "tasks": 12663
+   },
+   "minutes": 165.1
+  },
+  {
+   "round": 41,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963185,
+   "pool": 613081,
+   "grid_best": 0.986022,
+   "refined": {
+    "covered": 9999,
+    "score": 29368.517,
+    "combined": 0.988416,
+    "tasks": 12665
+   },
+   "minutes": 170.1
+  },
+  {
+   "round": 42,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95401,
+   "pool": 629276,
+   "grid_best": 0.98612,
+   "refined": {
+    "covered": 9999,
+    "score": 29374.617,
+    "combined": 0.988517,
+    "tasks": 12667
+   },
+   "minutes": 172.9
+  },
+  {
+   "round": 43,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963516,
+   "pool": 632263,
+   "grid_best": 0.986192,
+   "refined": {
+    "covered": 9999,
+    "score": 29377.603,
+    "combined": 0.988567,
+    "tasks": 12671
+   },
+   "minutes": 176.0
+  },
+  {
+   "round": 44,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965281,
+   "pool": 614712,
+   "grid_best": 0.98626,
+   "refined": {
+    "covered": 9999,
+    "score": 29383.157,
+    "combined": 0.988659,
+    "tasks": 12672
+   },
+   "minutes": 179.2
+  },
+  {
+   "round": 45,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962177,
+   "pool": 615022,
+   "grid_best": 0.986383,
+   "refined": {
+    "covered": 9999,
+    "score": 29388.467,
+    "combined": 0.988748,
+    "tasks": 12672
+   },
+   "minutes": 182.3
+  },
+  {
+   "round": 46,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.951642,
+   "pool": 631694,
+   "grid_best": 0.986446,
+   "refined": {
+    "covered": 9999,
+    "score": 29392.167,
+    "combined": 0.988809,
+    "tasks": 12671
+   },
+   "minutes": 185.1
+  },
+  {
+   "round": 47,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962387,
+   "pool": 628671,
+   "grid_best": 0.986488,
+   "refined": {
+    "covered": 9999,
+    "score": 29392.79,
+    "combined": 0.98882,
+    "tasks": 12669
+   },
+   "minutes": 188.2
+  },
+  {
+   "round": 48,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966033,
+   "pool": 612124,
+   "grid_best": 0.986533,
+   "refined": {
+    "covered": 9999,
+    "score": 29395.077,
+    "combined": 0.988858,
+    "tasks": 12671
+   },
+   "minutes": 191.4
+  },
+  {
+   "round": 49,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95369,
+   "pool": 627878,
+   "grid_best": 0.986574,
+   "refined": {
+    "covered": 9999,
+    "score": 29397.703,
+    "combined": 0.988901,
+    "tasks": 12674
+   },
+   "minutes": 194.0
+  },
+  {
+   "round": 50,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96218,
+   "pool": 628303,
+   "grid_best": 0.986669,
+   "refined": {
+    "covered": 9999,
+    "score": 29402.83,
+    "combined": 0.988986,
+    "tasks": 12677
+   },
+   "minutes": 197.4
+  },
+  {
+   "round": 51,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964856,
+   "pool": 610559,
+   "grid_best": 0.986724,
+   "refined": {
+    "covered": 9999,
+    "score": 29404.967,
+    "combined": 0.989022,
+    "tasks": 12680
+   },
+   "minutes": 200.7
+  },
+  {
+   "round": 52,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.957149,
+   "pool": 627643,
+   "grid_best": 0.986762,
+   "refined": {
+    "covered": 9999,
+    "score": 29406.95,
+    "combined": 0.989055,
+    "tasks": 12681
+   },
+   "minutes": 203.5
+  },
+  {
+   "round": 53,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962743,
+   "pool": 630746,
+   "grid_best": 0.986801,
+   "refined": {
+    "covered": 9999,
+    "score": 29409.33,
+    "combined": 0.989095,
+    "tasks": 12682
+   },
+   "minutes": 206.1
+  },
+  {
+   "round": 54,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96796,
+   "pool": 613489,
+   "grid_best": 0.986887,
+   "refined": {
+    "covered": 9999,
+    "score": 29413.833,
+    "combined": 0.98917,
+    "tasks": 12683
+   },
+   "minutes": 209.6
+  },
+  {
+   "round": 55,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962646,
+   "pool": 611679,
+   "grid_best": 0.987013,
+   "refined": {
+    "covered": 9999,
+    "score": 29419.133,
+    "combined": 0.989258,
+    "tasks": 12692
+   },
+   "minutes": 212.9
+  },
+  {
+   "round": 56,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.952788,
+   "pool": 629184,
+   "grid_best": 0.987092,
+   "refined": {
+    "covered": 9999,
+    "score": 29424.95,
+    "combined": 0.989354,
+    "tasks": 12694
+   },
+   "minutes": 215.9
+  },
+  {
+   "round": 57,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96336,
+   "pool": 630611,
+   "grid_best": 0.987125,
+   "refined": {
+    "covered": 9999,
+    "score": 29426.023,
+    "combined": 0.989372,
+    "tasks": 12692
+   },
+   "minutes": 218.5
+  },
+  {
+   "round": 58,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965241,
+   "pool": 613761,
+   "grid_best": 0.987193,
+   "refined": {
+    "covered": 9999,
+    "score": 29429.597,
+    "combined": 0.989432,
+    "tasks": 12690
+   },
+   "minutes": 221.8
+  },
+  {
+   "round": 59,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953568,
+   "pool": 627788,
+   "grid_best": 0.987281,
+   "refined": {
+    "covered": 9999,
+    "score": 29432.437,
+    "combined": 0.989479,
+    "tasks": 12690
+   },
+   "minutes": 224.5
+  },
+  {
+   "round": 60,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962669,
+   "pool": 629151,
+   "grid_best": 0.987343,
+   "refined": {
+    "covered": 9999,
+    "score": 29434.91,
+    "combined": 0.98952,
+    "tasks": 12693
+   },
+   "minutes": 227.5
+  },
+  {
+   "round": 61,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966251,
+   "pool": 612578,
+   "grid_best": 0.987398,
+   "refined": {
+    "covered": 9999,
+    "score": 29437.53,
+    "combined": 0.989564,
+    "tasks": 12692
+   },
+   "minutes": 230.5
+  },
+  {
+   "round": 62,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954228,
+   "pool": 627159,
+   "grid_best": 0.987459,
+   "refined": {
+    "covered": 9999,
+    "score": 29440.183,
+    "combined": 0.989608,
+    "tasks": 12694
+   },
+   "minutes": 233.4
+  },
+  {
+   "round": 63,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962163,
+   "pool": 630558,
+   "grid_best": 0.987497,
+   "refined": {
+    "covered": 9999,
+    "score": 29442.14,
+    "combined": 0.98964,
+    "tasks": 12695
+   },
+   "minutes": 236.4
+  },
+  {
+   "round": 64,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966392,
+   "pool": 614688,
+   "grid_best": 0.987604,
+   "refined": {
+    "covered": 9999,
+    "score": 29445.483,
+    "combined": 0.989696,
+    "tasks": 12700
+   },
+   "minutes": 239.8
+  },
+  {
+   "round": 65,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.964826,
+   "pool": 616263,
+   "grid_best": 0.987709,
+   "refined": {
+    "covered": 9999,
+    "score": 29451.987,
+    "combined": 0.989804,
+    "tasks": 12702
+   },
+   "minutes": 242.4
+  },
+  {
+   "round": 66,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954218,
+   "pool": 631959,
+   "grid_best": 0.98781,
+   "refined": {
+    "covered": 9999,
+    "score": 29456.553,
+    "combined": 0.98988,
+    "tasks": 12704
+   },
+   "minutes": 245.3
+  },
+  {
+   "round": 67,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.961978,
+   "pool": 631930,
+   "grid_best": 0.987872,
+   "refined": {
+    "covered": 9999,
+    "score": 29459.69,
+    "combined": 0.989932,
+    "tasks": 12705
+   },
+   "minutes": 248.4
+  },
+  {
+   "round": 68,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965918,
+   "pool": 615749,
+   "grid_best": 0.987903,
+   "refined": {
+    "covered": 9999,
+    "score": 29461.413,
+    "combined": 0.989961,
+    "tasks": 12706
+   },
+   "minutes": 251.3
+  },
+  {
+   "round": 69,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.955062,
+   "pool": 625818,
+   "grid_best": 0.987938,
+   "refined": {
+    "covered": 9999,
+    "score": 29463.317,
+    "combined": 0.989993,
+    "tasks": 12707
+   },
+   "minutes": 253.9
+  },
+  {
+   "round": 70,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965346,
+   "pool": 626975,
+   "grid_best": 0.987976,
+   "refined": {
+    "covered": 9999,
+    "score": 29465.273,
+    "combined": 0.990025,
+    "tasks": 12710
+   },
+   "minutes": 256.6
+  },
+  {
+   "round": 71,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965492,
+   "pool": 609594,
+   "grid_best": 0.988006,
+   "refined": {
+    "covered": 9999,
+    "score": 29467.533,
+    "combined": 0.990063,
+    "tasks": 12713
+   },
+   "minutes": 259.5
+  },
+  {
+   "round": 72,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953874,
+   "pool": 626545,
+   "grid_best": 0.988033,
+   "refined": {
+    "covered": 9999,
+    "score": 29468.997,
+    "combined": 0.990087,
+    "tasks": 12712
+   },
+   "minutes": 261.9
+  },
+  {
+   "round": 73,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962731,
+   "pool": 631389,
+   "grid_best": 0.988071,
+   "refined": {
+    "covered": 9999,
+    "score": 29470.33,
+    "combined": 0.990109,
+    "tasks": 12714
+   },
+   "minutes": 264.7
+  },
+  {
+   "round": 74,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964735,
+   "pool": 614395,
+   "grid_best": 0.988106,
+   "refined": {
+    "covered": 9999,
+    "score": 29472.12,
+    "combined": 0.990139,
+    "tasks": 12716
+   },
+   "minutes": 267.8
+  },
+  {
+   "round": 75,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962342,
+   "pool": 615311,
+   "grid_best": 0.988143,
+   "refined": {
+    "covered": 9999,
+    "score": 29473.997,
+    "combined": 0.99017,
+    "tasks": 12718
+   },
+   "minutes": 270.3
+  },
+  {
+   "round": 76,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954923,
+   "pool": 630852,
+   "grid_best": 0.988158,
+   "refined": {
+    "covered": 9999,
+    "score": 29474.327,
+    "combined": 0.990176,
+    "tasks": 12717
+   },
+   "minutes": 272.7
+  },
+  {
+   "round": 77,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962414,
+   "pool": 500315,
+   "grid_best": 0.988159,
+   "refined": {
+    "covered": 9999,
+    "score": 29474.597,
+    "combined": 0.99018,
+    "tasks": 12717
+   },
+   "minutes": 280.5
+  },
+  {
+   "round": 78,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965641,
+   "pool": 615242,
+   "grid_best": 0.988186,
+   "refined": {
+    "covered": 9999,
+    "score": 29475.643,
+    "combined": 0.990198,
+    "tasks": 12717
+   },
+   "minutes": 288.8
+  },
+  {
+   "round": 79,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.956162,
+   "pool": 629742,
+   "grid_best": 0.988196,
+   "refined": {
+    "covered": 9999,
+    "score": 29476.55,
+    "combined": 0.990213,
+    "tasks": 12717
+   },
+   "minutes": 296.1
+  },
+  {
+   "round": 80,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.964779,
+   "pool": 628139,
+   "grid_best": 0.988196,
+   "minutes": 303.9
+  },
+  {
+   "round": 81,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963573,
+   "pool": 611534,
+   "grid_best": 0.988206,
+   "refined": {
+    "covered": 9999,
+    "score": 29476.697,
+    "combined": 0.990215,
+    "tasks": 12717
+   },
+   "minutes": 312.0
+  },
+  {
+   "round": 82,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953705,
+   "pool": 627626,
+   "grid_best": 0.988221,
+   "refined": {
+    "covered": 9999,
+    "score": 29477.52,
+    "combined": 0.990229,
+    "tasks": 12718
+   },
+   "minutes": 319.5
+  },
+  {
+   "round": 83,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962619,
+   "pool": 629863,
+   "grid_best": 0.988224,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.38,
+    "combined": 0.990243,
+    "tasks": 12717
+   },
+   "minutes": 326.9
+  },
+  {
+   "round": 84,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.967856,
+   "pool": 612744,
+   "grid_best": 0.988233,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.38,
+    "combined": 0.990243,
+    "tasks": 12717
+   },
+   "minutes": 334.8
+  },
+  {
+   "round": 85,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962975,
+   "pool": 612363,
+   "grid_best": 0.988241,
+   "refined": {
+    "covered": 9999,
+    "score": 29478.88,
+    "combined": 0.990251,
+    "tasks": 12718
+   },
+   "minutes": 342.0
+  },
+  {
+   "round": 86,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954001,
+   "pool": 632119,
+   "grid_best": 0.988241,
+   "minutes": 349.8
+  },
+  {
+   "round": 87,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96218,
+   "pool": 628561,
+   "grid_best": 0.988241,
+   "minutes": 357.5
+  },
+  {
+   "round": 88,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.96759,
+   "pool": 610669,
+   "grid_best": 0.988244,
+   "refined": {
+    "covered": 9999,
+    "score": 29479.14,
+    "combined": 0.990256,
+    "tasks": 12718
+   },
+   "minutes": 365.3
+  },
+  {
+   "round": 89,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.95337,
+   "pool": 626477,
+   "grid_best": 0.988256,
+   "refined": {
+    "covered": 9999,
+    "score": 29479.27,
+    "combined": 0.990258,
+    "tasks": 12717
+   },
+   "minutes": 372.8
+  },
+  {
+   "round": 90,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963403,
+   "pool": 630268,
+   "grid_best": 0.988271,
+   "refined": {
+    "covered": 9999,
+    "score": 29480.443,
+    "combined": 0.990277,
+    "tasks": 12716
+   },
+   "minutes": 380.2
+  },
+  {
+   "round": 91,
+   "variant": {
+    "iters": 400,
+    "offset": 17,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966469,
+   "pool": 613169,
+   "grid_best": 0.988287,
+   "refined": {
+    "covered": 9999,
+    "score": 29480.943,
+    "combined": 0.990286,
+    "tasks": 12717
+   },
+   "minutes": 387.7
+  },
+  {
+   "round": 92,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954015,
+   "pool": 628965,
+   "grid_best": 0.988322,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.097,
+    "combined": 0.990322,
+    "tasks": 12716
+   },
+   "minutes": 395.4
+  },
+  {
+   "round": 93,
+   "variant": {
+    "iters": 200,
+    "offset": 29,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962906,
+   "pool": 630593,
+   "grid_best": 0.988322,
+   "minutes": 403.0
+  },
+  {
+   "round": 94,
+   "variant": {
+    "iters": 500,
+    "offset": 41,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.966387,
+   "pool": 613391,
+   "grid_best": 0.988331,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.597,
+    "combined": 0.99033,
+    "tasks": 12717
+   },
+   "minutes": 410.6
+  },
+  {
+   "round": 95,
+   "variant": {
+    "iters": 150,
+    "offset": 0,
+    "fast": true,
+    "rule": true
+   },
+   "new_plan": 0.962342,
+   "pool": 614134,
+   "grid_best": 0.988334,
+   "refined": {
+    "covered": 9999,
+    "score": 29483.87,
+    "combined": 0.990334,
+    "tasks": 12717
+   },
+   "minutes": 418.1
+  },
+  {
+   "round": 96,
+   "variant": {
+    "iters": 350,
+    "offset": 23,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.953634,
+   "pool": 630912,
+   "grid_best": 0.988334,
+   "minutes": 425.4
+  },
+  {
+   "round": 97,
+   "variant": {
+    "iters": 250,
+    "offset": 11,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.962669,
+   "pool": 629665,
+   "grid_best": 0.988344,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.23,
+    "combined": 0.99034,
+    "tasks": 12718
+   },
+   "minutes": 433.5
+  },
+  {
+   "round": 98,
+   "variant": {
+    "iters": 600,
+    "offset": 7,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.965246,
+   "pool": 612420,
+   "grid_best": 0.988344,
+   "minutes": 440.9
+  },
+  {
+   "round": 99,
+   "variant": {
+    "iters": 450,
+    "offset": 33,
+    "fast": false,
+    "rule": false
+   },
+   "new_plan": 0.954064,
+   "pool": 627850,
+   "grid_best": 0.988352,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.75,
+    "combined": 0.990349,
+    "tasks": 12719
+   },
+   "minutes": 448.4
+  },
+  {
+   "round": 100,
+   "variant": {
+    "iters": 300,
+    "offset": 0,
+    "fast": false,
+    "rule": true
+   },
+   "new_plan": 0.963626,
+   "pool": 629132,
+   "grid_best": 0.988361,
+   "refined": {
+    "covered": 9999,
+    "score": 29484.923,
+    "combined": 0.990352,
+    "tasks": 12719
+   },
+   "minutes": 456.0
+  }
+ ]
+}

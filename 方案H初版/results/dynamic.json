@@ -1,0 +1,146 @@
+{
+  "threshold_pct": 30.0,
+  "clim_years": "2016-2022",
+  "years": {
+    "2024": {
+      "calibration_day1": [
+        0.834,
+        0.574,
+        0.742,
+        0.642,
+        0.663,
+        0.527,
+        0.44,
+        0.41,
+        0.258,
+        0.079
+      ],
+      "policies": {
+        "static": {
+          "name": "静态标准计划",
+          "covered": 4635.0,
+          "score": 11237.300000000065,
+          "executed": 12322.0,
+          "failed": 7162.0,
+          "combined": 0.4186520690572827,
+          "seconds": 48.6
+        },
+        "static_clim": {
+          "name": "静态 + 气候统计",
+          "covered": 4336.0,
+          "score": 11755.899999999978,
+          "executed": 11948.0,
+          "failed": 7036.0,
+          "combined": 0.4123275763422257,
+          "seconds": 56.4
+        },
+        "dynamic_clim": {
+          "name": "每天重排 + 气候统计",
+          "covered": 4824.0,
+          "score": 12103.999999999722,
+          "executed": 12455.0,
+          "failed": 7298.0,
+          "combined": 0.4425172776262345,
+          "seconds": 199.5
+        },
+        "dynamic_forecast": {
+          "name": "每天重排 + 预报",
+          "covered": 4985.0,
+          "score": 12224.39999999971,
+          "executed": 12444.0,
+          "failed": 7149.0,
+          "combined": 0.45256980573480987,
+          "seconds": 190.7
+        },
+        "dynamic_oracle": {
+          "name": "每天重排 + 完美预报（上限）",
+          "covered": 5174.0,
+          "score": 12702.399999999592,
+          "executed": 5417.0,
+          "failed": 0.0,
+          "combined": 0.4699700419133722,
+          "seconds": 178.4
+        },
+        "hindsight": {
+          "name": "事后最优（天气全知）",
+          "covered": 5408.0,
+          "score": 12840.999999999834,
+          "executed": 5599.0,
+          "failed": 0.0,
+          "combined": 0.48397527775929466,
+          "seconds": 29.0
+        }
+      }
+    },
+    "2025": {
+      "calibration_day1": [
+        0.771,
+        0.672,
+        0.492,
+        0.682,
+        0.585,
+        0.472,
+        0.27,
+        0.263,
+        0.22,
+        0.118
+      ],
+      "policies": {
+        "static": {
+          "name": "静态标准计划",
+          "covered": 4382.0,
+          "score": 10861.700000000003,
+          "executed": 12322.0,
+          "failed": 7480.0,
+          "combined": 0.39975497970860224,
+          "seconds": 53.5
+        },
+        "static_clim": {
+          "name": "静态 + 气候统计",
+          "covered": 4369.0,
+          "score": 10569.499999999889,
+          "executed": 11948.0,
+          "failed": 7200.0,
+          "combined": 0.39424502361785463,
+          "seconds": 59.5
+        },
+        "dynamic_clim": {
+          "name": "每天重排 + 气候统计",
+          "covered": 4708.0,
+          "score": 11246.99999999992,
+          "executed": 12417.0,
+          "failed": 7464.0,
+          "combined": 0.42246340230190804,
+          "seconds": 188.0
+        },
+        "dynamic_forecast": {
+          "name": "每天重排 + 预报",
+          "covered": 4770.0,
+          "score": 11540.899999999778,
+          "executed": 12340.0,
+          "failed": 7395.0,
+          "combined": 0.4304516332911945,
+          "seconds": 197.7
+        },
+        "dynamic_oracle": {
+          "name": "每天重排 + 完美预报（上限）",
+          "covered": 4943.0,
+          "score": 12065.999999999673,
+          "executed": 5124.0,
+          "failed": 0.0,
+          "combined": 0.4478352504823311,
+          "seconds": 149.5
+        },
+        "hindsight": {
+          "name": "事后最优（天气全知）",
+          "covered": 5188.0,
+          "score": 12252.599999999817,
+          "executed": 5322.0,
+          "failed": 0.0,
+          "combined": 0.4631888364047605,
+          "seconds": 24.2
+        }
+      }
+    }
+  }
+}

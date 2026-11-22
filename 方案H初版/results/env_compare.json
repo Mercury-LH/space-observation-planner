@@ -1,0 +1,102 @@
+[
+  {
+    "assumptions": {
+      "moon_sep_deg": 30.0,
+      "m_std": 6.0,
+      "limit_mag": 15.0,
+      "cloud_threshold_pct": 30.0,
+      "weather_years": 10
+    },
+    "affected_tasks": {
+      "moon": 1357,
+      "dim": 7,
+      "moon_or_dim": 1364
+    },
+    "dim_by_limit": {
+      "13": 740,
+      "14": 102,
+      "15": 7,
+      "16": 2
+    },
+    "nominal": {
+      "tasks": 13088,
+      "covered": 9999,
+      "score": 29455.8,
+      "combined": 0.989867,
+      "weather_covered_mean": 4782.8,
+      "weather_score_mean": 12267.1,
+      "weather_combined_mean": 0.443169
+    },
+    "after_moon": {
+      "tasks": 11731,
+      "covered": 9147,
+      "score": 26377.2,
+      "combined": 0.896064
+    },
+    "after_moon_dim": {
+      "tasks": 11724,
+      "covered": 9142,
+      "score": 26362.4,
+      "combined": 0.895567,
+      "weather_covered_mean": 4342.3,
+      "weather_score_mean": 10978.2,
+      "weather_combined_mean": 0.399707
+    },
+    "magnitude_pct": {
+      "50": 9.08,
+      "90": 12.68,
+      "99": 13.92
+    },
+    "plan": "outputs/frontier/recommended/run1/plan.csv"
+  },
+  {
+    "assumptions": {
+      "moon_sep_deg": 30.0,
+      "m_std": 6.0,
+      "limit_mag": 15.0,
+      "cloud_threshold_pct": 30.0,
+      "weather_years": 10
+    },
+    "affected_tasks": {
+      "moon": 0,
+      "dim": 6,
+      "moon_or_dim": 6
+    },
+    "dim_by_limit": {
+      "13": 672,
+      "14": 101,
+      "15": 6,
+      "16": 0
+    },
+    "nominal": {
+      "tasks": 13076,
+      "covered": 9999,
+      "score": 29384.2,
+      "combined": 0.988676,
+      "weather_covered_mean": 4800.8,
+      "weather_score_mean": 12234.7,
+      "weather_combined_mean": 0.443531
+    },
+    "after_moon": {
+      "tasks": 13076,
+      "covered": 9999,
+      "score": 29384.2,
+      "combined": 0.988676
+    },
+    "after_moon_dim": {
+      "tasks": 13070,
+      "covered": 9998,
+      "score": 29363.4,
+      "combined": 0.98828,
+      "weather_covered_mean": 4800.7,
+      "weather_score_mean": 12228.6,
+      "weather_combined_mean": 0.443425
+    },
+    "magnitude_pct": {
+      "50": 9.14,
+      "90": 12.68,
+      "99": 13.88
+    },
+    "plan": "outputs/env_moon/plan.csv"
+  }
+]

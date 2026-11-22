@@ -1,0 +1,336 @@
+"""命令行入口。
+
+    uv run python -m obsplan plan [--mode fast|quality] [--chain 分钟] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
+    uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
+    uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
+    uv run python -m obsplan windows [--refresh]
+    uv run python -m obsplan env 标准计划.csv [考虑环境的计划.csv ...] [--moon-sep 30]   # 加分项：环境影响对比
+
+validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
+（时间为 UTC 的 ISO 格式，或配合 --seconds-from-start 使用相对规划开始的秒数）；
+JSON 为观测列表或 {"observations": [...]}，字段 station_id、target_id、start、end。
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import json
+import sys
+import time
+from datetime import datetime, timezone
+from pathlib import Path
+
+import numpy as np
+
+from .config import Config
+from .tiers import RECOMMENDED_CHAIN_MIN, TEN_MINUTE_CHAIN_MIN, local_search_kw
+
+STATION_KEYS = ("station_id", "站点", "station", "观测站")
+TARGET_KEYS = ("target_id", "目标编号", "norad", "satnum", "目标")
+START_KEYS = ("observation_start_utc", "start", "start_time", "开始", "开始时间")
+END_KEYS = ("observation_end_utc", "end", "end_time", "结束", "结束时间")
+
+
+def _cfg(args) -> Config:
+    kw = {}
+    if getattr(args, "start", None):
+        kw["start_utc"] = f"{args.start}T00:00:00" if len(args.start) == 10 else args.start
+    if getattr(args, "days", None):
+        kw["days"] = float(args.days)
+    if getattr(args, "moon", None):
+        kw["moon_sep_deg"] = float(args.moon)
+    return Config(**kw)
+
+
+def _pick(row: dict, keys) -> str | None:
+    for k in keys:
+        if k in row and row[k] not in (None, ""):
+            return row[k]
+    return None
+
+
+def _to_seconds(cfg: Config, value, seconds_from_start: bool) -> float:
+    if seconds_from_start or isinstance(value, (int, float)):
+        return float(value)
+    v = str(value).strip().replace("Z", "+00:00")
+    dt = datetime.fromisoformat(v)
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return (dt - cfg.start_dt).total_seconds()
+
+
+def read_plan(cfg: Config, ds, path: Path, seconds_from_start: bool = False):
+    from .schedule import Schedule
+    if path.suffix.lower() == ".json":
+        data = json.loads(path.read_text(encoding="utf-8"))
+        rows = data.get("observations", data.get("tasks", data)) if isinstance(data, dict) else data
+        rows = [{k: v for k, v in r.items()} for r in rows]
+    else:
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            rows = list(csv.DictReader(f))
+    idx = {int(n): i for i, n in enumerate(ds.satnum)}
+    st, tg, s0, du, skipped = [], [], [], [], []
+    for n, r in enumerate(rows):
+        s, t, a, b = _pick(r, STATION_KEYS), _pick(r, TARGET_KEYS), _pick(r, START_KEYS), _pick(r, END_KEYS)
+        if None in (s, t, a, b):
+            skipped.append((n, "缺少站点/目标/开始/结束字段"))
+            continue
+        try:
+            sj = int(str(s).replace("号站", "").replace("号", "").strip()) - 1
+            ti = idx[int(t)]
+        except (ValueError, KeyError):
+            skipped.append((n, f"无法识别的站点 {s} 或目标 {t}"))
+            continue
+        ta, tb = _to_seconds(cfg, a, seconds_from_start), _to_seconds(cfg, b, seconds_from_start)
+        st.append(sj)
+        tg.append(ti)
+        s0.append(ta)
+        du.append(tb - ta)
+    sch = Schedule(np.array(st, np.int64), np.array(tg, np.int64), np.array(s0, float), np.array(du, float),
+                   algo=path.name)
+    return sch, skipped
+
+
+def cmd_validate(args) -> int:
+    from .data import load
+    from .schedule import evaluate
+    from .validator import validate
+    cfg = _cfg(args)
+    ds = load(cfg)
+    sch, skipped = read_plan(cfg, ds, Path(args.plan), args.seconds_from_start)
+    print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）；规划期 {cfg.start_utc} 起 {cfg.days:g} 天；"
+          f"规则：仰角 {cfg.elev_min:g}–{cfg.elev_max:g}°，太阳角 < {cfg.sun_max:g}°，目标受照 {'是' if cfg.use_sunlit else '否'}"
+          + (f"，月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else ""))
+    for n, why in skipped[:5]:
+        print(f"  第 {n + 2} 行：{why}")
+    t = time.time()
+    chk = validate(cfg, ds, sch)
+    ev = evaluate(cfg, ds, sch, ~chk["invalid_mask"])
+    print(f"Skyfield 逐秒校验 {time.time() - t:.0f} 秒：{'全部合法' if chk['legal'] else '发现违规'}")
+    for k, v in chk["violations"].items():
+        print(f"  {k}：{v} 个任务")
+    print(f"按规则复算（只计合法任务）：覆盖 {ev['covered']} 颗，得分 {ev['score']:.1f}，综合 {ev['combined']:.6f}，"
+          f"重复观测 {ev['repeat_tasks']} 次")
+    if args.out:
+        rep = {"plan": str(args.plan), "tasks": len(sch), "skipped": len(skipped), "legal": chk["legal"],
+               "violations": chk["violations"], "covered_valid": ev["covered"], "score_valid": ev["score"],
+               "combined_valid": ev["combined"],
+               "config": json.loads(cfg.to_json())}
+        Path(args.out).write_text(json.dumps(rep, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+        print("报告已写入", args.out)
+    return 0 if chk["legal"] else 1
+
+
+def cmd_plan(args) -> int:
+    from . import lagrange
+    from .data import load
+    from .problem import Problem
+    from .schedule import evaluate, export_csv
+    from .visibility import get_windows
+    cfg = _cfg(args)
+    t0 = time.time()
+    ds = load(cfg)
+    if ds.issues:
+        print("数据检查：", "；".join(ds.issues))
+    win = get_windows(cfg, ds)
+    pb = Problem.build(cfg, ds, win)
+    t1 = time.time()
+    kw = {}
+    if args.weather:
+        from .environment import fetch_cloud_history
+        cloud = fetch_cloud_history(cfg, ds, verbose=False)
+        sc = np.nanmean(cloud <= 30.0, axis=(0, 2))
+        kw = {"cell_weight": np.repeat(sc[:, None], pb.n_samples + 2, axis=1), "backup": np.zeros(pb.n_targets)}
+    fast = args.mode == "fast"
+    if not args.manual_rule and not args.weather:           # 默认用伐谋演化并已采纳的放置规则（obsplan/evolved/）
+        from .evolved import load_rule
+        kw["rule"] = load_rule()
+        kw["portfolio"] = not args.rule_only                # 稳健模式：人工规则也排一份，取综合高的
+    chain_min = 0.0 if args.no_refine else max(0.0, args.chain)
+    ls_kw = local_search_kw(fast, chain_min)
+    if ls_kw:
+        kw["ls_kw"] = ls_kw
+    sch, info = lagrange.solve(pb, iters=150 if fast else 300, fast=fast, verbose=False, **kw)
+    t_solve = time.time()
+    pf = info.get("portfolio")
+    placement = {"rule": "伐谋规则", "manual": "人工规则"}[pf["picked"]] if pf else \
+        ("伐谋规则" if kw.get("rule") is not None else "人工规则")
+    rinfo = None
+    if not args.no_refine:
+        from .refine import finish
+        sch, rinfo = finish(pb, sch)
+    t_refine = time.time()
+    cinfo = None
+    if chain_min > 0:
+        from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
+        sch, ci = improve(pb, sch, minutes=chain_min)
+        cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
+    t2 = time.time()
+    ev = evaluate(cfg, ds, sch)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    check = None
+    if args.validate:
+        from .validator import validate
+        check = validate(cfg, ds, sch)
+    export_csv(cfg, ds, sch, out / "plan.csv", check)
+    from .target_status import describe, summarize, target_status
+    from .target_status import export as export_status
+    status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
+    export_status(status_rows, out / "target_status.csv")
+    summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "chain_minutes": chain_min,
+               "weather_aware": bool(args.weather),
+               "placement_rule": placement,
+               "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
+               "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
+               "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1),
+                           "solve": round(t_solve - t1, 1), "refine": round(t_refine - t_solve, 1),
+                           "chain": round(t2 - t_refine, 1)}, "refine": rinfo,
+               "chain": cinfo,
+               "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
+               "target_status": summarize(status_rows)}
+    (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+    print(f"覆盖 {ev['covered']} 颗（可观测 {summary['observable_targets']}），得分 {ev['score']:.1f}，"
+          f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
+    if cinfo is not None:
+        print(f"弹射链 {cinfo['seconds']:.0f} 秒：综合 {cinfo['start']['combined']:.6f} → {cinfo['best']['combined']:.6f}")
+    if pf is not None:
+        o = pf["objective"]
+        print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
+    if check is not None:
+        print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
+    print("目标状态：" + describe(summary["target_status"]))
+    print("已写出", out / "plan.csv", "、", out / "target_status.csv", "和", out / "summary.json")
+    return 0
+
+
+def cmd_status(args) -> int:
+    """目标状态分析：对任意一份计划逐目标给出观测完成情况、观测时长与覆盖情况。"""
+    from .data import load
+    from .problem import Problem
+    from .target_status import describe, export, summarize, target_status
+    from .visibility import get_windows
+    cfg = _cfg(args)
+    ds = load(cfg)
+    pb = Problem.build(cfg, ds, get_windows(cfg, ds))
+    sch, skipped = read_plan(cfg, ds, Path(args.plan), args.seconds_from_start)
+    rows = target_status(pb, sch)
+    sm = summarize(rows)
+    print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）")
+    print("目标状态：" + describe(sm))
+    for p, cnt in sm["by_priority"].items():
+        print(f"  {p}优先级：" + "，".join(f"{k} {v}" for k, v in cnt.items() if v))
+    out = Path(args.out)
+    export(rows, out)
+    out.with_suffix(".json").write_text(json.dumps(sm, ensure_ascii=False, indent=2), encoding="utf-8")
+    print("已写出", out, "和", out.with_suffix(".json"))
+    return 0
+
+
+def cmd_env(args) -> int:
+    """加分项：把几份计划放进同一个环境模型（月光、目标亮度、过去 10 年真实天气），对比名义结果与考虑之后的结果。"""
+    from .data import load
+    from .env_report import report
+    cfg = _cfg(args)
+    ds = load(cfg)
+    rows = []
+    for path in args.plans:
+        sch, skipped = read_plan(cfg, ds, Path(path), args.seconds_from_start)
+        try:
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=not args.no_weather)
+        except OSError as e:                                    # 没网且没有云量缓存：只算月光与亮度
+            print(f"取不到历史云量（{e}），这次不算天气")
+            r = report(cfg, ds, sch, moon_sep_deg=args.moon_sep, m_std=args.m_std, limit_mag=args.limit_mag,
+                       weather=False)
+        r["plan"] = str(path)
+        rows.append(r)
+    a = rows[0]["assumptions"]
+    print(f"环境模型：月亮在地平线以上时目标离月亮 < {a['moon_sep_deg']:g}° 算失败；目标视星等暗于 {a['limit_mag']:g} 等算失败"
+          f"（1000 km、相位角 90° 时取 {a['m_std']:g} 等）；天气用过去 {a['weather_years'] or 0} 年同期真实云量（≤ 30% 算晴）")
+    for r in rows:
+        nm, am, af = r["nominal"], r["after_moon"], r["after_moon_dim"]
+        print(f"\n{r['plan']}")
+        print(f"  名义（不考虑环境）：综合 {nm['combined']:.4f}，覆盖 {nm['covered']}，得分 {nm['score']:.0f}，任务 {nm['tasks']}")
+        print(f"  受月光影响 {r['affected_tasks']['moon']} 个任务，目标太暗 {r['affected_tasks']['dim']} 个"
+              f"（极限星等 13/14/15/16 等时分别 {'/'.join(str(v) for v in r['dim_by_limit'].values())} 个）")
+        print(f"  考虑月光：综合 {am['combined']:.4f}；再考虑目标亮度：{af['combined']:.4f}（覆盖 {af['covered']}，得分 {af['score']:.0f}）")
+        if "weather_combined_mean" in af:
+            print(f"  再考虑天气（{a['weather_years']} 年平均）：综合 {af['weather_combined_mean']:.4f}"
+                  f"（覆盖 {af['weather_covered_mean']:.0f}，得分 {af['weather_score_mean']:.0f}）；"
+                  f"只考虑天气时 {nm['weather_combined_mean']:.4f}")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(rows, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
+        print("\n已写出", args.out)
+    return 0
+
+
+def cmd_windows(args) -> int:
+    from .data import load
+    from .visibility import get_windows
+    cfg = _cfg(args)
+    ds = load(cfg)
+    w = get_windows(cfg, ds, refresh=args.refresh)
+    print(f"{len(w.k0)} 个窗口，{np.unique(w.target).size} 颗目标可观测，外推失败 {int(w.sgp4_failed.sum())} 颗")
+    return 0
+
+
+def _utf8_output() -> None:
+    """Windows 上输出被重定向到文件或管道时用本地编码（英文系统是 cp1252），印中文会报错，改用 UTF-8。"""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            "中文".encode(stream.encoding)
+        except (AttributeError, LookupError, TypeError, UnicodeEncodeError):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(encoding="utf-8")
+
+
+def main(argv=None) -> int:
+    _utf8_output()
+    ap = argparse.ArgumentParser(prog="obsplan", description="空间目标观测规划（方案 H）")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    for name in ("plan", "validate", "windows", "status"):
+        p = sub.add_parser(name)
+        p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+        p.add_argument("--days", type=float)
+        p.add_argument("--moon", type=float, help="月光规避角（度），0 为不考虑")
+        if name == "plan":
+            p.add_argument("--mode", choices=["fast", "quality"], default="fast")
+            p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
+            p.add_argument("--validate", action="store_true", help="规划后用 Skyfield 逐秒校验")
+            p.add_argument("--no-refine", action="store_true", help="不做按秒精修与按秒补覆盖（任务起止保持在 30 秒网格上）")
+            p.add_argument("--chain", type=float, default=RECOMMENDED_CHAIN_MIN,
+                           help=f"按秒精修之后再跑几分钟按秒跨站弹射链（默认 {RECOMMENDED_CHAIN_MIN:g} = 推荐档，全程约两分钟；"
+                                f"{TEN_MINUTE_CHAIN_MIN:g} = 十分钟档；0 = 不跑，结果逐字节可复现；见 obsplan/chain.py）")
+            p.add_argument("--manual-rule", action="store_true", help="放置规则用人工的\"价值 − 价格\"，不用伐谋演化的规则")
+            p.add_argument("--rule-only", action="store_true",
+                           help="只用伐谋规则排一份（默认是稳健模式：伐谋、人工两条规则各排一份，取综合高的，用时基本不变）")
+            p.add_argument("--out", default="outputs/plan")
+        elif name == "validate":
+            p.add_argument("plan")
+            p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
+            p.add_argument("--out", help="把校验报告写成 JSON")
+        elif name == "status":
+            p.add_argument("plan")
+            p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
+            p.add_argument("--out", default="outputs/target_status.csv", help="目标状态表 CSV（同名 .json 为汇总）")
+        else:
+            p.add_argument("--refresh", action="store_true")
+    p = sub.add_parser("env", help="加分项：几份计划在月光、目标亮度、真实天气下的对比")
+    p.add_argument("plans", nargs="+", help="计划文件（第一份通常是标准计划）")
+    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--days", type=float)
+    p.add_argument("--moon-sep", type=float, default=30.0, help="月亮在地平线以上时，目标离月亮至少多少度")
+    p.add_argument("--m-std", type=float, default=6.0, help="目标在 1000 km、相位角 90° 时的视星等（赛题无尺寸数据，统一取典型值）")
+    p.add_argument("--limit-mag", type=float, default=15.0, help="望远镜极限星等，暗于它算看不到")
+    p.add_argument("--no-weather", action="store_true", help="不算天气（不需要云量数据）")
+    p.add_argument("--seconds-from-start", action="store_true")
+    p.add_argument("--out", default="outputs/env_compare.json")
+    args = ap.parse_args(argv)
+    return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status,
+            "env": cmd_env}[args.cmd](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
