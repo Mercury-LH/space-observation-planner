@@ -1,35 +1,19 @@
 {
  "start": {
   "covered": 9999,
-  "score": 29784.7,
-  "combined": 0.995338,
-  "tasks": 13193
- },
- "best": {
-  "covered": 9999,
   "score": 29811.053,
   "combined": 0.995776,
   "tasks": 13227
  },
- "violations": {},
- "stats": {
-  "找不到链": 3724,
-  "重排节奏回退": 5372,
-  "成功_深度1": 24,
-  "成功_深度3": 21,
-  "重排节奏成功": 41,
-  "成功_深度2": 29,
-  "成功_深度0": 7,
-  "不划算": 11,
-  "删重复换延长": 6,
-  "成功_深度3_删": 1,
-  "成功_深度0_删": 1
+ "best": {
+  "covered": 9999,
+  "score": 29924.753,
+  "combined": 0.997667,
+  "tasks": 13222,
+  "repeat_tasks": 3223
  },
- "depth": 4,
- "rounds": "30:0,0:0",
- "short_windows_used": 0,
- "seconds": 687.8,
- "plan": "outputs/lr_s1a/best_plan.csv",
+ "violations": {},
+ "method": "长跑(195轮) + 按秒跨站弹射链(depth<=10) + 多线程深度换位置(depth<=2) + 精确1D凸规划",
  "final": true,
- "time": "2026-11-12 10:03:40"
+ "time": "2026-11-22 00:25:04"
 }

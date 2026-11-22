@@ -1,12 +1,12 @@
 {
   "plan": "outputs/final_best/longrun_chain_best.csv",
-  "tasks": 13227,
+  "tasks": 13222,
   "skipped": 0,
   "legal": true,
   "violations": {},
   "covered_valid": 9999,
-  "score_valid": 29811.05333333333,
-  "combined_valid": 0.9957761814472312,
+  "score_valid": 29924.75333333333,
+  "combined_valid": 0.9976672731909608,
   "config": {
     "data_dir": "/Users/mac/Downloads/百度伐谋杯赛题汇总 /space-observation-planner-replan/data",
     "start_utc": "2026-08-01T00:00:00",

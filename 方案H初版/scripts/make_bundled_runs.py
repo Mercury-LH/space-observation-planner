@@ -60,7 +60,7 @@ def main() -> int:
         near_only = int((pb.max_obs[np.unique(sch.target)] == 0).sum())    # 网格上没有窗口、按秒才看得到的目标
         run = Run("bundled-2-best", "H", json.loads(cfg.to_json()), {}, sch.station, sch.target, sch.start_s, sch.dur_s,
                   evaluate(cfg, ds, sch), BEST_HOURS * 3600,
-                  notes={"label": "最好计划（长跑 + 弹射链，约 7 小时）", "mode": "长跑", "famou_rule": True,
+                  notes={"label": "最好计划（长跑 + 弹射链 + 深度换位置）", "mode": "长跑", "famou_rule": True,
                          "refine": {"refined": True}, "insert": {"added": near_only}, "source": str(BEST.relative_to(ROOT))})
         validate_run(pb, run).save(OUT)
         report(run)

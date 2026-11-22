@@ -132,6 +132,27 @@ def test_parallel_pass_is_legal_and_deterministic(sub):
     assert outs[0] == outs[1]
 
 
+def test_relocate_parallel_is_legal_and_deterministic(sub):
+    """多线程换位置：结果合法（结构检查 0 违规），报的增量等于实际增量，两次运行完全相同。"""
+    from obsplan.chain import relocate_pass_parallel
+    sch, _ = lagrange.solve(sub, iters=20, verbose=False)
+    ref, _ = refine(sub, sch)
+    wL, wR = all_bounds(sub, None, workers=2, verbose=False)
+    outs = []
+    for _ in range(2):
+        tl = Timeline(sub, wL, wR, ref)
+        before = tl.score_points()
+        r = relocate_pass_parallel(tl, threads=4, max_depth=1, min_absorb=0.05)
+        out, L, R, used = tl.schedule()
+        assert not structural_violations(sub, out, by_second=True)
+        assert (out.start_s >= L).all() and (out.start_s + out.dur_s <= R).all()
+        assert tl.score_points() - before == pytest.approx(r["gain_points"], abs=1e-6)
+        assert r["gain_points"] >= 0.0
+        outs.append((r["relocated"], round(r["gain_points"], 6),
+                     sorted(zip(out.station.tolist(), out.target.tolist(), out.start_s.tolist(), out.dur_s.tolist()))))
+    assert outs[0] == outs[1]
+
+
 def test_chain_ai_features_and_model(sub):
     """AI 预测器：特征有限、维数对；随包的模型能加载并给出 0～1 的概率。"""
     from obsplan.chain_ai import FEATURES, features, load_predictor

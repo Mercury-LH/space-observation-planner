@@ -4,14 +4,14 @@
 这里大模型只做两件"理解与解释"的事，规划、校验仍由程序完成：
 
 1. parse_event：把"8 月 3 日 12 点起 6 号站停机 6 小时""目标 68131 升为高优先级"这样的话转成 replan.Event。
-   先用本地规则解析（不联网也能用）；规则解析不出来、并且配置了千帆 API key 时，再请大模型输出 JSON，
+   先用本地规则解析（不联网也能用）；规则解析不出来、并且配置了大模型 API key 时，再请大模型输出 JSON，
    程序逐个字段校验（站点编号、目标编号、时刻都必须在规划范围内）后才采用。
 2. explain_plan：把计划的指标、目标状态汇总、离上界多少交给大模型，写一段给非专业评委看的说明；
    没有 API key 或网络不通时，用模板生成同样内容的说明。
 
-大模型用百度千帆（ModelBuilder v2，兼容 OpenAI 接口，base_url https://qianfan.baidubce.com/v2）。
-API key（以 bce-v3/ 开头）放在环境变量 QIANFAN_API_KEY，或方案H初版/.env.qianfan 文件里（一行 QIANFAN_API_KEY=...，
-该文件已被 git 忽略，不会上传）。模型名可用 QIANFAN_MODEL 改，默认 ernie-4.5-turbo-128k。
+支持任意 OpenAI 兼容接口（百度千帆、Gemini 反代等）：
+- 通用配置：环境变量 LLM_API_KEY / LLM_BASE_URL / LLM_MODEL，或方案H初版/.env.llm（已被 git 忽略）；
+- 兼容千帆配置：环境变量 QIANFAN_API_KEY / QIANFAN_BASE_URL / QIANFAN_MODEL，或方案H初版/.env.qianfan。
 """
 from __future__ import annotations
 
@@ -25,39 +25,81 @@ from pathlib import Path
 
 from .replan import Event
 
-BASE_URL = "https://qianfan.baidubce.com/v2/chat/completions"
-DEFAULT_MODEL = "ernie-4.5-turbo-128k"
+QIANFAN_BASE_URL = "https://qianfan.baidubce.com/v2/chat/completions"
+QIANFAN_DEFAULT_MODEL = "ernie-4.5-turbo-128k"
+BASE_URL = QIANFAN_BASE_URL
+DEFAULT_MODEL = QIANFAN_DEFAULT_MODEL
+ENV_LLM_FILE = Path(__file__).resolve().parents[1] / ".env.llm"
 ENV_FILE = Path(__file__).resolve().parents[1] / ".env.qianfan"
 
 
-def api_key() -> str | None:
-    k = os.environ.get("QIANFAN_API_KEY")
-    if k:
-        return k.strip()
-    if ENV_FILE.exists():
-        for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
-            if line.strip().startswith("QIANFAN_API_KEY="):
-                v = line.split("=", 1)[1].strip().strip('"').strip("'")
-                return v or None
+def _read_env_file(path: Path) -> dict[str, str]:
+    out: dict[str, str] = {}
+    if not path.exists():
+        return out
+    for line in path.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#") or "=" not in s:
+            continue
+        k, v = s.split("=", 1)
+        out[k.strip()] = v.strip().strip('"').strip("'")
+    return out
+
+
+def _normalize_chat_url(url: str) -> str:
+    u = url.strip().rstrip("/")
+    if not u:
+        return QIANFAN_BASE_URL
+    if u.endswith("/chat/completions"):
+        return u
+    return u + "/chat/completions"
+
+
+def llm_config() -> dict[str, str] | None:
+    """读取大模型接口配置（优先级：环境变量 LLM_* → .env.llm → 环境变量 QIANFAN_* → .env.qianfan）。"""
+    env_llm = _read_env_file(ENV_LLM_FILE)
+    env_qf = _read_env_file(ENV_FILE)
+
+    def get(name: str, file_map: dict[str, str]) -> str:
+        return (os.environ.get(name) or file_map.get(name) or "").strip()
+
+    key = get("LLM_API_KEY", env_llm)
+    if key:
+        base = _normalize_chat_url(get("LLM_BASE_URL", env_llm) or QIANFAN_BASE_URL)
+        model = get("LLM_MODEL", env_llm) or QIANFAN_DEFAULT_MODEL
+        label = "千帆大模型" if "qianfan.baidubce.com" in base else "大模型"
+        return {"api_key": key, "base_url": base, "model": model, "label": label}
+
+    qkey = get("QIANFAN_API_KEY", env_qf)
+    if qkey:
+        base = _normalize_chat_url(get("QIANFAN_BASE_URL", env_qf) or QIANFAN_BASE_URL)
+        model = get("QIANFAN_MODEL", env_qf) or QIANFAN_DEFAULT_MODEL
+        label = "千帆大模型" if "qianfan.baidubce.com" in base else "大模型"
+        return {"api_key": qkey, "base_url": base, "model": model, "label": label}
     return None
 
 
+def api_key() -> str | None:
+    cfg = llm_config()
+    return cfg["api_key"] if cfg else None
+
+
 def chat(messages: list[dict], temperature: float = 0.2, timeout: float = 30.0) -> str:
-    """调用千帆对话接口，返回回复文本。没有 key 或请求失败时抛 RuntimeError。"""
-    key = api_key()
-    if not key:
-        raise RuntimeError("没有配置千帆 API key（环境变量 QIANFAN_API_KEY 或 .env.qianfan）")
-    body = json.dumps({"model": os.environ.get("QIANFAN_MODEL", DEFAULT_MODEL), "messages": messages,
-                       "temperature": temperature}).encode("utf-8")
-    req = urllib.request.Request(BASE_URL, data=body, method="POST",
-                                 headers={"Content-Type": "application/json", "Authorization": f"Bearer {key}"})
+    """调用 OpenAI 兼容对话接口，返回回复文本。没有 key 或请求失败时抛 RuntimeError。"""
+    cfg = llm_config()
+    if not cfg:
+        raise RuntimeError("没有配置大模型 API key（环境变量 LLM_API_KEY / QIANFAN_API_KEY 或 .env.llm / .env.qianfan）")
+    body = json.dumps({"model": cfg["model"], "messages": messages, "temperature": temperature}).encode("utf-8")
+    req = urllib.request.Request(cfg["base_url"], data=body, method="POST",
+                                 headers={"Content-Type": "application/json",
+                                          "Authorization": f"Bearer {cfg['api_key']}"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = json.loads(r.read().decode("utf-8"))
     except (urllib.error.URLError, TimeoutError, OSError) as e:
-        raise RuntimeError(f"千帆接口请求失败：{e}") from e
+        raise RuntimeError(f"大模型接口请求失败：{e}") from e
     if "choices" not in data:
-        raise RuntimeError(f"千帆接口返回错误：{str(data)[:200]}")
+        raise RuntimeError(f"大模型接口返回错误：{str(data)[:200]}")
     return data["choices"][0]["message"]["content"]
 
 
@@ -188,13 +230,14 @@ def parse_event(text: str, cfg, ds, use_llm: bool = True) -> tuple[Event | None,
     ev = parse_rules(text, cfg, ds)
     if ev is not None:
         return ev, "本地规则"
-    if use_llm and api_key():
+    lcfg = llm_config() if use_llm else None
+    if lcfg:
         try:
             ev = _llm_event(text, cfg, ds)
         except (RuntimeError, ValueError, json.JSONDecodeError):
             ev = None
         if ev is not None:
-            return ev, "千帆大模型"
+            return ev, lcfg["label"]
     return None, "无法解析"
 
 
@@ -228,12 +271,13 @@ def explain_template(metrics: dict, status: dict | None = None, extra: dict | No
 def explain_plan(metrics: dict, status: dict | None = None, extra: dict | None = None,
                  use_llm: bool = True) -> tuple[str, str]:
     """返回 (说明文字, 来源)。有 key 时请大模型写，失败或没有 key 时用模板。"""
-    if use_llm and api_key():
+    lcfg = llm_config() if use_llm else None
+    if lcfg:
         prompt = ("下面是一份地面望远镜观测空间目标的 6 天计划的统计数据（JSON）。请用 200 字以内的中文、"
                   "给不熟悉航天的评委解释：这份计划做得怎么样、为什么这么安排、还有哪些不足。只依据给出的数据，不要编造数字。\n"
                   + json.dumps(_facts(metrics, status, extra), ensure_ascii=False, default=float))
         try:
-            return chat([{"role": "user", "content": prompt}], temperature=0.3).strip(), "千帆大模型"
+            return chat([{"role": "user", "content": prompt}], temperature=0.3).strip(), lcfg["label"]
         except RuntimeError:
             pass
     return explain_template(metrics, status, extra), "模板"

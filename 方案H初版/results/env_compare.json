@@ -8,46 +8,46 @@
       "weather_years": 10
     },
     "affected_tasks": {
-      "moon": 1401,
+      "moon": 1357,
       "dim": 7,
-      "moon_or_dim": 1408
+      "moon_or_dim": 1364
     },
     "dim_by_limit": {
-      "13": 784,
-      "14": 113,
+      "13": 740,
+      "14": 102,
       "15": 7,
-      "16": 1
+      "16": 2
     },
     "nominal": {
-      "tasks": 13111,
-      "covered": 9987,
-      "score": 29166.0,
-      "combined": 0.984448,
-      "weather_covered_mean": 4766.5,
-      "weather_score_mean": 12203.4,
-      "weather_combined_mean": 0.441296
+      "tasks": 13088,
+      "covered": 9999,
+      "score": 29455.8,
+      "combined": 0.989867,
+      "weather_covered_mean": 4782.8,
+      "weather_score_mean": 12267.1,
+      "weather_combined_mean": 0.443169
     },
     "after_moon": {
-      "tasks": 11710,
-      "covered": 9122,
-      "score": 26020.7,
-      "combined": 0.888884
+      "tasks": 11731,
+      "covered": 9147,
+      "score": 26377.2,
+      "combined": 0.896064
     },
     "after_moon_dim": {
-      "tasks": 11703,
-      "covered": 9117,
-      "score": 26006.9,
-      "combined": 0.888404,
-      "weather_covered_mean": 4316.0,
-      "weather_score_mean": 10913.4,
-      "weather_combined_mean": 0.397315
+      "tasks": 11724,
+      "covered": 9142,
+      "score": 26362.4,
+      "combined": 0.895567,
+      "weather_covered_mean": 4342.3,
+      "weather_score_mean": 10978.2,
+      "weather_combined_mean": 0.399707
     },
     "magnitude_pct": {
-      "50": 9.09,
-      "90": 12.69,
-      "99": 13.94
+      "50": 9.08,
+      "90": 12.68,
+      "99": 13.92
     },
-    "plan": "outputs/tier/cli_fast_chain0.5/plan.csv"
+    "plan": "outputs/frontier/recommended/run1/plan.csv"
   },
   {
     "assumptions": {
@@ -59,44 +59,44 @@
     },
     "affected_tasks": {
       "moon": 0,
-      "dim": 9,
-      "moon_or_dim": 9
+      "dim": 6,
+      "moon_or_dim": 6
     },
     "dim_by_limit": {
-      "13": 680,
-      "14": 112,
-      "15": 9,
+      "13": 672,
+      "14": 101,
+      "15": 6,
       "16": 0
     },
     "nominal": {
-      "tasks": 13129,
-      "covered": 9976,
-      "score": 29152.8,
-      "combined": 0.983677,
-      "weather_covered_mean": 4797.4,
-      "weather_score_mean": 12197.3,
-      "weather_combined_mean": 0.442739
+      "tasks": 13076,
+      "covered": 9999,
+      "score": 29384.2,
+      "combined": 0.988676,
+      "weather_covered_mean": 4800.8,
+      "weather_score_mean": 12234.7,
+      "weather_combined_mean": 0.443531
     },
     "after_moon": {
-      "tasks": 13129,
-      "covered": 9976,
-      "score": 29152.8,
-      "combined": 0.983677
+      "tasks": 13076,
+      "covered": 9999,
+      "score": 29384.2,
+      "combined": 0.988676
     },
     "after_moon_dim": {
-      "tasks": 13120,
-      "covered": 9974,
-      "score": 29125.8,
-      "combined": 0.983129,
-      "weather_covered_mean": 4796.6,
-      "weather_score_mean": 12186.2,
-      "weather_combined_mean": 0.442514
+      "tasks": 13070,
+      "covered": 9998,
+      "score": 29363.4,
+      "combined": 0.98828,
+      "weather_covered_mean": 4800.7,
+      "weather_score_mean": 12228.6,
+      "weather_combined_mean": 0.443425
     },
     "magnitude_pct": {
-      "50": 9.15,
-      "90": 12.69,
-      "99": 13.9
+      "50": 9.14,
+      "90": 12.68,
+      "99": 13.88
     },
-    "plan": "outputs/env/moon30/plan.csv"
+    "plan": "outputs/env_moon/plan.csv"
   }
 ]

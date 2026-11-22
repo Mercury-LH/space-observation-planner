@@ -1,0 +1,56 @@
+{
+ "name": "fast_chain0",
+ "label": "快速（不跑弹射链）",
+ "note": "",
+ "plan_args": [
+  "--mode",
+  "fast",
+  "--chain",
+  "0"
+ ],
+ "env": {},
+ "machine": {
+  "platform": "macOS-27.2.1-arm64-arm-64bit",
+  "processor": "arm",
+  "cpus": 10
+ },
+ "time": "2026-11-22 00:49:15",
+ "median": {
+  "wall_s": 59.4,
+  "combined": 0.969009,
+  "covered": 9987,
+  "score": 28237.78,
+  "avg_cores": 1.74
+ },
+ "all_legal": true,
+ "runs": [
+  {
+   "wall_s": 59.4,
+   "cpu_s": 103.3,
+   "avg_cores": 1.74,
+   "load_before": 18.28,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 58.2,
+    "solve": 54.7,
+    "refine": 3.5,
+    "chain": 0.0
+   },
+   "covered": 9987,
+   "score": 28237.78,
+   "combined": 0.969009,
+   "tasks": 12097,
+   "repeat_tasks": 2110,
+   "chain": null,
+   "plan": "outputs/frontier/fast_chain0/run1/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9987,
+    "score_valid": 28237.78,
+    "seconds": 76.0,
+    "returncode": 0
+   }
+  }
+ ]
+}

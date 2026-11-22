@@ -203,7 +203,7 @@ def cmd_reloc(a) -> int:
     tl = chain.Timeline(pb, wL, wR, sch, piece=piece, offset=offset)
     e0, t0, passes = ev(cfg, ds, sch), time.time(), []
     for k in range(a.passes):
-        r = chain.relocate_pass(tl, max_depth=a.depth, min_absorb=a.min_absorb)
+        r = chain.relocate_pass_parallel(tl, threads=a.threads, max_depth=a.depth, min_absorb=a.min_absorb)
         r.update(points=round(tl.score_points(), 1), elapsed=round(time.time() - t0, 1))
         if a.drop:
             r["drop"] = chain.drop_pass(tl)
@@ -267,6 +267,7 @@ def main() -> int:
     r.add_argument("--spec", default="0:0", help="时间线切法（每段任务数:第一段任务数）")
     r.add_argument("--min-absorb", type=float, default=0.05, dest="min_absorb")
     r.add_argument("--drop", type=int, default=1, help="每遍之后是否再做一遍删重复换延长")
+    r.add_argument("--threads", type=int, help="多线程并发数（默认按核数）")
     r.add_argument("--save")
     a = ap.parse_args()
     return {"base": cmd_base, "chain": cmd_chain, "reloc": cmd_reloc}[a.cmd](a)

@@ -32,3 +32,17 @@ def test_explain_template():
                               "repeat_tasks": 3124, "mean_dur_s": 172.0}, extra={"gap_to_bound_pct": 2.0},
                              use_llm=False)
     assert how == "模板" and "9987" in text and "2.0%" in text
+
+
+def test_openai_compatible_llm_config(monkeypatch):
+    from obsplan import llm_assistant
+    monkeypatch.setenv("LLM_API_KEY", "sk-test-key")
+    monkeypatch.setenv("LLM_BASE_URL", "https://proxy.example.com/v1/")
+    monkeypatch.setenv("LLM_MODEL", "gemini-2.5-flash")
+    cfg = llm_assistant.llm_config()
+    assert cfg == {
+        "api_key": "sk-test-key",
+        "base_url": "https://proxy.example.com/v1/chat/completions",
+        "model": "gemini-2.5-flash",
+        "label": "大模型",
+    }
