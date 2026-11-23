@@ -1,0 +1,197 @@
+/*
+ * From Uiverse.io by barisdogansutcu - https://uiverse.io/barisdogansutcu/fuzzy-bullfrog-72
+ * MIT License, Copyright (c) barisdogansutcu (Barış Doğan Sütçü)
+ */
+/*
+ * Previous entry card credits: Spacious74 (VishalS), moody-owl-18, and
+ * Gaurav-WebDev (Gaurav Sharma), tall-mayfly-60, via Uiverse.io (MIT).
+ */
+
+@font-face {
+  font-family: "Observation Rounded";
+  src: url("/fonts/observation-rounded-medium.woff2") format("woff2");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+.elevation-menu {
+  --menu-ease: 500ms ease;
+  --pill-rest: #d9e2e8;
+  --pill-ink: #192b3b;
+  --pill-active: #355a82;
+  --pill-glow: rgb(100 161 218 / 42%);
+  --marker-surface: #fff;
+  --pill-pad-x: clamp(32px, 3.15vw, 52px);
+  --pill-pad-y: clamp(17px, 2.15svh, 23px);
+  --pill-scale: 1.07;
+  --marker-scale: 1.18;
+  --press-travel: 10px;
+  position: absolute;
+  inset-block-start: clamp(26px, 5.3svh, 64px);
+  inset-inline-start: calc(15.28vw - var(--dial-height) / 3);
+  height: 100%;
+  aspect-ratio: 340 / 470;
+  container-type: size;
+  background: url("/assets/elevation-track.png") left top / auto 100% no-repeat;
+  scroll-margin-top: 24px;
+}
+
+.elevation-entry {
+  --label-offset: 8.4cqh;
+  --marker-size: clamp(40px, 11.3cqh, 68px);
+  --max-pill-width: calc(var(--pill-pad-x) * 2 + var(--characters) * (1em + 3px));
+  position: absolute;
+  left: var(--node-x);
+  top: var(--node-y);
+  transform: translate(-22px, -50%);
+  display: flex;
+  align-items: center;
+  /* Reserve the expanded and pressed dimensions. Only the visible parts move. */
+  width: calc(22px + var(--label-offset) + var(--max-pill-width) * var(--pill-scale) + 2px);
+  height: calc(1.4em + var(--pill-pad-y) * 2 + 20px);
+  padding: 0 0 0 calc(22px + var(--label-offset));
+  border: 0;
+  border-radius: 50px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--pill-ink);
+  text-align: center;
+  white-space: nowrap;
+  font-family: "Observation Rounded", "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: clamp(18px, 1.4vw, 22px);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.elevation-entry[data-action="run"] {
+  --node-x: 22.47%;
+  --node-y: 13.74%;
+}
+
+.elevation-entry[data-action="configure"] {
+  --node-x: 41.88%;
+  --node-y: 48%;
+}
+
+.elevation-entry[data-action="results"] {
+  --node-x: 30.32%;
+  --node-y: 81.34%;
+  --label-offset: 8.9cqh;
+}
+
+.elevation-label {
+  flex: none;
+  padding: var(--pill-pad-y) var(--pill-pad-x);
+  border-radius: 50px;
+  background-color: var(--pill-rest);
+  box-shadow: rgb(0 0 0 / 5%) 0 0 8px;
+  color: var(--pill-ink);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  transform-origin: left center;
+  transition: transform var(--menu-ease), letter-spacing var(--menu-ease),
+    background-color var(--menu-ease), color var(--menu-ease), box-shadow var(--menu-ease);
+  pointer-events: none;
+}
+
+.elevation-marker {
+  position: absolute;
+  left: 22px;
+  top: 50%;
+  width: var(--marker-size);
+  height: var(--marker-size);
+  translate: -50% -50%;
+  transition: transform var(--menu-ease);
+  pointer-events: none;
+}
+
+.elevation-marker::before,
+.elevation-marker__active {
+  position: absolute;
+  inset: 0;
+  transition: opacity var(--menu-ease);
+}
+
+.elevation-marker::before {
+  content: "";
+  background: url("/assets/elevation-ring.png") center / 53.846% auto no-repeat;
+  opacity: 1;
+}
+
+.elevation-marker__active {
+  inset: 20%;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--marker-surface);
+  border-radius: 50%;
+  background-color: var(--marker-surface);
+  box-shadow: 0 0 10px rgb(255 255 255 / 18%);
+  color: #102033;
+  opacity: 0;
+}
+
+.elevation-marker__active svg { width: 56%; height: 56%; }
+.elevation-entry[data-action="run"] svg { width: 51%; height: 51%; }
+
+.elevation-entry[data-highlighted="true"] .elevation-marker {
+  transform: scale(var(--marker-scale));
+}
+
+.elevation-entry[data-highlighted="true"] .elevation-marker::before { opacity: 0; }
+.elevation-entry[data-highlighted="true"] .elevation-marker__active { opacity: 1; }
+
+.elevation-entry:is([data-highlighted="true"], :active) .elevation-label {
+  letter-spacing: 3px;
+  background-color: var(--pill-active);
+  color: #fff;
+  box-shadow: var(--pill-glow) 0 7px 29px;
+  transform: scale(var(--pill-scale));
+}
+
+.elevation-entry:active .elevation-label {
+  box-shadow: var(--pill-glow) 0 0 0;
+  transform: translateY(var(--press-travel));
+  transition-duration: 100ms;
+}
+
+.elevation-entry:focus-visible { outline: none; }
+.elevation-entry:focus-visible .elevation-label {
+  outline: 2px solid var(--marker-surface);
+  outline-offset: 4px;
+}
+
+@media (max-width: 800px) {
+  .elevation-menu {
+    inset-block-start: clamp(8px, 1.5svh, 16px);
+    inset-inline-start: calc(50% - var(--dial-height) * .43);
+    --pill-pad-x: clamp(23px, 5.8vw, 38px);
+    --pill-pad-y: clamp(13px, 1.8svh, 18px);
+    --pill-scale: 1.045;
+  }
+  .elevation-entry {
+    --label-offset: max(22px, 8.4cqh);
+    font-size: clamp(17px, 4.5vw, 20px);
+  }
+  .elevation-entry[data-action="results"] { --label-offset: max(22px, 8.9cqh); }
+}
+
+/* Keep the gradual response while limiting physical movement in this mode. */
+@media (prefers-reduced-motion: reduce) {
+  .elevation-menu {
+    --pill-scale: 1.025;
+    --marker-scale: 1.055;
+    --press-travel: 2px;
+  }
+}
+
+@media (forced-colors: active) {
+  .elevation-entry .elevation-label {
+    border: 1px solid ButtonText;
+    background-color: ButtonFace;
+    color: ButtonText;
+  }
+  .elevation-entry:focus-visible .elevation-label { outline-color: Highlight; }
+  .elevation-entry[data-highlighted="true"] .elevation-label { border-color: Highlight; }
+}

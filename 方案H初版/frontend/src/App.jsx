@@ -1,0 +1,515 @@
+import { useEffect, useRef, useState } from "react";
+import "./ConfigurationPanel.css";
+import { LandscapeMotion } from "./LandscapeMotion";
+import { TelescopeMount } from "./TelescopeMount";
+import { Meteors } from "./Meteors";
+import { ObservatoryNetwork } from "./ObservatoryNetwork";
+import { ElevationMenu } from "./ElevationMenu";
+import { EarthMark } from "./EarthMark";
+import Results from "./ResultsPanel";
+import { WorkspaceDrawer } from "./WorkspaceDrawer";
+import { captureWorkspacePill } from "./RunLaunchBadge";
+import PlanningWindow from "./PlanningWindow";
+import RunStationTable from "./RunStationTable";
+import "./RunPanel.css";
+import {
+  ArrowUpRightIcon,
+  ArrowRightIcon,
+  DownloadSimpleIcon,
+  UploadSimpleIcon,
+  XIcon,
+  QuestionIcon,
+  FileTextIcon,
+  CheckIcon,
+  PlayIcon,
+  GearSixIcon,
+  FileArrowDownIcon,
+} from "@phosphor-icons/react";
+
+const planningWorkbenchUrl = "http://127.0.0.1:8501";
+
+const algorithms = {
+  H: "价格协调",
+  E: "进化权重贪心 + 局部搜索",
+  B: "固定优先级贪心",
+};
+const defaultAlgorithm = "H";
+
+const entries = [
+  { id: "run", title: "运行观测规划", icon: PlayIcon },
+  { id: "configure", title: "配置与调整", icon: GearSixIcon },
+  { id: "results", title: "查看与导出", icon: FileArrowDownIcon },
+];
+function downloadText(name, text, type = "text/plain;charset=utf-8") {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = name;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+function Modal({ title, subtitle, onClose, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="dialog"
+      aria-labelledby="dialog-title"
+      onCancel={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="dialog-head">
+        <div>
+          <h2 id="dialog-title">{title}</h2>
+          <p>{subtitle}</p>
+        </div>
+        <button className="icon-button" aria-label="关闭面板" onClick={onClose}>
+          <XIcon size={21} />
+        </button>
+      </div>
+      <div className="dialog-body">{children}</div>
+    </dialog>
+  );
+}
+function ConfigurePlan({ configuration, saved, onSave, onRun }) {
+  const [date, setDate] = useState(configuration.date);
+  const [days, setDays] = useState(configuration.days);
+  const [stations, setStations] = useState(configuration.stations);
+  const savedAlgorithm = configuration.algo ?? defaultAlgorithm;
+  const [algo, setAlgo] = useState(savedAlgorithm);
+  const ready = saved && date === configuration.date && Number(days) === Number(configuration.days)
+    && algo === savedAlgorithm && stations.length === configuration.stations.length
+    && stations.every((station) => configuration.stations.includes(station));
+  const config = {
+    start_utc: `${date}T00:00:00Z`,
+    days: Number(days),
+    stations: stations.map(Number),
+    algo,
+    status: "configuration_only",
+  };
+  return (
+    <form
+      className="plan-config"
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (date && stations.length) onSave({ date, days, stations, algo });
+      }}
+    >
+      <fieldset>
+        <legend><span className="plan-config__section-title">观测时间</span></legend>
+        <PlanningWindow days={days} startDate={date} onDateChange={setDate} onDaysChange={setDays} />
+      </fieldset>
+      <fieldset>
+        <legend>
+          <span className="plan-config__section-title">
+            参与站点<span className="plan-config__meta">已选 {stations.length} / 10</span>
+          </span>
+        </legend>
+        <div className="plan-config__stations">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+            <label key={n}>
+              <input
+                type="checkbox"
+                checked={stations.includes(String(n))}
+                onChange={(e) => {
+                  const checked = e.target.checked;
+                  setStations((s) =>
+                    checked
+                      ? [...s, String(n)]
+                      : s.filter((x) => x !== String(n)),
+                  );
+                }}
+              />
+              站点 {String(n).padStart(2, "0")}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend><span className="plan-config__section-title">规划算法</span></legend>
+        <div className="plan-config__algorithms">
+          {Object.entries(algorithms).map(([id, name]) => (
+            <label key={id}>
+              <input type="radio" name="planning-algorithm" value={id}
+                checked={algo === id} onChange={() => setAlgo(id)} />
+              <span>{id} {name}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="plan-config__footer">
+        {ready ? (
+          <div className="notice" role="status">
+            <CheckIcon size={22} aria-hidden="true" />
+            <div>
+              <strong>配置已保存</strong>
+              <p>{days} 天 · {stations.length} 个站点 · {algo} {algorithms[algo]}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="form-hint">
+            {stations.length ? "配置仅在本页保留，保存后可下载。" : "请至少选择一个参与站点。"}
+          </p>
+        )}
+        <div className="form-actions">
+          {ready ? (
+            <>
+              <button className="primary" type="button" onClick={onRun}>
+                前往运行 <ArrowRightIcon size={20} aria-hidden="true" />
+              </button>
+              <button
+                className="secondary"
+                type="button"
+                onClick={() => downloadText(
+                  "observation-config.json",
+                  JSON.stringify(config, null, 2),
+                  "application/json",
+                )}
+              >
+                下载配置 <DownloadSimpleIcon size={20} aria-hidden="true" />
+              </button>
+            </>
+          ) : (
+            <button className="primary" disabled={!stations.length || !date} type="submit">
+              保存规划配置 <CheckIcon size={20} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      </div>
+    </form>
+  );
+}
+function RunPlan({ configuration, saved, onConfigure }) {
+  const algo = configuration.algo ?? defaultAlgorithm;
+  return (
+    <div className="plan-run">
+      <section className="run-sheet" aria-labelledby="run-config-heading">
+        <header className="run-sheet__head">
+          <h3 id="run-config-heading">{saved ? "已保存的规划配置" : "当前默认配置"}</h3>
+          <button type="button" className="run-edit" onClick={onConfigure}>
+            修改参数
+          </button>
+        </header>
+        <PlanningWindow days={configuration.days} startDate={configuration.date} />
+        <RunStationTable stations={configuration.stations} />
+      </section>
+      <div className="form-actions">
+        <dl className="run-algorithm">
+          <dt>规划算法</dt>
+          <dd>{algo} {algorithms[algo]}</dd>
+        </dl>
+        <a
+          className="primary"
+          href={planningWorkbenchUrl}
+          target="_blank"
+          rel="noreferrer"
+        >
+          进入规划安排
+          <ArrowUpRightIcon size={20} aria-hidden="true" />
+        </a>
+      </div>
+    </div>
+  );
+}
+function UploadPanel() {
+  const [files, setFiles] = useState([]),
+    [preview, setPreview] = useState(""),
+    [error, setError] = useState("");
+  const readId = useRef(0);
+  async function readFiles(event) {
+    const id = ++readId.current,
+      selected = [...event.target.files];
+    setError("");
+    setPreview("");
+    setFiles(selected);
+    if (!selected.length) return;
+    if (selected.some((f) => f.size > 10 * 1024 * 1024)) {
+      setError("请选择单个不超过 10 MB 的文本文件。");
+      return;
+    }
+    try {
+      const text = await selected[0].text();
+      if (readId.current === id) setPreview(text.slice(0, 3500));
+    } catch {
+      if (readId.current === id) setError("文件读取失败，请重新选择。");
+    }
+  }
+  return (
+    <>
+      <label className="upload-zone">
+        <UploadSimpleIcon size={30} weight="light" />
+        <strong>选择本地数据文件</strong>
+        <span>TXT、TLE、CSV 或 JSON · 每个文件最多 10 MB</span>
+        <input
+          aria-label="选择本地数据文件"
+          type="file"
+          accept=".txt,.tle,.csv,.json"
+          multiple
+          onChange={readFiles}
+        />
+      </label>
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
+      {files.length > 0 && (
+        <ul className="file-list">
+          {files.map((file, i) => (
+            <li key={`${file.name}-${i}`}>
+              <FileTextIcon size={19} />
+              <span>{file.name}</span>
+              <small>{Math.max(1, Math.round(file.size / 1024))} KB</small>
+            </li>
+          ))}
+        </ul>
+      )}
+      {preview && (
+        <>
+          <p className="preview-label">{files[0].name} · 内容预览</p>
+          <pre className="file-preview">{preview}</pre>
+        </>
+      )}
+      <p className="form-hint">
+        文件仅在当前浏览器中读取和预览，不会上传到服务器，也不会自动进入规划计算。
+      </p>
+    </>
+  );
+}
+function DataNavButton({ label, direction, ...buttonProps }) {
+  return (
+    <button type="button" className="nav-button" data-direction={direction} {...buttonProps}>
+      <svg className="nav-button__icon" width="18" height="18" viewBox="0 0 18 18"
+        fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round"
+        strokeLinejoin="round" aria-hidden="true" focusable="false">
+        <path d="M2.25 11.5v4h13.5v-4" />
+        <path className="nav-button__arrow" d={direction === "down"
+          ? "M9 2v8.5 M5.5 7 9 10.5 12.5 7"
+          : "M9 12V4 M5.5 7.5 9 4 12.5 7.5"} />
+      </svg>
+      <span>{label}</span>
+    </button>
+  );
+}
+
+export function App() {
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const [panel, setPanel] = useState(null);
+  const [configuration, setConfiguration] = useState({
+    date: "2026-08-01",
+    days: "1",
+    stations: ["1", "2"],
+    algo: defaultAlgorithm,
+  });
+  const [saved, setSaved] = useState(false);
+  const landscapeRef = useRef(null);
+  const mobileSkyRef = useRef(null);
+  const telescope = useRef(null);
+  const downloadRef = useRef(null);
+  const downloadTrigger = useRef(null);
+  const workspaceTrigger = useRef(null);
+  const runOrigin = useRef(null);
+  const PanelContainer = entries.some((entry) => entry.id === panel) ? WorkspaceDrawer : Modal;
+  function openPanel(id, trigger) {
+    if (trigger) {
+      workspaceTrigger.current = trigger;
+      runOrigin.current = captureWorkspacePill(trigger);
+    }
+    setDownloadOpen(false);
+    setPanel(id);
+  }
+  useEffect(() => {
+    if (!downloadOpen) return;
+    const closeOutside = (event) => {
+      if (!downloadRef.current?.contains(event.target)) setDownloadOpen(false);
+    };
+    const onEscape = (event) => {
+      if (event.key === "Escape") {
+        setDownloadOpen(false);
+        downloadTrigger.current?.focus();
+      }
+    };
+    document.addEventListener("pointerdown", closeOutside);
+    document.addEventListener("focusin", closeOutside);
+    document.addEventListener("keydown", onEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOutside);
+      document.removeEventListener("focusin", closeOutside);
+      document.removeEventListener("keydown", onEscape);
+    };
+  }, [downloadOpen]);
+  const titles = {
+    run: "运行观测规划",
+    configure: "配置与调整",
+    results: "查看与导出",
+    upload: "上传数据",
+    help: "从这里开始",
+  };
+  const subtitles = {
+    upload: "选择文件，先检查数据内容。",
+    help: "安排哪个站、在什么时候、观测哪个目标。",
+  };
+  return (
+    <main className="homepage">
+      <a className="skip-link" href="#main-entries">
+        跳到功能入口
+      </a>
+      <div className="scene" aria-hidden="true">
+        <canvas ref={mobileSkyRef} className="mobile-sky-motion" hidden />
+        <div className="scene-plane">
+          <img
+            className="landscape"
+            ref={landscapeRef}
+            src="/assets/radio-observatory.webp"
+            alt=""
+            fetchPriority="high"
+          />
+          <LandscapeMotion imageRef={landscapeRef} mobileSkyRef={mobileSkyRef} />
+          <TelescopeMount ref={telescope} />
+        </div>
+        <Meteors />
+      </div>
+      <header className="topbar">
+        <a className="brand" href="/" aria-label="观测规划首页">
+          <EarthMark />
+          <span>观测规划</span>
+        </a>
+        <nav className="navigation" aria-label="数据操作">
+          <div ref={downloadRef} className="nav-item">
+            <DataNavButton
+              ref={downloadTrigger}
+              label="下载模板"
+              direction="down"
+              aria-expanded={downloadOpen}
+              aria-controls={downloadOpen ? "download-menu" : undefined}
+              onClick={() => setDownloadOpen((open) => !open)}
+            />
+            {downloadOpen && (
+              <div className="dropdown" id="download-menu">
+                <p>输入格式模板</p>
+                <button
+                  onClick={() => {
+                    downloadText(
+                      "站址模板.txt",
+                      "1: 116.4,39.9,50\n2: 100.0,30.0,3000\n",
+                    );
+                    setDownloadOpen(false);
+                  }}
+                >
+                  <FileTextIcon size={18} />
+                  <span>
+                    站址模板<small>TXT · 编号、经纬度、海拔</small>
+                  </span>
+                </button>
+                <button
+                  onClick={() => {
+                    downloadText("高优先级目标模板.txt", "26382\n16650\n");
+                    setDownloadOpen(false);
+                  }}
+                >
+                  <FileTextIcon size={18} />
+                  <span>
+                    目标优先级模板<small>TXT · 每行一个目标编号</small>
+                  </span>
+                </button>
+                <div className="menu-rule" />
+                <button onClick={() => openPanel("results", downloadTrigger.current)}>
+                  <ArrowUpRightIcon size={18} />
+                  <span>
+                    查看示例输出<small>观测计划 CSV 与结果摘要</small>
+                  </span>
+                </button>
+              </div>
+            )}
+          </div>
+          <DataNavButton
+            label="上传数据"
+            direction="up"
+            aria-haspopup="dialog"
+            onClick={() => openPanel("upload")}
+          />
+        </nav>
+        <div className="header-actions">
+          <button
+            className="icon-button help-button"
+            aria-label="使用帮助"
+            onClick={() => openPanel("help")}
+          >
+            <QuestionIcon size={21} weight="light" />
+          </button>
+        </div>
+      </header>
+      <section className="hero-content" aria-label="功能入口">
+        <ObservatoryNetwork onStationArrival={() => telescope.current?.receive()} />
+        <ElevationMenu entries={entries} onOpen={openPanel} />
+      </section>
+      {panel && (
+        <PanelContainer
+          runOrigin={runOrigin.current}
+          workbenchUrl={planningWorkbenchUrl}
+          workspacePage={panel}
+          title={titles[panel]}
+          subtitle={subtitles[panel]}
+          onClose={() => setPanel(null)}
+          returnFocusRef={workspaceTrigger}
+        >
+          {panel === "run" && (
+            <RunPlan
+              configuration={configuration}
+              saved={saved}
+              onConfigure={() => openPanel("configure")}
+            />
+          )}
+          {panel === "configure" && (
+            <ConfigurePlan
+              configuration={configuration}
+              saved={saved}
+              onSave={(value) => {
+                setConfiguration(value);
+                setSaved(true);
+              }}
+              onRun={() => openPanel("run")}
+            />
+          )}
+          {panel === "results" && <Results />}
+          {panel === "upload" && <UploadPanel />}
+          {panel === "help" && (
+            <div className="help-content">
+              <p>
+                先进入<strong>配置与调整</strong>
+                ，设置观测时间、参与站点和规划算法，并保存参数。
+              </p>
+              <p>
+                再进入<strong>运行观测规划</strong>
+                ，核对刚保存的配置，准备启动计算。
+              </p>
+              <p>
+                通过<strong>查看与导出</strong>
+                了解任务表和校验状态。生成计划与通过独立校验是两个步骤。
+              </p>
+              <p className="form-hint">
+                配置在刷新后恢复默认值。请在「规划安排」中确认参数并启动计算。
+              </p>
+              <a
+                className="primary"
+                href={planningWorkbenchUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                进入规划安排
+                <ArrowUpRightIcon size={18} />
+              </a>
+            </div>
+          )}
+        </PanelContainer>
+      )}
+    </main>
+  );
+}

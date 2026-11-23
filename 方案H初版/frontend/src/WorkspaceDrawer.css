@@ -1,0 +1,424 @@
+/* A full-height work surface. These selectors intentionally outrank the
+   shared .dialog rules, including their <=800px overrides. */
+:root:has(.workspace-drawer[open]),
+:root:has(.workspace-drawer[open]) body {
+  overflow: hidden;
+}
+
+dialog.workspace-drawer {
+  --drawer-inset: clamp(26px, 4.1vw, 58px);
+  --ws-canvas: #0b1522;
+  --ws-surface: #132235;
+  --ws-border: #2b4057;
+  --ws-muted: #b5c5d6;
+  --ws-accent: #a9d7ff;
+  --ws-text: #f0f6fc;
+  position: fixed;
+  inset: 0 0 0 auto;
+  box-sizing: border-box;
+  width: var(--drawer-width, min(60vw, 1080px));
+  min-width: 480px;
+  max-width: 90vw;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-left: 1px solid #34445a;
+  border-radius: 0;
+  background: var(--ws-canvas);
+  color: var(--ws-text);
+  box-shadow: -16px 0 48px #02081226, var(--drawer-tail);
+  font-size: 18px;
+  line-height: 1.7;
+  color-scheme: dark;
+  container: workspace-drawer / inline-size;
+}
+
+dialog.workspace-drawer[open] {
+  --drawer-enter-duration: 900ms;
+  --drawer-exit-duration: 600ms;
+  --drawer-settle: cubic-bezier(.28, .66, .28, 1.08);
+  --drawer-dismiss: cubic-bezier(.4, 0, .55, 1);
+  --drawer-travel: calc(100% + var(--run-fade, 0px));
+  /* Cover the few pixels beyond the trailing edge during spring settling. */
+  --drawer-tail: max(24px, 1.5vw) 0 0 var(--ws-canvas);
+  display: flex;
+  flex-direction: column;
+  transform: none;
+  transition: transform var(--drawer-enter-duration) var(--drawer-settle);
+}
+
+dialog.workspace-drawer[data-closing="true"] {
+  transform: translate3d(var(--drawer-travel), 0, 0);
+  transition: transform var(--drawer-exit-duration) var(--drawer-dismiss);
+  pointer-events: none;
+}
+
+dialog.workspace-drawer::backdrop {
+  background: #02081238;
+  backdrop-filter: none;
+  opacity: 1;
+  transition: opacity 230ms ease;
+}
+
+dialog.workspace-drawer[data-closing="true"]::backdrop { opacity: 0; }
+
+@starting-style {
+  dialog.workspace-drawer[open] {
+    transform: translate3d(var(--drawer-travel), 0, 0);
+  }
+
+  dialog.workspace-drawer[open]::backdrop { opacity: 0; }
+}
+
+.workspace-drawer .workspace-drawer__head,
+.workspace-drawer .workspace-drawer__body {
+  padding-inline: max(var(--drawer-inset), calc((100% - 940px) / 2));
+}
+
+.workspace-drawer .workspace-drawer__head {
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: 18px;
+  padding-block: max(clamp(28px, 5cqi, 64px), env(safe-area-inset-top)) clamp(25px, 3.8cqi, 42px);
+  border-bottom: 1px solid var(--ws-border);
+  background-color: #101c2d;
+  background-image: linear-gradient(90deg, #101c2d 1%, #101c2def 28%, #101c2d42 75%),
+                    linear-gradient(0deg, #0b1522b0, transparent 75%),
+                    url("/assets/observatory-original.png");
+  background-size: cover, cover, 150% auto;
+  background-position: center, center, 0% 23%;
+  background-repeat: no-repeat;
+}
+
+.workspace-drawer .workspace-drawer__head h2 {
+  margin: 0;
+  font-size: clamp(32px, 5.3cqi, 50px);
+  font-weight: 650;
+  line-height: 1.22;
+  letter-spacing: -.035em;
+}
+
+.workspace-drawer .workspace-drawer__head p {
+  margin: 12px 0 0;
+  color: #c1d1e2;
+  font-size: clamp(16px, 2.3cqi, 19px);
+  line-height: 1.6;
+}
+
+.workspace-drawer .workspace-drawer__head .icon-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #65819d91;
+  border-radius: 50%;
+  background: #0c192ac9;
+  color: #dce9f6;
+}
+
+.workspace-drawer .workspace-drawer__head .icon-button:hover {
+  background: #253c52;
+  border-color: #98b5ce;
+}
+
+.workspace-drawer .workspace-drawer__body {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  padding-block: clamp(26px, 4.2cqi, 48px) max(44px, env(safe-area-inset-bottom));
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #425b74 var(--ws-canvas);
+}
+
+.workspace-drawer .workspace-drawer__resize {
+  position: absolute;
+  z-index: 3;
+  inset: 0 auto 0 0;
+  width: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  cursor: col-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.workspace-drawer .workspace-drawer__resize::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: #a7c8f7;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.workspace-drawer .workspace-drawer__resize::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: calc(50% - 24px);
+  width: 4px;
+  height: 48px;
+  border-radius: 4px;
+  background: #a7bfdc;
+  opacity: 0.58;
+  transition: opacity 120ms ease, box-shadow 120ms ease;
+}
+
+.workspace-drawer .workspace-drawer__resize:hover::before,
+.workspace-drawer .workspace-drawer__resize:focus-visible::before,
+.workspace-drawer .workspace-drawer__resize:active::before,
+.workspace-drawer .workspace-drawer__resize:hover::after,
+.workspace-drawer .workspace-drawer__resize:focus-visible::after,
+.workspace-drawer .workspace-drawer__resize:active::after {
+  opacity: 1;
+}
+
+.workspace-drawer .workspace-drawer__resize:focus-visible {
+  outline: none;
+}
+
+.workspace-drawer .workspace-drawer__resize:focus-visible::after {
+  box-shadow: 0 0 0 3px #0e1928, 0 0 0 5px #a7c8f7;
+}
+
+.workspace-drawer .form-hint {
+  margin: 24px 0;
+  font-size: 16px;
+  color: var(--ws-muted);
+  line-height: 1.75;
+}
+
+.workspace-drawer .form-actions {
+  gap: 12px 16px;
+  margin-top: 26px;
+}
+
+.workspace-drawer .primary,
+.workspace-drawer .secondary {
+  gap: 10px;
+  min-height: 50px;
+  padding: 10px 22px;
+  font-size: 17px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+
+.workspace-drawer .primary {
+  background: #d4e9ff;
+  color: #0d2841;
+}
+.workspace-drawer .primary:hover { background: #e8f3ff; }
+
+.workspace-drawer .secondary {
+  color: #e2edf8;
+  border-color: #425971;
+}
+.workspace-drawer .secondary:hover { background: #1c3045; }
+
+@container workspace-drawer (max-width: 560px) {
+  .workspace-drawer .workspace-drawer__head,
+  .workspace-drawer .workspace-drawer__body {
+    padding-inline: 22px;
+  }
+  .workspace-drawer .workspace-drawer__head p { margin-top: 8px; }
+}
+
+@media (max-width: 700px) {
+  dialog.workspace-drawer {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    border: 0;
+    box-shadow: var(--drawer-tail);
+  }
+  .workspace-drawer .workspace-drawer__resize { display: none; }
+}
+
+@media (max-height: 520px) {
+  .workspace-drawer .workspace-drawer__head { padding-block: 12px; }
+  .workspace-drawer .workspace-drawer__head h2 { font-size: 28px; }
+  .workspace-drawer .workspace-drawer__head p { margin-top: 2px; }
+}
+
+/* Carry the live sky underneath the configuration and run pages. */
+dialog.workspace-drawer[data-night-workspace] {
+  --ws-canvas: #061422;
+  --ws-text: #f4f0e8;
+  --ws-muted: #b6bcc1;
+  --ws-border: rgb(202 210 212 / 30%);
+  --run-gutter: max(clamp(18px, 3.9cqi, 52px), calc((100% - 1280px) / 2));
+  --run-fade: clamp(80px, 10vw, 190px);
+  --drawer-left-reach: max(var(--run-fade), 100vw - var(--drawer-width));
+  border: 0;
+  box-shadow: var(--drawer-tail);
+  background: transparent;
+  overflow: visible;
+  isolation: isolate;
+}
+
+.workspace-drawer[data-night-workspace]::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 calc(-1 * var(--run-fade));
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent, rgb(6 20 34 / 14%) calc(var(--run-fade) * .45),
+    rgb(6 20 34 / 74%) var(--run-fade),
+    rgb(6 20 34 / 96%) calc(var(--run-fade) * 1.48),
+    var(--ws-canvas) calc(var(--run-fade) * 1.85));
+}
+
+dialog.workspace-drawer[data-night-workspace]::backdrop {
+  background: rgb(3 12 21 / 8%);
+}
+
+.homepage :is(.hero-content, .header-actions) {
+  transition: opacity 250ms ease-out;
+}
+
+.homepage:has(.workspace-drawer[data-night-workspace][open]:not([data-closing])) :is(.hero-content, .header-actions) {
+  opacity: 0;
+}
+
+.workspace-drawer[data-night-workspace] :is(.workspace-drawer__head, .workspace-drawer__body) {
+  padding-inline: var(--run-gutter);
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__head {
+  position: relative;
+  padding-block: max(20px, min(4.3cqi, 3.15dvh), env(safe-area-inset-top)) clamp(15px, 2.25dvh, 26px);
+  border: 0;
+  background: transparent;
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__head::after {
+  content: "";
+  position: absolute;
+  inset: auto var(--run-gutter) 0;
+  border-bottom: 1px solid var(--ws-border);
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__head h2 {
+  color: var(--ws-text);
+  font-size: clamp(28px, min(4.95cqi, 4.2dvh), 52px);
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -.025em;
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__head .icon-button {
+  border: 0;
+  background: transparent;
+  color: var(--ws-text);
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__head .icon-button:hover {
+  background: rgb(244 240 232 / 9%);
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__body {
+  padding-block-start: 0;
+  padding-block-end: max(clamp(20px, 3dvh, 36px), env(safe-area-inset-bottom));
+  scrollbar-color: #485c6c transparent;
+}
+
+.workspace-drawer[data-night-workspace] :is(.workspace-drawer__head, .plan-run, .plan-config) :is(a, button):focus-visible {
+  outline: 2px solid #eadfcb;
+  outline-offset: 3px;
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__resize::after {
+  background: #a7bfdc;
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__resize::before {
+  display: none;
+}
+
+.workspace-drawer[data-night-workspace] .workspace-drawer__resize:not(:hover, :focus-visible, :active)::after {
+  opacity: 0;
+}
+
+/* Only the brand and download mark show through on the narrow strip of sky. */
+@media (min-width: 701px) {
+  .navigation :is(.nav-button > span, .nav-button[data-direction="up"]),
+  .navigation .nav-button::after {
+    transition: opacity 200ms ease-out;
+  }
+
+  .homepage:has(.workspace-drawer[data-night-workspace][open]:not([data-closing])) .navigation :is(.nav-button > span, .nav-button[data-direction="up"]),
+  .homepage:has(.workspace-drawer[data-night-workspace][open]:not([data-closing])) .navigation .nav-button::after {
+    opacity: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  dialog.workspace-drawer[data-night-workspace] {
+    --run-mobile-mark-size: clamp(76px, min(25vw, 23dvh), 112px);
+    background: var(--ws-canvas);
+  }
+  .workspace-drawer[data-night-workspace]::before { display: none; }
+
+}
+
+@media (max-height: 520px) {
+  .workspace-drawer[data-night-workspace] .workspace-drawer__head { padding-block: 10px; }
+  .workspace-drawer[data-night-workspace] .workspace-drawer__head h2 { font-size: 26px; }
+}
+
+@media (max-width: 700px) {
+  .workspace-drawer[data-night-workspace] .workspace-drawer__head {
+    padding-block-start: calc(max(8px, env(safe-area-inset-top)) + var(--run-mobile-mark-size) + 6px);
+    background: linear-gradient(0deg, var(--ws-canvas) 9%, rgb(6 20 34 / 54%) 66%, rgb(6 20 34 / 26%)),
+                url("/assets/radio-observatory.webp") center top / 100% auto;
+  }
+  .workspace-drawer[data-night-workspace] .workspace-drawer__head .icon-button {
+    position: absolute;
+    top: calc(max(8px, env(safe-area-inset-top)) + 4px);
+    right: var(--run-gutter);
+    color: #f4f4ee;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.workspace-drawer[open] {
+    --drawer-enter-duration: 620ms;
+    --drawer-exit-duration: 500ms;
+    --drawer-travel: clamp(24px, 4vw, 32px);
+    --drawer-settle: cubic-bezier(.21, .7, .3, 1);
+    /* Reveal the surface from the right with minimal physical movement. The
+       expanded final clip also exposes the night-sky feather or panel shadow. */
+    clip-path: inset(0 0 0 calc(0px - var(--drawer-left-reach, 64px)));
+    transition-property: transform, clip-path;
+    transition-duration: var(--drawer-enter-duration);
+    transition-timing-function: var(--drawer-settle);
+  }
+
+  dialog.workspace-drawer[data-closing="true"] {
+    clip-path: inset(0 0 0 100%);
+    transition-duration: var(--drawer-exit-duration);
+    transition-timing-function: var(--drawer-dismiss);
+  }
+
+  @starting-style {
+    dialog.workspace-drawer[open] { clip-path: inset(0 0 0 100%); }
+  }
+
+  dialog.workspace-drawer::backdrop,
+  .homepage :is(.hero-content, .header-actions),
+  .navigation :is(.nav-button > span, .nav-button[data-direction="up"]),
+  .navigation .nav-button::after {
+    transition-duration: 200ms;
+  }
+}

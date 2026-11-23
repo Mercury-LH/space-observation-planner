@@ -1,0 +1,111 @@
+{
+  "run_id": "20261113-083604-HR",
+  "algo": "H 价格协调（推荐）",
+  "metrics": {
+    "tasks": 239,
+    "covered": 239,
+    "coverage_rate": 0.0239,
+    "score": 618.0333333333334,
+    "combined": 0.022229311644822926,
+    "repeat_tasks": 0,
+    "mean_dur_s": 176.5481171548117,
+    "covered_高": 65,
+    "total_高": 2024,
+    "covered_中": 106,
+    "total_中": 3990,
+    "covered_低": 68,
+    "total_低": 3986,
+    "station_busy_h": [
+      8.5,
+      5.2,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "runtime_s": 0.2,
+  "config": {
+    "start_utc": "2026-08-01T00:00:00",
+    "days": 1.0,
+    "cell_s": 30,
+    "elev_min": 10.0,
+    "elev_max": 85.0,
+    "use_sun": true,
+    "sun_max": -6.0,
+    "use_sunlit": true,
+    "elev_margin": 0.02,
+    "sun_margin": 0.05,
+    "sunlit_margin_km": 10.0,
+    "moon_sep_deg": 0.0,
+    "moon_margin_deg": 0.5,
+    "obs_min_s": 120,
+    "obs_max_s": 240,
+    "switch_s": 30,
+    "repeat_gap_h": 48.0,
+    "priority_score": {
+      "高": 5.0,
+      "中": 3.0,
+      "低": 2.0
+    },
+    "w_cov": 0.5,
+    "w_score": 0.5,
+    "score_ref": "sumP",
+    "cache_dir": "/Users/mercury/Downloads/赛题/planner-product-experience/方案H初版/cache",
+    "seed": 2026
+  },
+  "subset": {
+    "target_frac": 0.05,
+    "stations": [
+      0,
+      1
+    ],
+    "seed": 0
+  },
+  "validation": {
+    "legal": true,
+    "violations": {},
+    "margins": [
+      0.01983975780600744,
+      0.4334248498470572,
+      0.05310222413402865
+    ],
+    "seconds": 1.1
+  },
+  "notes": {
+    "mode": "快速",
+    "famou_rule": true,
+    "rule_pick": {
+      "picked": "rule",
+      "objective": {
+        "rule": 0.024768688044707603,
+        "manual": 0.024390619386601024
+      }
+    },
+    "label": "重排：08-01 12:00 UTC 起 2 号站停机 6 小时",
+    "refine": {
+      "refined": true
+    },
+    "replan": {
+      "from": "20261113-083335-H",
+      "mode": "minimal",
+      "event": "08-01 12:00 UTC 起 2 号站停机 6 小时",
+      "diff": {
+        "保留": 100,
+        "移动": 2,
+        "新增": 0,
+        "删除": 34,
+        "冻结": 137,
+        "原计划 t 之后": 136,
+        "完全不变": 97,
+        "停机中断": 0,
+        "停机取消": 34,
+        "取消后改到别处": 2
+      }
+    }
+  }
+}

@@ -1,0 +1,70 @@
+/* The dock is centered in the exposed sky as the desktop sheet is resized. */
+.run-launch-slot {
+  --sky-width: calc(100vw - var(--drawer-width));
+  position: absolute;
+  z-index: 2;
+  left: calc(-.53 * var(--sky-width));
+  top: max(112px, 24.6dvh);
+  transform: translate(-50%, -50%);
+  display: grid;
+  width: clamp(48px, min(16vw, .74 * var(--sky-width), 30dvh), 240px);
+  aspect-ratio: 1;
+  place-items: center;
+  border-radius: 50%;
+}
+
+@media (max-width: 700px) {
+  .run-launch-slot {
+    width: var(--run-mobile-mark-size);
+    left: max(13.2vw, calc(4px + var(--run-mobile-mark-size) / 2));
+    top: calc(max(8px, env(safe-area-inset-top)) + var(--run-mobile-mark-size) / 2);
+  }
+}
+a.run-launch-slot:hover { background: rgb(173 210 232 / 7%); }
+.run-launch-slot[data-in-flight] svg,
+.elevation-label[data-in-flight] { visibility: hidden; }
+
+/* A manual popover keeps the moving pill above the modal and outside its sliding coordinate system. */
+.run-flight:popover-open {
+  display: block;
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  overflow: clip;
+  border: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.run-flight::backdrop { background: transparent; pointer-events: none; }
+.run-flight__actor,
+.run-flight__shell,
+.run-flight__word,
+.run-flight__symbol {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.run-flight__shell {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 999px;
+}
+.run-flight__word {
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.run-flight__symbol {
+  width: var(--flight-size);
+  height: var(--flight-size);
+  transform: translate(-50%, -50%);
+}
+.run-flight__symbol .run-orbit-mark__glyph {
+  transform-origin: center;
+  transform-box: fill-box;
+}

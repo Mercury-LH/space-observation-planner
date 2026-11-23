@@ -1,0 +1,131 @@
+/* From Uiverse.io by Novaxlo - https://uiverse.io/Novaxlo/rotten-lionfish-4
+MIT License, Copyright (c) Novaxlo (Novaxlo) */
+.earth-mark {
+  --earth-mark-size: 32px;
+  --earth-mark-water: #3344c1;
+  --earth-mark-land: #7cc133;
+  position: relative;
+  display: inline-block;
+  flex: 0 0 var(--earth-mark-size);
+  box-sizing: border-box;
+  width: 7.5em;
+  height: 7.5em;
+  font-size: calc(var(--earth-mark-size) / 7.5);
+  border: 0.15em solid #fff;
+  border-radius: 50%;
+  overflow: hidden;
+  background-color: var(--earth-mark-water);
+  box-shadow:
+    inset 0 0.5em rgba(255, 255, 255, 0.25),
+    inset 0 -0.5em rgba(0, 0, 0, 0.25);
+  animation: observatory-earth-mark-intro 1s;
+  pointer-events: none;
+}
+
+.earth-mark > svg.earth-mark__land {
+  position: absolute;
+  display: block;
+  width: 7em;
+  height: 7em;
+  max-width: none;
+  flex: none;
+  fill: var(--earth-mark-land);
+}
+
+.earth-mark > .earth-mark__land--1 {
+  bottom: -2em;
+  animation: observatory-earth-mark-round1 5s linear infinite 0.75s;
+}
+
+.earth-mark > .earth-mark__land--2 {
+  top: -3em;
+  animation: observatory-earth-mark-round1 5s linear infinite;
+}
+
+.earth-mark > .earth-mark__land--3 {
+  top: -2.5em;
+  animation: observatory-earth-mark-round2 5s linear infinite;
+}
+
+.earth-mark > .earth-mark__land--4 {
+  bottom: -2.2em;
+  animation: observatory-earth-mark-round2 5s linear infinite 0.75s;
+}
+
+@keyframes observatory-earth-mark-intro {
+  0%,
+  75% {
+    filter: brightness(500%);
+    box-shadow: none;
+  }
+  100% {
+    filter: brightness(100%);
+    box-shadow:
+      inset 0 0.5em rgba(255, 255, 255, 0.25),
+      inset 0 -0.5em rgba(0, 0, 0, 0.25);
+  }
+}
+
+@keyframes observatory-earth-mark-round1 {
+  0%,
+  100% {
+    left: -2em;
+    transform: skew(0deg) rotate(0deg);
+    opacity: 1;
+  }
+  30% {
+    left: -6em;
+    transform: skew(-25deg) rotate(25deg);
+    opacity: 1;
+  }
+  31% {
+    left: -6em;
+    transform: skew(-25deg) rotate(25deg);
+    opacity: 0;
+  }
+  35% {
+    left: 7em;
+    transform: skew(25deg) rotate(-25deg);
+    opacity: 0;
+  }
+  45% {
+    left: 7em;
+    transform: skew(25deg) rotate(-25deg);
+    opacity: 1;
+  }
+}
+
+@keyframes observatory-earth-mark-round2 {
+  0%,
+  100% {
+    left: 5em;
+    transform: skew(0deg) rotate(0deg);
+    opacity: 1;
+  }
+  75% {
+    left: -7em;
+    transform: skew(-25deg) rotate(25deg);
+    opacity: 1;
+  }
+  76% {
+    left: -7em;
+    transform: skew(-25deg) rotate(25deg);
+    opacity: 0;
+  }
+  77% {
+    left: 8em;
+    transform: skew(25deg) rotate(-25deg);
+    opacity: 0;
+  }
+  80% {
+    left: 8em;
+    transform: skew(25deg) rotate(-25deg);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 800px) {
+  .earth-mark {
+    --earth-mark-size: 28px;
+  }
+}

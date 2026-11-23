@@ -1,0 +1,68 @@
+/* All three image layers share a (170, 418, 455, 305) crop in the
+   1672 × 941 photograph. The mount follows the same scene crop on phones. */
+.telescope-mount {
+  --first-angle: -8deg;
+  --second-angle: 6deg;
+  --tracking-cycle: 14s;
+  position: absolute;
+  left: calc(170 / 1672 * 100%);
+  top: calc(418 / 941 * 100%);
+  width: calc(455 / 1672 * 100%);
+  height: calc(305 / 941 * 100%);
+  visibility: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  user-select: none;
+}
+
+.telescope-mount[data-ready="true"] { visibility: visible; }
+
+.telescope-mount img,
+.telescope-mount__rotor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.telescope-mount img { display: block; }
+.telescope-mount__rotor { transform-origin: calc(147 / 455 * 100%) calc(223 / 305 * 100%); }
+
+.telescope-mount[data-ready="true"] .telescope-mount__rotor {
+  animation: dish-track var(--tracking-cycle) cubic-bezier(.32, 0, .36, 1) infinite;
+}
+
+@keyframes dish-track {
+  0%, 94%, 100% { transform: rotate(0deg); }
+  13%, 33% { transform: rotate(var(--first-angle)); }
+  54%, 79% { transform: rotate(var(--second-angle)); }
+}
+
+.telescope-mount__receiver {
+  position: absolute;
+  left: calc(283 / 455 * 100%);
+  top: calc(19 / 305 * 100%);
+  width: clamp(24px, 10.2%, 56px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+}
+
+.telescope-mount__pulse {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle,
+    #f1fbff 0% 9%, #c5edff 13%, rgb(134 207 246 / 80%) 23%,
+    rgb(140 208 250 / 32%) 41%, rgb(121 194 238 / 8%) 60%, transparent 74%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .telescope-mount {
+    --first-angle: -4.75deg;
+    --second-angle: 3.75deg;
+    --tracking-cycle: 18s;
+  }
+  .telescope-mount__receiver { opacity: .75; }
+}

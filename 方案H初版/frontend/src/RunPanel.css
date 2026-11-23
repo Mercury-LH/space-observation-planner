@@ -1,0 +1,71 @@
+.plan-run {
+  color: var(--ws-text);
+}
+
+.run-sheet__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  padding-block: clamp(8px, 1.65dvh, 20px) clamp(14px, 3.7dvh, 40px);
+}
+
+.run-sheet__head h3 {
+  margin: 0;
+  font-size: clamp(18px, min(3.1cqi, 2.78dvh), 31px);
+  font-weight: 650;
+  letter-spacing: -.02em;
+  line-height: 1.4;
+}
+
+.run-edit {
+  min-height: 44px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
+  color: var(--ws-muted);
+  font-size: clamp(15px, min(2.2cqi, 1.97dvh), 21px);
+  line-height: 1.4;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: .28em;
+}
+
+.run-edit:hover { color: var(--ws-text); text-decoration-thickness: 2px; }
+
+.workspace-drawer .plan-run .form-actions {
+  justify-content: flex-end;
+  margin: clamp(18px, 3.2dvh, 36px) 0 0;
+}
+
+.workspace-drawer .plan-run .primary {
+  min-height: 48px;
+  padding: .62em 1.35em;
+  border: 0;
+  border-radius: 6px;
+  background: #eeeae0;
+  color: #18232a;
+  font-size: clamp(17px, min(2.6cqi, 2.3dvh), 25px);
+  line-height: 1.4;
+  gap: .65em;
+}
+.plan-run .primary svg { width: 1.12em; height: 1.12em; }
+.workspace-drawer .plan-run .primary:hover { background: #fffaf0; }
+
+@container workspace-drawer (max-width: 480px) {
+  .run-sheet__head { padding-block: 5px 16px; }
+}
+
+.run-algorithm {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: .3em .85em;
+  margin: 0;
+  font-size: clamp(15px, 2cqi, 21px);
+  line-height: 1.5;
+}
+.run-algorithm dt { color: var(--ws-muted); }
+.run-algorithm dd { margin: 0; color: var(--ws-text); font-weight: 550; }

@@ -1,0 +1,25 @@
+/* A near-zero dash with round caps is a dot. Its offset uses the same
+   normalized 0–100 path length on every route, at every map size. */
+.observatory-network .network-signal {
+  stroke-dasharray: 0.01 200;
+  animation: network-signal-flight var(--flight-duration) linear var(--flight-delay) both;
+}
+
+@keyframes network-signal-flight {
+  0% { stroke-dashoffset: 0; opacity: 0; }
+  6%, 94% { opacity: 1; }
+  100% { stroke-dashoffset: -100; opacity: 0; }
+}
+
+@media (max-width: 800px) {
+  .observatory-network .network-signal {
+    --signal-core: 16;
+    --signal-halo: 32;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .observatory-network .network-signals { opacity: .88; }
+  .observatory-network .network-signal { animation-duration: calc(var(--flight-duration) * 1.8); }
+  .observatory-network .network-signal:last-child { display: none; }
+}

@@ -1,0 +1,10 @@
+.run-orbit-mark {
+  display: block;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+@media (forced-colors: active) {
+  .run-orbit-mark :is(path, circle) { stroke: CanvasText; }
+}

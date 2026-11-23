@@ -1,0 +1,87 @@
+.observation-clock {
+  display: block;
+  width: 100%;
+  max-width: 510px;
+  height: auto;
+  margin: 0 auto;
+  color: #dcaf88;
+  overflow: visible;
+  font-variant-numeric: tabular-nums;
+}
+
+.observation-clock__rim {
+  stroke: #566674;
+  stroke-width: .6;
+}
+
+.observation-clock__tick {
+  stroke: #a9b5be;
+  stroke-width: .75;
+}
+
+.observation-clock__bed {
+  stroke: #20303c;
+}
+
+.observation-clock__tasks[data-track="0"] {
+  stroke: var(--results-station-1, #bfdaf0);
+}
+
+.observation-clock__tasks[data-track="1"] {
+  stroke: var(--results-station-2, #deb08c);
+}
+
+.observation-clock__highlight [data-track="0"] {
+  stroke: #eff7fd;
+}
+
+.observation-clock__highlight [data-track="1"] {
+  stroke: #ffddba;
+}
+
+.observation-clock__bezel,
+.observation-clock__motion {
+  transform-box: view-box;
+  transform-origin: 0 0;
+  animation: observation-clock-scan 13s linear infinite;
+}
+
+.observation-clock__hours,
+.observation-clock__total {
+  text-anchor: middle;
+  fill: #f0ede7;
+}
+
+.observation-clock__hours {
+  dominant-baseline: central;
+  font-size: 17px;
+  font-weight: 400;
+  fill: #d4dde2;
+}
+
+.observation-clock__count {
+  font: 400 75px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;
+  letter-spacing: -.05em;
+}
+
+.observation-clock__caption {
+  font-size: 18px;
+  font-weight: 450;
+  fill: #dce2e4;
+}
+
+@keyframes observation-clock-scan {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .observation-clock__bezel,
+  .observation-clock__motion {
+    animation: none;
+  }
+
+  .observation-clock__highlight,
+  .observation-clock__tracer {
+    display: none;
+  }
+}
