@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./ConfigurationPanel.css";
+import { WorkspaceAction } from "./WorkspaceAction";
+import { WorkspaceDownloadIcon, animateWorkspaceDownload } from "./WorkspaceDownloadIcon";
 import { LandscapeMotion } from "./LandscapeMotion";
 import { TelescopeMount } from "./TelescopeMount";
 import { Meteors } from "./Meteors";
@@ -8,6 +10,7 @@ import { ElevationMenu } from "./ElevationMenu";
 import { EarthMark } from "./EarthMark";
 import Results from "./ResultsPanel";
 import { WorkspaceDrawer } from "./WorkspaceDrawer";
+import { AuxiliaryDialog } from "./AuxiliaryDialog";
 import { captureWorkspacePill } from "./RunLaunchBadge";
 import PlanningWindow from "./PlanningWindow";
 import RunStationTable from "./RunStationTable";
@@ -15,9 +18,7 @@ import "./RunPanel.css";
 import {
   ArrowUpRightIcon,
   ArrowRightIcon,
-  DownloadSimpleIcon,
   UploadSimpleIcon,
-  XIcon,
   QuestionIcon,
   FileTextIcon,
   CheckIcon,
@@ -48,36 +49,6 @@ function downloadText(name, text, type = "text/plain;charset=utf-8") {
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
-function Modal({ title, subtitle, onClose, children }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const dialog = ref.current;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className="dialog"
-      aria-labelledby="dialog-title"
-      onCancel={onClose}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="dialog-head">
-        <div>
-          <h2 id="dialog-title">{title}</h2>
-          <p>{subtitle}</p>
-        </div>
-        <button className="icon-button" aria-label="关闭面板" onClick={onClose}>
-          <XIcon size={21} />
-        </button>
-      </div>
-      <div className="dialog-body">{children}</div>
-    </dialog>
-  );
-}
 function ConfigurePlan({ configuration, saved, onSave, onRun }) {
   const [date, setDate] = useState(configuration.date);
   const [days, setDays] = useState(configuration.days);
@@ -87,6 +58,15 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
   const ready = saved && date === configuration.date && Number(days) === Number(configuration.days)
     && algo === savedAlgorithm && stations.length === configuration.stations.length
     && stations.every((station) => configuration.stations.includes(station));
+  const saveInteraction = useRef(null);
+  const savedNotice = useRef(null);
+  const nextAction = useRef(null);
+  useLayoutEffect(() => {
+    if (!ready || !saveInteraction.current) return;
+    savedNotice.current.dataset.justSaved = "";
+    if (saveInteraction.current.moveFocus) nextAction.current.focus({ preventScroll: true });
+    saveInteraction.current = null;
+  }, [ready]);
   const config = {
     start_utc: `${date}T00:00:00Z`,
     days: Number(days),
@@ -99,7 +79,9 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
       className="plan-config"
       onSubmit={(e) => {
         e.preventDefault();
-        if (date && stations.length) onSave({ date, days, stations, algo });
+        if (!date || !stations.length || ready) return;
+        saveInteraction.current = { moveFocus: document.activeElement === e.nativeEvent.submitter };
+        onSave({ date, days, stations, algo });
       }}
     >
       <fieldset>
@@ -146,8 +128,11 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
       </fieldset>
       <div className="plan-config__footer">
         {ready ? (
-          <div className="notice" role="status">
-            <CheckIcon size={22} aria-hidden="true" />
+          <div className="notice" role="status" ref={savedNotice}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path className="plan-config__saved-check" d="m3 12 6 6L21 6" pathLength="1" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
             <div>
               <strong>配置已保存</strong>
               <p>{days} 天 · {stations.length} 个站点 · {algo} {algorithms[algo]}</p>
@@ -161,25 +146,24 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
         <div className="form-actions">
           {ready ? (
             <>
-              <button className="primary" type="button" onClick={onRun}>
+              <WorkspaceAction className="primary" type="button" onClick={onRun} ref={nextAction}>
                 前往运行 <ArrowRightIcon size={20} aria-hidden="true" />
-              </button>
-              <button
+              </WorkspaceAction>
+              <WorkspaceAction
                 className="secondary"
                 type="button"
-                onClick={() => downloadText(
-                  "observation-config.json",
-                  JSON.stringify(config, null, 2),
-                  "application/json",
-                )}
+                onClick={(event) => {
+                  animateWorkspaceDownload(event);
+                  downloadText("observation-config.json", JSON.stringify(config, null, 2), "application/json");
+                }}
               >
-                下载配置 <DownloadSimpleIcon size={20} aria-hidden="true" />
-              </button>
+                下载配置 <WorkspaceDownloadIcon />
+              </WorkspaceAction>
             </>
           ) : (
-            <button className="primary" disabled={!stations.length || !date} type="submit">
+            <WorkspaceAction className="primary" disabled={!stations.length || !date} type="submit">
               保存规划配置 <CheckIcon size={20} aria-hidden="true" />
-            </button>
+            </WorkspaceAction>
           )}
         </div>
       </div>
@@ -193,9 +177,15 @@ function RunPlan({ configuration, saved, onConfigure }) {
       <section className="run-sheet" aria-labelledby="run-config-heading">
         <header className="run-sheet__head">
           <h3 id="run-config-heading">{saved ? "已保存的规划配置" : "当前默认配置"}</h3>
-          <button type="button" className="run-edit" onClick={onConfigure}>
+          <WorkspaceAction type="button" className="run-edit" onClick={onConfigure}>
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              strokeWidth="1.6" strokeLinecap="round">
+              <path d="M2.5 7h19M2.5 17h19" />
+              <circle cx="8" cy="7" r="2.8" />
+              <circle cx="16" cy="17" r="2.8" />
+            </svg>
             修改参数
-          </button>
+          </WorkspaceAction>
         </header>
         <PlanningWindow days={configuration.days} startDate={configuration.date} />
         <RunStationTable stations={configuration.stations} />
@@ -205,7 +195,7 @@ function RunPlan({ configuration, saved, onConfigure }) {
           <dt>规划算法</dt>
           <dd>{algo} {algorithms[algo]}</dd>
         </dl>
-        <a
+        <WorkspaceAction as="a"
           className="primary"
           href={planningWorkbenchUrl}
           target="_blank"
@@ -213,7 +203,7 @@ function RunPlan({ configuration, saved, onConfigure }) {
         >
           进入规划安排
           <ArrowUpRightIcon size={20} aria-hidden="true" />
-        </a>
+        </WorkspaceAction>
       </div>
     </div>
   );
@@ -316,7 +306,7 @@ export function App() {
   const downloadTrigger = useRef(null);
   const workspaceTrigger = useRef(null);
   const runOrigin = useRef(null);
-  const PanelContainer = entries.some((entry) => entry.id === panel) ? WorkspaceDrawer : Modal;
+  const PanelContainer = entries.some((entry) => entry.id === panel) ? WorkspaceDrawer : AuxiliaryDialog;
   function openPanel(id, trigger) {
     if (trigger) {
       workspaceTrigger.current = trigger;
@@ -352,6 +342,27 @@ export function App() {
     upload: "上传数据",
     help: "从这里开始",
   };
+  function renderWorkspacePage(page) {
+    if (page === "run") return (
+      <RunPlan
+        configuration={configuration}
+        saved={saved}
+        onConfigure={() => openPanel("configure")}
+      />
+    );
+    if (page === "configure") return (
+      <ConfigurePlan
+        configuration={configuration}
+        saved={saved}
+        onSave={(value) => {
+          setConfiguration(value);
+          setSaved(true);
+        }}
+        onRun={() => openPanel("run")}
+      />
+    );
+    return <Results />;
+  }
   const subtitles = {
     upload: "选择文件，先检查数据内容。",
     help: "安排哪个站、在什么时候、观测哪个目标。",
@@ -433,14 +444,14 @@ export function App() {
             label="上传数据"
             direction="up"
             aria-haspopup="dialog"
-            onClick={() => openPanel("upload")}
+            onClick={(event) => openPanel("upload", event.currentTarget)}
           />
         </nav>
         <div className="header-actions">
           <button
             className="icon-button help-button"
             aria-label="使用帮助"
-            onClick={() => openPanel("help")}
+            onClick={(event) => openPanel("help", event.currentTarget)}
           >
             <QuestionIcon size={21} weight="light" />
           </button>
@@ -455,30 +466,13 @@ export function App() {
           runOrigin={runOrigin.current}
           workbenchUrl={planningWorkbenchUrl}
           workspacePage={panel}
+          pageTitles={titles}
+          renderPage={renderWorkspacePage}
           title={titles[panel]}
           subtitle={subtitles[panel]}
           onClose={() => setPanel(null)}
           returnFocusRef={workspaceTrigger}
         >
-          {panel === "run" && (
-            <RunPlan
-              configuration={configuration}
-              saved={saved}
-              onConfigure={() => openPanel("configure")}
-            />
-          )}
-          {panel === "configure" && (
-            <ConfigurePlan
-              configuration={configuration}
-              saved={saved}
-              onSave={(value) => {
-                setConfiguration(value);
-                setSaved(true);
-              }}
-              onRun={() => openPanel("run")}
-            />
-          )}
-          {panel === "results" && <Results />}
           {panel === "upload" && <UploadPanel />}
           {panel === "help" && (
             <div className="help-content">

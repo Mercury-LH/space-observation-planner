@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { CaretLeftIcon, CaretRightIcon, CheckIcon, DownloadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { CaretLeftIcon, CaretRightIcon, CheckIcon, XIcon } from "@phosphor-icons/react";
 import ObservationClock from "./ObservationClock";
+import { WorkspaceAction } from "./WorkspaceAction";
+import { WorkspaceDownloadIcon, animateWorkspaceDownload } from "./WorkspaceDownloadIcon";
 import { loadObservationResults, resultFiles } from "./resultsData";
 import "./ResultsPanel.css";
 
@@ -17,18 +19,32 @@ function durationLabel(value) {
 }
 
 function TaskDetails({ tasks }) {
-  const [page, setPage] = useState(0);
+  const [{ page, direction }, setPagination] = useState({ page: 0, direction: null });
   const offset = page * pageSize;
   const rows = tasks.slice(offset, offset + pageSize);
+  const lastPage = Math.max(0, Math.ceil(tasks.length / pageSize) - 1);
+
+  function turnPage(step) {
+    setPagination((current) => {
+      const next = current.page + step;
+      if (next < 0 || next > lastPage) return current;
+      return { page: next, direction: step > 0 ? "next" : "previous" };
+    });
+  }
+
   return (
     <section className="result-details" aria-labelledby="result-details-title">
       <div className="result-details__head">
         <h3 id="result-details-title">观测任务明细</h3>
         <div className="result-downloads">
-          <a className="result-downloads__plan" href={resultFiles.plan} download>
-            <DownloadSimpleIcon aria-hidden="true" size={20} />下载计划 CSV
-          </a>
-          <a className="result-downloads__summary" href={resultFiles.summary} download>摘要 JSON</a>
+          <WorkspaceAction as="a" className="result-downloads__plan" href={resultFiles.plan}
+            download onClick={animateWorkspaceDownload}>
+            <WorkspaceDownloadIcon />下载计划 CSV
+          </WorkspaceAction>
+          <WorkspaceAction as="a" className="result-downloads__summary" href={resultFiles.summary}
+            download onClick={animateWorkspaceDownload}>
+            <WorkspaceDownloadIcon />摘要 JSON
+          </WorkspaceAction>
         </div>
       </div>
       <table className="result-table" aria-labelledby="result-details-title">
@@ -36,7 +52,7 @@ function TaskDetails({ tasks }) {
           <th scope="col">目标名称</th><th scope="col">站点</th>
           <th scope="col">观测时段 <span>UTC</span></th><th scope="col">时长</th>
         </tr></thead>
-        <tbody>
+        <tbody key={page} data-turn={direction}>
           {rows.map((task) => (
             <tr key={task.task_id}>
               <td>
@@ -60,8 +76,16 @@ function TaskDetails({ tasks }) {
         <div className="result-pages">
           <span aria-live="polite">{offset + 1}–{offset + rows.length} / {tasks.length} 项</span>
           {tasks.length > pageSize && <div>
-            <button type="button" aria-label="上一页任务" disabled={!page} onClick={() => setPage(page - 1)}><CaretLeftIcon aria-hidden="true" /></button>
-            <button type="button" aria-label="下一页任务" disabled={offset + rows.length >= tasks.length} onClick={() => setPage(page + 1)}><CaretRightIcon aria-hidden="true" /></button>
+            <WorkspaceAction type="button" aria-label="上一页任务"
+              aria-disabled={page === 0} tabIndex={page === 0 ? -1 : 0}
+              data-turn="previous" onClick={() => turnPage(-1)}>
+              <CaretLeftIcon aria-hidden="true" />
+            </WorkspaceAction>
+            <WorkspaceAction type="button" aria-label="下一页任务"
+              aria-disabled={page === lastPage} tabIndex={page === lastPage ? -1 : 0}
+              data-turn="next" onClick={() => turnPage(1)}>
+              <CaretRightIcon aria-hidden="true" />
+            </WorkspaceAction>
           </div>}
         </div>
       )}

@@ -19,39 +19,18 @@
   line-height: 1.4;
 }
 
-.run-edit {
-  min-height: 44px;
-  padding: 0 2px;
-  border: 0;
-  background: transparent;
-  color: var(--ws-muted);
-  font-size: clamp(15px, min(2.2cqi, 1.97dvh), 21px);
-  line-height: 1.4;
-  text-decoration: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: .28em;
+.run-edit svg { width: 1.1em; height: 1.1em; flex: none; }
+.run-edit circle {
+  fill: var(--mule-surface);
+  transition: fill var(--mule-transition);
 }
-
-.run-edit:hover { color: var(--ws-text); text-decoration-thickness: 2px; }
 
 .workspace-drawer .plan-run .form-actions {
   justify-content: flex-end;
   margin: clamp(18px, 3.2dvh, 36px) 0 0;
 }
 
-.workspace-drawer .plan-run .primary {
-  min-height: 48px;
-  padding: .62em 1.35em;
-  border: 0;
-  border-radius: 6px;
-  background: #eeeae0;
-  color: #18232a;
-  font-size: clamp(17px, min(2.6cqi, 2.3dvh), 25px);
-  line-height: 1.4;
-  gap: .65em;
-}
 .plan-run .primary svg { width: 1.12em; height: 1.12em; }
-.workspace-drawer .plan-run .primary:hover { background: #fffaf0; }
 
 @container workspace-drawer (max-width: 480px) {
   .run-sheet__head { padding-block: 5px 16px; }

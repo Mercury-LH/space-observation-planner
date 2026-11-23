@@ -1,0 +1,36 @@
+.auxiliary-dialog[open] {
+  --aux-travel: calc(50vw + 50% + 16px);
+  --aux-enter: 900ms;
+  --aux-exit: 600ms;
+  --aux-settle: cubic-bezier(.28,.66,.28,1.08);
+  transform: translateX(0);
+  transition: transform var(--aux-enter) var(--aux-settle);
+}
+
+.auxiliary-dialog::backdrop {
+  opacity: 1;
+  transition: opacity 230ms ease;
+}
+
+.auxiliary-dialog[data-closing] {
+  transform: translateX(var(--aux-travel));
+  transition: transform var(--aux-exit) cubic-bezier(.4,0,.55,1);
+  pointer-events: none;
+}
+
+.auxiliary-dialog[data-closing]::backdrop { opacity: 0; }
+
+@starting-style {
+  .auxiliary-dialog[open] { transform: translateX(var(--aux-travel)); }
+  .auxiliary-dialog[open]::backdrop { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auxiliary-dialog[open] {
+    --aux-travel: 10px;
+    --aux-enter: 150ms;
+    --aux-exit: 120ms;
+    --aux-settle: ease-out;
+  }
+  .auxiliary-dialog::backdrop { transition-duration: 100ms; }
+}

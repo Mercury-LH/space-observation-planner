@@ -156,7 +156,7 @@ export function RunLaunchBadge({ ref, origin, page, title, href }) {
       <div className="run-flight" popover="manual" inert aria-hidden="true" ref={layerRef}>
         <div className="run-flight__actor">
           <span className="run-flight__shell" />
-          <span className="run-flight__word">{title}</span>
+          <span className="run-flight__word">{origin?.label.textContent || title}</span>
           <span className="run-flight__symbol"><RunOrbitMark page={page} /></span>
         </div>
       </div>

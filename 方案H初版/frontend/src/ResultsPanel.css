@@ -121,31 +121,7 @@
   letter-spacing: -.025em;
   font-weight: 650;
 }
-.result-downloads { gap: clamp(10px, 1.6cqi, 24px); }
-.result-downloads a {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  min-height: 44px;
-  font-weight: 500;
-  font-size: clamp(14px, 1.65cqi, 19px);
-}
-.result-downloads__plan {
-  gap: .55em;
-  padding: .48em .95em;
-  border-radius: 6px;
-  color: #12212e;
-  background: #efeae0;
-}
-.result-downloads__plan:hover { background: #fffaf0; }
-.result-downloads__summary { gap: clamp(10px, 1.6cqi, 24px); color: #d2d7d9; }
-.result-downloads__summary::before {
-  content: "";
-  width: 1px;
-  height: 1em;
-  background: var(--result-rule);
-}
-.result-downloads__summary:hover { color: #fffaf0; text-decoration: underline; text-underline-offset: 4px; }
+.result-downloads { flex-wrap: wrap; gap: clamp(8px, 1.25cqi, 18px); }
 .plan-results :is(a, button):focus-visible { outline: 2px solid var(--ws-text); outline-offset: 3px; }
 
 .result-table {
@@ -180,18 +156,20 @@
 .result-table__times time { white-space: nowrap; }
 .result-table__dash { color: #95a2aa; }
 .result-pages { justify-content: flex-end; gap: 1em; margin-top: .4em; color: #afb9c0; font-size: 14px; }
-.result-pages button {
-  display: grid;
-  place-items: center;
-  width: 44px;
-  min-height: 44px;
-  background: transparent;
-  border: 0;
-  border-radius: 4px;
-  color: var(--ws-text);
+.result-pages > div { gap: 6px; }
+.result-pages button[aria-disabled="true"] { opacity: .35; }
+.result-table tbody[data-turn="previous"] { --page-arrival: -14px; }
+.result-table tbody[data-turn="next"] { --page-arrival: 14px; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .result-table tbody[data-turn] {
+    animation: result-page-turn 300ms cubic-bezier(.22,.7,.24,1);
+  }
 }
-.result-pages button:hover:enabled { background: rgb(244 240 232 / 8%); }
-.result-pages button:disabled { opacity: .35; cursor: default; }
+@keyframes result-page-turn {
+  from { transform: translateX(var(--page-arrival)); }
+  to { transform: translateX(0); }
+}
 
 @container workspace-drawer (max-width: 690px) {
   .result-figure { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }

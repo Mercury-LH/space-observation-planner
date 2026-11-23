@@ -68,8 +68,10 @@
 .plan-config__stations label { white-space: nowrap; }
 .plan-config .plan-config__algorithms label { min-height: clamp(46px, 7dvh, 75px); }
 
-.plan-config :is(.plan-config__stations, .plan-config__algorithms) label:hover {
-  background: rgb(232 233 228 / 4%);
+@media (hover: hover) {
+  .plan-config :is(.plan-config__stations, .plan-config__algorithms) label:hover {
+    background: rgb(232 233 228 / 4%);
+  }
 }
 
 .workspace-drawer .plan-config :is(.plan-config__stations, .plan-config__algorithms) input:is([type="radio"], [type="checkbox"]) {
@@ -95,8 +97,10 @@
   border-color: var(--ws-text);
   background: var(--ws-text);
 }
-.workspace-drawer .plan-config .plan-config__stations input[type="checkbox"]:checked::after {
+.workspace-drawer .plan-config .plan-config__stations input[type="checkbox"]::after {
   content: "";
+  opacity: 0;
+  scale: .65;
   width: .46em;
   height: .24em;
   transform: translateY(-.05em) rotate(-45deg);
@@ -107,8 +111,10 @@
 .workspace-drawer .plan-config .plan-config__algorithms input[type="radio"]:checked {
   border-color: var(--ws-text);
 }
-.workspace-drawer .plan-config .plan-config__algorithms input[type="radio"]:checked::after {
+.workspace-drawer .plan-config .plan-config__algorithms input[type="radio"]::after {
   content: "";
+  opacity: 0;
+  scale: .5;
   width: .56em;
   height: .56em;
   border-radius: 50%;
@@ -154,25 +160,6 @@
   max-width: 100%;
   margin: 0 0 0 auto;
 }
-.workspace-drawer .plan-config__footer :is(.primary, .secondary) {
-  min-height: 46px;
-  padding: .62em 1.3em;
-  border-radius: 6px;
-  font-size: clamp(16px, min(2.6cqi, 2.3dvh), 25px);
-  line-height: 1.4;
-}
-.workspace-drawer .plan-config__footer .primary {
-  border: 0;
-  background: #eeeae0;
-  color: #18232a;
-}
-.workspace-drawer .plan-config__footer .secondary {
-  border: 1px solid var(--ws-border);
-  background: transparent;
-  color: var(--ws-text);
-}
-.workspace-drawer .plan-config__footer .primary:hover:not(:disabled) { background: #fffaf0; }
-.workspace-drawer .plan-config__footer .secondary:hover { background: rgb(232 233 228 / 6%); }
 .plan-config__footer .form-actions svg { width: 1.1em; height: 1.1em; }
 
 @container workspace-drawer (max-width: 640px) {
@@ -183,10 +170,37 @@
   .plan-config__footer { align-items: flex-start; }
 }
 
+
+.workspace-drawer .plan-config :is(.plan-config__stations, .plan-config__algorithms) input:checked::after {
+  opacity: 1;
+  scale: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .plan-config :is(.plan-config__stations, .plan-config__algorithms) label {
+    transition: background-color 160ms ease;
+  }
+  .plan-config :is(.plan-config__stations, .plan-config__algorithms) input {
+    transition: background-color 160ms, border-color 160ms;
+  }
+  .plan-config :is(.plan-config__stations, .plan-config__algorithms) input::after {
+    transition: opacity 140ms, scale 220ms cubic-bezier(.22,.8,.3,1.16);
+  }
+  .plan-config__footer .notice[data-just-saved] .plan-config__saved-check {
+    stroke-dasharray: 1;
+    animation: plan-config-confirm 360ms cubic-bezier(.2,.65,.25,1) both;
+  }
+}
+
+@keyframes plan-config-confirm {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+
 @media (forced-colors: active) {
   .workspace-drawer .plan-config :is(.plan-config__stations, .plan-config__algorithms) input:is([type="radio"], [type="checkbox"]) {
     appearance: auto;
     forced-color-adjust: auto;
   }
-  .workspace-drawer .plan-config :is(.plan-config__stations, .plan-config__algorithms) input:is([type="radio"], [type="checkbox"]):checked::after { content: none; }
+  .workspace-drawer .plan-config :is(.plan-config__stations, .plan-config__algorithms) input:is([type="radio"], [type="checkbox"])::after { content: none; }
 }

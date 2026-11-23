@@ -1,20 +1,27 @@
 import "./WorkspaceDrawer.css";
+import "./WorkspaceActions.css";
 import { RunLaunchBadge } from "./RunLaunchBadge";
 import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { XIcon } from "@phosphor-icons/react";
 
-export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, title, subtitle, onClose, children, returnFocusRef }) {
+export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, pageTitles, renderPage, onClose, returnFocusRef }) {
   const headingId = useId();
-  const subtitleId = useId();
   const bodyId = useId();
   const dialogRef = useRef(null);
   const badgeRef = useRef(null);
   const returnFlight = useRef(null);
   const headingRef = useRef(null);
-  const bodyRef = useRef(null);
+  const trackRef = useRef(null);
   const triggerRef = useRef(null);
   const openingPageRef = useRef(workspacePage);
-  const previousPageRef = useRef(workspacePage);
+  const [route, setRoute] = useState({ active: workspacePage, leaving: null });
+  if (route.active !== workspacePage) {
+    setRoute({ active: workspacePage, leaving: route.active });
+  }
+  // The entry chosen on the homepage is the root of this navigation stack.
+  const rootPage = openingPageRef.current;
+  const pages = rootPage === "results" ? [rootPage] : [rootPage, rootPage === "run" ? "configure" : "run"];
+  const depth = pages.indexOf(workspacePage);
   const interactionRef = useRef({ resize: null, backdropDown: false });
   const [preferredWidth, setPreferredWidth] = useState(null);
   const [viewport, setViewport] = useState(() => window.innerWidth);
@@ -57,19 +64,22 @@ export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, title,
   }, []);
 
   useLayoutEffect(() => {
-    const body = bodyRef.current;
-    body.scrollTop = 0;
     headingRef.current?.focus({ preventScroll: true });
-    if (previousPageRef.current === workspacePage) return;
-    previousPageRef.current = workspacePage;
-    // The sheet stays in place when changing between configuration and review.
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const reveal = body.animate([
-      { opacity: 0, transform: reducedMotion ? "none" : "translateY(6px)" },
-      { opacity: 1, transform: "none" },
-    ], { duration: reducedMotion ? 200 : 240, easing: "cubic-bezier(.2,.75,.3,1)" });
-    return () => reveal.cancel();
   }, [workspacePage]);
+
+  useLayoutEffect(() => {
+    if (!route.leaving) return;
+    let current = true;
+    function settle() {
+      if (current) setRoute({ active: workspacePage, leaving: null });
+    }
+    // Keep both React trees during travel. CSS can then reverse from the current
+    // position on a second click, including a partially completed first hop.
+    const slide = trackRef.current.getAnimations().find((a) => a.transitionProperty === "transform");
+    if (slide) slide.finished.then(settle, settle);
+    else settle();
+    return () => { current = false; };
+  }, [workspacePage, route.leaving]);
 
   useEffect(() => {
     let frame = 0;
@@ -152,10 +162,9 @@ export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, title,
       className="dialog workspace-drawer"
       data-workspace-page={workspacePage}
       data-night-workspace=""
-      style={{ "--drawer-width": `${width}px` }}
+      style={{ "--drawer-width": `${width}px`, "--workspace-page-offset": `${-100 * depth}%` }}
       data-closing={closing ? "true" : undefined}
       aria-labelledby={headingId}
-      aria-describedby={subtitle ? subtitleId : undefined}
       onCancel={(event) => { event.preventDefault(); requestClose(); }}
       onPointerDown={(event) => {
         interactionRef.current.backdropDown = isOutside(event);
@@ -187,22 +196,41 @@ export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, title,
       <RunLaunchBadge
         key={workspacePage}
         ref={badgeRef}
-        origin={runOrigin?.button.dataset.action === workspacePage ? runOrigin : null}
+        origin={runOrigin}
         page={workspacePage}
-        title={title}
+        title={pageTitles[workspacePage]}
         href={workbenchUrl}
       />
       <div className="dialog-head workspace-drawer__head">
-        <div>
-          <h2 ref={headingRef} id={headingId} tabIndex={-1}>{title}</h2>
-          {subtitle && <p id={subtitleId}>{subtitle}</p>}
+        <div className="workspace-drawer__titles">
+          <div className="workspace-drawer__strip">
+            {pages.map(page => (
+              <div className="workspace-drawer__frame" key={page} inert={page !== workspacePage}>
+                {page === workspacePage || page === route.leaving ? (
+                  <h2 id={page === workspacePage ? headingId : undefined}
+                    ref={page === workspacePage ? headingRef : undefined} tabIndex={-1}>
+                    {pageTitles[page]}
+                  </h2>
+                ) : null}
+              </div>
+            ))}
+          </div>
         </div>
-        <button type="button" className="icon-button" aria-label="关闭面板" onClick={requestClose}>
+        <button type="button" className="icon-button workspace-action workspace-close" aria-label="关闭面板" onClick={requestClose}>
           <XIcon size={26} weight="light" aria-hidden="true" focusable="false" />
         </button>
       </div>
-      <div ref={bodyRef} id={bodyId} className="dialog-body workspace-drawer__body">
-        {children}
+      <div className="workspace-drawer__pages" id={bodyId}>
+        <div className="workspace-drawer__strip" ref={trackRef}>
+          {pages.map(page => (
+            <div className="workspace-drawer__frame" key={page} data-page={page}
+              inert={page !== workspacePage || closing} aria-hidden={page !== workspacePage || undefined}>
+              {(page === workspacePage || page === route.leaving) && (
+                <div className="dialog-body workspace-drawer__body">{renderPage(page)}</div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </dialog>
   );

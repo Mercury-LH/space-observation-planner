@@ -203,28 +203,6 @@ dialog.workspace-drawer[data-closing="true"]::backdrop { opacity: 0; }
   margin-top: 26px;
 }
 
-.workspace-drawer .primary,
-.workspace-drawer .secondary {
-  gap: 10px;
-  min-height: 50px;
-  padding: 10px 22px;
-  font-size: 17px;
-  font-weight: 600;
-  border-radius: 10px;
-}
-
-.workspace-drawer .primary {
-  background: #d4e9ff;
-  color: #0d2841;
-}
-.workspace-drawer .primary:hover { background: #e8f3ff; }
-
-.workspace-drawer .secondary {
-  color: #e2edf8;
-  border-color: #425971;
-}
-.workspace-drawer .secondary:hover { background: #1c3045; }
-
 @container workspace-drawer (max-width: 560px) {
   .workspace-drawer .workspace-drawer__head,
   .workspace-drawer .workspace-drawer__body {
@@ -421,4 +399,36 @@ dialog.workspace-drawer[data-night-workspace]::backdrop {
   .navigation .nav-button::after {
     transition-duration: 200ms;
   }
+}
+
+/* Paired tracks keep the title and its scrollable page together inside the open drawer. */
+.workspace-drawer__titles,
+.workspace-drawer__pages {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+}
+
+.workspace-drawer__strip {
+  display: flex;
+  width: 100%;
+  transform: translate3d(var(--workspace-page-offset, 0%), 0, 0);
+  transition: transform 650ms var(--drawer-settle);
+}
+
+/* The close button narrows the title window, but both tracks travel the same distance. */
+.workspace-drawer__titles > .workspace-drawer__strip { width: 100cqi; }
+.workspace-drawer__pages > .workspace-drawer__strip { height: 100%; }
+.workspace-drawer__frame {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 100%;
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-drawer__titles:has(:focus-visible) { overflow-clip-margin: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-drawer__strip { transition: none; }
 }

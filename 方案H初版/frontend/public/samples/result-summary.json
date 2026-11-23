@@ -55,7 +55,6 @@
     "w_cov": 0.5,
     "w_score": 0.5,
     "score_ref": "sumP",
-    "cache_dir": "/Users/mercury/Downloads/赛题/planner-product-experience/方案H初版/cache",
     "seed": 2026
   },
   "subset": {

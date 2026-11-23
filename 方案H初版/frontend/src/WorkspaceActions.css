@@ -1,0 +1,96 @@
+/*
+ * From Uiverse.io by Shakil-Babu - https://uiverse.io/Shakil-Babu/moody-mule-8
+ * MIT License, Copyright (c) Shakil-Babu (Babu)
+ */
+
+.workspace-drawer .workspace-action:not(.workspace-close) {
+  --mule-blue: #356983;
+  --mule-light: #f2f7fa;
+  --mule-surface: var(--mule-blue);
+  --mule-transition: 800ms ease;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: .5em;
+  min-height: 44px;
+  max-width: 100%;
+  padding: clamp(9px, 1.4cqi, 14px) clamp(14px, 3.8cqi, 40px);
+  border: 2px dashed var(--mule-blue);
+  border-radius: 10px;
+  background-color: var(--mule-surface);
+  color: var(--mule-light);
+  box-shadow: rgb(23 41 59 / 25%) 0 2px 5px -1px, rgb(0 0 0 / 30%) 0 1px 3px -1px;
+  font-size: clamp(14px, 1.8cqi, 19px);
+  line-height: 1.35;
+  font-weight: 550;
+  letter-spacing: clamp(1px, .19cqi, 2px);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--mule-transition), color var(--mule-transition);
+}
+
+.workspace-drawer .workspace-action:is(.secondary, .run-edit, .result-downloads__summary, [data-turn]) { --mule-blue: #415f71; }
+.workspace-drawer .workspace-action:is(:disabled, [aria-disabled="true"]) { cursor: not-allowed; }
+.workspace-drawer .result-pages .workspace-action { width: 44px; height: 44px; padding: 0; }
+
+.workspace-drawer .workspace-action:not(.workspace-close, :disabled, [aria-disabled="true"]):focus-visible {
+  --mule-surface: var(--mule-light);
+  color: var(--mule-blue);
+  outline: 2px solid var(--mule-light);
+  outline-offset: 3px;
+}
+@media (hover: hover) {
+  .workspace-drawer .workspace-action:not(.workspace-close, :disabled, [aria-disabled="true"]):hover {
+    --mule-surface: var(--mule-light);
+    color: var(--mule-blue);
+  }
+}
+.workspace-drawer .workspace-action:not(.workspace-close, :disabled, [aria-disabled="true"]):active {
+  --mule-surface: #a9cddd;
+  --mule-transition: .4s ease;
+  color: var(--mule-blue);
+}
+.workspace-download-icon { flex: none; }
+
+.workspace-close svg {
+  transform: rotate(0) scale(1);
+  transition: transform 280ms cubic-bezier(.2,.8,.24,1);
+}
+.workspace-drawer .workspace-close:focus-visible svg { transform: rotate(90deg); }
+
+@media (hover: hover) {
+  .workspace-drawer .workspace-close:hover svg { transform: rotate(90deg); }
+}
+
+.workspace-drawer .workspace-close.workspace-action:active {
+  box-shadow: inset 0 0 0 1px currentColor;
+  transition-duration: 75ms;
+}
+.workspace-drawer .workspace-close:active svg,
+.workspace-drawer[data-closing="true"] .workspace-close svg {
+  transform: rotate(90deg) scale(.8);
+}
+.workspace-drawer a.run-launch-slot .run-orbit-mark__glyph {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: transform 250ms cubic-bezier(.2,.8,.24,1);
+}
+.workspace-drawer a.run-launch-slot:focus-visible .run-orbit-mark__glyph { transform: translateX(2px); }
+@media (hover: hover) {
+  .workspace-drawer a.run-launch-slot:hover .run-orbit-mark__glyph { transform: translateX(2px); }
+}
+.workspace-drawer a.run-launch-slot:active .run-orbit-mark__glyph { transform: scale(.94); }
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-drawer .workspace-close svg,
+  .workspace-drawer a.run-launch-slot .run-orbit-mark__glyph {
+    transition-duration: 0s;
+  }
+  .workspace-drawer .workspace-close:is(:hover, :focus-visible, :active) svg,
+  .workspace-drawer[data-closing="true"] .workspace-close svg,
+  .workspace-drawer a.run-launch-slot:is(:hover, :focus-visible, :active) .run-orbit-mark__glyph {
+    transform: none;
+  }
+}
