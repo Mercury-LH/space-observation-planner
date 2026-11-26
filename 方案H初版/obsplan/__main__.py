@@ -42,7 +42,20 @@ def _cfg(args) -> Config:
         kw["days"] = float(args.days)
     if getattr(args, "moon", None):
         kw["moon_sep_deg"] = float(args.moon)
+    if getattr(args, "edge_margin", 0):
+        kw["edge_margin_s"] = int(args.edge_margin)
     return Config(**kw)
+
+
+def _edge_margin(v: str) -> int:
+    """--edge-margin：0～10 秒（规范的软错误只到 5 秒；按秒边界的探查也只覆盖窗口往里收一格的情况）。"""
+    try:
+        b = int(v)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"边界余量要是整数秒：{v}") from None
+    if not 0 <= b <= 10:
+        raise argparse.ArgumentTypeError(f"边界余量要在 0～10 秒之间：{v}")
+    return b
 
 
 def _pick(row: dict, keys) -> str | None:
@@ -440,6 +453,9 @@ def main(argv=None) -> int:
         p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
         p.add_argument("--days", type=float)
         p.add_argument("--moon", type=float, help="月光规避角（度），0 为不考虑")
+        if name in ("plan", "windows"):
+            p.add_argument("--edge-margin", type=_edge_margin, default=0,
+                           help="按秒边界余量：每个可见窗口两端各往里收几秒（默认 0；应对主办方预报窗口比我们短的情况）")
         if name == "plan":
             p.add_argument("--mode", choices=["fast", "quality"], default="fast")
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")

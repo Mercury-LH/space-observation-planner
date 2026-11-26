@@ -1,0 +1,434 @@
+{
+ "说明": "按规范 v3.0 复算（obsplan score，Skyfield 逐秒近似预报窗口）。键是假设主办方窗口两端各短几秒；B 是规划时留的按秒边界余量。推荐档 = obsplan plan --edge-margin B（弹射链 1.3 分钟，按时间截停，分数有几十分以内的波动）；最好计划修补 = scripts/margin_repair.py --margin B --minutes 10。2026-11-26 在 M1 Pro 上测。",
+ "recommended_tier": {
+  "0": {
+   "score": {
+    "0": {
+     "final_score": 29525.0,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13059,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 26584.0,
+     "hard": 597,
+     "soft": 1,
+     "normal": 12466,
+     "factor": 0.937578
+    },
+    "2": {
+     "final_score": 23614.5,
+     "hard": 977,
+     "soft": 253,
+     "normal": 11834,
+     "factor": 0.867713
+    },
+    "3": {
+     "final_score": 22309.4,
+     "hard": 1100,
+     "soft": 413,
+     "normal": 11551,
+     "factor": 0.835829
+    },
+    "5": {
+     "final_score": 18835.7,
+     "hard": 1746,
+     "soft": 478,
+     "normal": 10840,
+     "factor": 0.746235
+    }
+   }
+  },
+  "1": {
+   "score": {
+    "0": {
+     "final_score": 29534.1,
+     "hard": 4,
+     "soft": 0,
+     "normal": 13085,
+     "factor": 0.9996
+    },
+    "1": {
+     "final_score": 29534.1,
+     "hard": 4,
+     "soft": 0,
+     "normal": 13085,
+     "factor": 0.9996
+    },
+    "2": {
+     "final_score": 26625.9,
+     "hard": 596,
+     "soft": 0,
+     "normal": 12493,
+     "factor": 0.937761
+    },
+    "3": {
+     "final_score": 23645.9,
+     "hard": 973,
+     "soft": 254,
+     "normal": 11862,
+     "factor": 0.868093
+    },
+    "5": {
+     "final_score": 20960.9,
+     "hard": 1379,
+     "soft": 412,
+     "normal": 11298,
+     "factor": 0.801375
+    }
+   }
+  },
+  "2": {
+   "score": {
+    "0": {
+     "final_score": 29481.7,
+     "hard": 4,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9996
+    },
+    "1": {
+     "final_score": 29481.7,
+     "hard": 4,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9996
+    },
+    "2": {
+     "final_score": 29481.7,
+     "hard": 4,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9996
+    },
+    "3": {
+     "final_score": 26371.5,
+     "hard": 637,
+     "soft": 0,
+     "normal": 12377,
+     "factor": 0.933326
+    },
+    "5": {
+     "final_score": 21955.2,
+     "hard": 1138,
+     "soft": 449,
+     "normal": 11427,
+     "factor": 0.827294
+    }
+   }
+  },
+  "3": {
+   "score": {
+    "0": {
+     "final_score": 29474.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 29474.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9995
+    },
+    "2": {
+     "final_score": 29474.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9995
+    },
+    "3": {
+     "final_score": 29474.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13010,
+     "factor": 0.9995
+    },
+    "5": {
+     "final_score": 23307.2,
+     "hard": 1007,
+     "soft": 284,
+     "normal": 11724,
+     "factor": 0.860568
+    }
+   }
+  }
+ },
+ "best_plan": {
+  "0": {
+   "score": {
+    "0": {
+     "final_score": 29891.2,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13217,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 26960.2,
+     "hard": 595,
+     "soft": 0,
+     "normal": 12627,
+     "factor": 0.937982
+    },
+    "2": {
+     "final_score": 24334.2,
+     "hard": 951,
+     "soft": 192,
+     "normal": 12079,
+     "factor": 0.877597
+    },
+    "3": {
+     "final_score": 23194.2,
+     "hard": 1091,
+     "soft": 293,
+     "normal": 11838,
+     "factor": 0.850152
+    },
+    "5": {
+     "final_score": 19802.9,
+     "hard": 1718,
+     "soft": 354,
+     "normal": 11150,
+     "factor": 0.763821
+    }
+   }
+  },
+  "1": {
+   "score": {
+    "0": {
+     "final_score": 29883.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13228,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 29883.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13228,
+     "factor": 0.9995
+    },
+    "2": {
+     "final_score": 27177.7,
+     "hard": 548,
+     "soft": 0,
+     "normal": 12685,
+     "factor": 0.9431
+    },
+    "3": {
+     "final_score": 24688.5,
+     "hard": 866,
+     "soft": 200,
+     "normal": 12167,
+     "factor": 0.886752
+    },
+    "5": {
+     "final_score": 22178.1,
+     "hard": 1260,
+     "soft": 327,
+     "normal": 11646,
+     "factor": 0.826368
+    }
+   },
+   "repair": {
+    "B": 1,
+    "input": 29924.75333333333,
+    "unmatched": 0,
+    "moved": 2191,
+    "dropped": 1682,
+    "clipped": 26650.386666666665,
+    "repaired": 29918.916666666664,
+    "covered": 9998,
+    "chain_seconds": 382.4
+   }
+  },
+  "2": {
+   "score": {
+    "0": {
+     "final_score": 29881.2,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13232,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 29881.2,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13232,
+     "factor": 0.9995
+    },
+    "2": {
+     "final_score": 29881.2,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13232,
+     "factor": 0.9995
+    },
+    "3": {
+     "final_score": 27103.0,
+     "hard": 570,
+     "soft": 0,
+     "normal": 12667,
+     "factor": 0.940557
+    },
+    "5": {
+     "final_score": 23565.1,
+     "hard": 997,
+     "soft": 314,
+     "normal": 11926,
+     "factor": 0.858941
+    }
+   },
+   "repair": {
+    "B": 2,
+    "input": 29924.75333333333,
+    "unmatched": 0,
+    "moved": 2308,
+    "dropped": 1789,
+    "clipped": 26437.633333333335,
+    "repaired": 29914.27,
+    "covered": 9998,
+    "chain_seconds": 596.5
+   }
+  },
+  "3": {
+   "score": {
+    "0": {
+     "final_score": 29844.8,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13200,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 29844.8,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13200,
+     "factor": 0.9995
+    },
+    "2": {
+     "final_score": 29844.8,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13200,
+     "factor": 0.9995
+    },
+    "3": {
+     "final_score": 29844.8,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13200,
+     "factor": 0.9995
+    },
+    "5": {
+     "final_score": 24357.9,
+     "hard": 910,
+     "soft": 221,
+     "normal": 12074,
+     "factor": 0.879167
+    }
+   },
+   "repair": {
+    "B": 3,
+    "input": 29924.75333333333,
+    "unmatched": 0,
+    "moved": 2454,
+    "dropped": 1930,
+    "clipped": 26147.316666666666,
+    "repaired": 29874.506666666664,
+    "covered": 9998,
+    "chain_seconds": 513.4
+   }
+  },
+  "5": {
+   "score": {
+    "0": {
+     "final_score": 29810.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13163,
+     "factor": 0.9995
+    },
+    "1": {
+     "final_score": 29810.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13163,
+     "factor": 0.9995
+    },
+    "2": {
+     "final_score": 29810.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13163,
+     "factor": 0.9995
+    },
+    "3": {
+     "final_score": 29810.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13163,
+     "factor": 0.9995
+    },
+    "5": {
+     "final_score": 29810.9,
+     "hard": 5,
+     "soft": 0,
+     "normal": 13163,
+     "factor": 0.9995
+    },
+    "8": {
+     "final_score": 23052.5,
+     "hard": 1052,
+     "soft": 347,
+     "normal": 11769,
+     "factor": 0.849262
+    }
+   },
+   "repair": {
+    "margin_s": 5,
+    "plan": "outputs/final_best/longrun_chain_best.csv",
+    "minutes": 10.0,
+    "input": {
+     "covered": 9999,
+     "score": 29924.75333333333,
+     "combined": 0.9976672731909608,
+     "tasks": 13222
+    },
+    "clipped": {
+     "moved": 2737,
+     "dropped": 2197,
+     "unmatched": 0,
+     "covered": 8406,
+     "score": 25632.143333333333,
+     "combined": 0.8466213248175992,
+     "tasks": 11025
+    },
+    "repaired": {
+     "covered": 9997,
+     "score": 29844.533333333333,
+     "combined": 0.996233030625596,
+     "tasks": 13168
+    },
+    "short_of_margin": 0,
+    "legal": true,
+    "violations": {},
+    "chain_seconds": 426.5,
+    "submission_notes": {
+     "records": 13168,
+     "not_5_digit": 1097,
+     "six_digit": 141,
+     "out_of_range": 5
+    }
+   }
+  }
+ }
+}

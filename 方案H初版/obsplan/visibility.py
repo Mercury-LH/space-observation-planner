@@ -343,12 +343,78 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
     return w
 
 
+def _bounds_job(args):
+    from .refine import probe_bounds
+    cfg, ds, st, tg, k0, k1 = args
+    return probe_bounds(cfg, ds, st, tg, k0, k1)
+
+
+def window_bounds(cfg: Config, ds: Dataset, w: Windows, workers: int | None = None, chunk: int = 20000):
+    """网格窗口 w 的按秒真实可见区间 (L, R)，下标与 w 的数组一致（判定、余量都与 refine.probe_bounds 相同）。
+    按目标排序后分块、多进程计算。"""
+    order = np.argsort(w.target, kind="stable")
+    st, tg = w.station[order].astype(np.int64), w.target[order].astype(np.int64)
+    k0, k1 = w.k0[order].astype(np.int64), w.k1[order].astype(np.int64)
+    cuts = list(range(0, len(order), chunk)) + [len(order)]
+    jobs = [(cfg, ds, st[a:b], tg[a:b], k0[a:b], k1[a:b]) for a, b in zip(cuts[:-1], cuts[1:])]
+    L, R = np.empty(len(order), np.int64), np.empty(len(order), np.int64)
+    with ProcessPoolExecutor(workers or _default_workers(), mp_context=multiprocessing.get_context("spawn")) as ex:
+        with _spawn_without_main():
+            res = list(ex.map(_bounds_job, jobs))
+    for (a, b), (lo, hi) in zip(zip(cuts[:-1], cuts[1:]), res):
+        L[order[a:b]], R[order[a:b]] = lo, hi
+    return L, R
+
+
+def _edge_margin_windows(cfg: Config, ds: Dataset, refresh: bool = False) -> Windows:
+    """cfg.edge_margin_s = B > 0：在不留余量的窗口上，把两端离真实可见边界不到 B 秒的那一格往里收。
+    收完不足 120 秒（4 格）的窗口：剩 3 格的归入短窗口（按秒精修还可能用上），更短的丢掉。"""
+    from dataclasses import replace
+    B, cell = int(cfg.edge_margin_s), cfg.cell_s
+    base_cfg = replace(cfg, edge_margin_s=0)
+    base = get_windows(base_cfg, ds, refresh)
+    key0 = base_cfg.scenario_key()
+    raw = Path(cfg.cache_dir) / f"winbounds_{key0}.npz"           # 不留余量的按秒边界，各个余量共用
+    if raw.exists() and not refresh and len(np.load(raw)["L"]) == len(base.k0):
+        z = np.load(raw)
+        L, R = z["L"], z["R"]
+    else:
+        t0 = time.time()
+        L, R = window_bounds(base_cfg, ds, base)
+        np.savez_compressed(raw, L=L, R=R)
+        print(f"[windows] 探查全部 {len(L)} 个窗口的按秒边界，用时 {time.time() - t0:.1f}s")
+    horizon = cfg.n_cells * cell
+    L2 = np.where(L > 0, L + B, L)
+    R2 = np.where(R < horizon, R - B, R)
+    k0 = np.maximum(-(-L2 // cell), base.k0).astype(base.k0.dtype)
+    k1 = np.minimum(R2 // cell, base.k1).astype(base.k1.dtype)
+    keep = k1 - k0 >= cfg.min_cells
+    demote = k1 - k0 == cfg.min_cells - 1
+    sp = Path(cfg.cache_dir) / f"short_{key0}.npz"               # 不留余量时的短窗口；有的缓存只存了窗口文件
+    if sp.exists():
+        z = np.load(sp)
+        short0 = tuple(z[n] for n in ("station", "target", "k0", "k1"))
+    else:
+        short0 = compute_windows(base_cfg, ds, keep_short=True).short
+        np.savez_compressed(sp, **dict(zip(("station", "target", "k0", "k1"), short0)))
+    short = tuple(np.concatenate([s0, a[demote]]) for s0, a in
+                  zip(short0, (base.station, base.target, k0, k1)))
+    idx = np.nonzero(keep)[0]
+    idx = idx[np.lexsort((k0[idx], base.station[idx]))]
+    w = Windows(base.station[idx], base.target[idx], k0[idx], k1[idx], base.dark, base.n_samples, base.sgp4_failed)
+    w.short = short
+    moved = int(((k0 != base.k0) | (k1 != base.k1)).sum())
+    print(f"[windows] 边界余量 {B} 秒：{moved} 个窗口往里收了一格，其中 {int(demote.sum())} 个降为短窗口、"
+          f"{int((~keep & ~demote).sum())} 个丢掉；剩 {len(idx)} 个窗口、{np.unique(w.target).size} 颗目标可观测")
+    return w
+
+
 def get_windows(cfg: Config, ds: Dataset, refresh=False) -> Windows:
     path = Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz"
     if path.exists() and not refresh:
         return Windows.load(path, ds.n_stations)
     path.parent.mkdir(parents=True, exist_ok=True)
-    w = compute_windows(cfg, ds, keep_short=True)
+    w = _edge_margin_windows(cfg, ds, refresh) if cfg.edge_margin_s > 0 else compute_windows(cfg, ds, keep_short=True)
     w.save(path)
     st, tg, k0, k1 = w.short
     np.savez_compressed(path.with_name(f"short_{cfg.scenario_key()}.npz"), station=st, target=tg, k0=k0, k1=k1)

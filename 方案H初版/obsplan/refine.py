@@ -77,9 +77,15 @@ def point_ok(cfg: Config, ds: Dataset, target: np.ndarray, station: np.ndarray, 
 
 
 def probe_bounds(cfg: Config, ds: Dataset, st: np.ndarray, tg: np.ndarray, k0: np.ndarray, k1: np.ndarray):
-    """网格窗口 [k0, k1]（采样点）两端各按 1 秒向外探查最多 cell_s−1 秒，返回真实可见区间 [L, R]（秒）。"""
+    """网格窗口 [k0, k1]（采样点）两端各按 1 秒向外探查最多 cell_s−1 秒，返回真实可见区间 [L, R]（秒）。
+
+    cfg.edge_margin_s = B > 0 时，返回的区间两端各往里收 B 秒（规划期的起点 0 和终点不收），
+    按秒精修、弹射链、补短窗口都从这里取边界，所以任务会离真实可见边界至少 B 秒。
+    这时网格窗口可能已经往里收了一格（visibility.get_windows），所以向外最多探查 2·cell_s−1 秒。"""
     cell = cfg.cell_s
-    d = np.arange(1, cell)
+    B = int(cfg.edge_margin_s)
+    reach = cell - 1 if B <= 0 else 2 * cell - 1
+    d = np.arange(1, reach + 1)
     horizon = cfg.n_cells * cell
     secs = np.concatenate([k0[:, None] * cell - d[None, :], k1[:, None] * cell + d[None, :]], axis=1).astype(np.float64)
     flat = secs.ravel()
@@ -89,10 +95,14 @@ def probe_bounds(cfg: Config, ds: Dataset, st: np.ndarray, tg: np.ndarray, k0: n
     if inside.any():
         ok[inside] = point_ok(cfg, ds, t_rep[inside], s_rep[inside], flat[inside])
     ok = ok.reshape(secs.shape)
-    nl, pad = cell - 1, np.zeros((len(k0), 1), bool)
+    nl, pad = reach, np.zeros((len(k0), 1), bool)
     ext_l = np.argmin(np.concatenate([ok[:, :nl], pad], axis=1), axis=1)    # 从边界向外连续可见的秒数
     ext_r = np.argmin(np.concatenate([ok[:, nl:], pad], axis=1), axis=1)
-    return (k0 * cell - ext_l).astype(np.int64), (k1 * cell + ext_r).astype(np.int64)
+    L, R = (k0 * cell - ext_l).astype(np.int64), (k1 * cell + ext_r).astype(np.int64)
+    if B > 0:
+        L = np.where(L > 0, L + B, L)
+        R = np.where(R < horizon, R - B, R)
+    return L, R
 
 
 def true_bounds(pb: Problem, sch: Schedule) -> tuple[np.ndarray, np.ndarray]:

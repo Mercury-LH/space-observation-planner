@@ -31,6 +31,9 @@ class Config:
     elev_margin: float = 0.02
     sun_margin: float = 0.05
     sunlit_margin_km: float = 10.0        # 地影判定：日-星连线离地心距离须超过地球半径 + 余量
+    # 按秒的边界余量：每个可见窗口的两端各往里收这么多秒（规划期的起止不算边界）。
+    # 主办方规范 v3.0 按"与预报窗口的交集"算有效时长，窗口若比我们算的短几秒，贴边的任务会出错；0 = 不收
+    edge_margin_s: int = 0
     # 加分项：月光规避。月亮在地平线以上时，目标与月亮的角距须 ≥ moon_sep_deg（0 = 不考虑）
     moon_sep_deg: float = 0.0
     moon_margin_deg: float = 0.5
@@ -81,7 +84,9 @@ class Config:
         sun = f"sun{self.sun_max:g}" if self.use_sun else "nosun"
         lit = "_lit" if self.use_sunlit else ""
         moon = f"_moon{self.moon_sep_deg:g}" if self.moon_sep_deg > 0 else ""
-        return f"{self.start_utc[:10]}_{self.days:g}d_{sun}{lit}{moon}_el{self.elev_min:g}-{self.elev_max:g}_c{self.cell_s}"
+        edge = f"_edge{self.edge_margin_s:d}" if self.edge_margin_s > 0 else ""
+        return (f"{self.start_utc[:10]}_{self.days:g}d_{sun}{lit}{moon}_el{self.elev_min:g}-{self.elev_max:g}"
+                f"_c{self.cell_s}{edge}")
 
     def with_(self, **kw) -> "Config":
         return replace(self, **kw)
