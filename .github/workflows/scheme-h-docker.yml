@@ -30,6 +30,8 @@ jobs:
         run: |
           docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --days 1 --validate --out /out/day1
           python3 -c "import json; v = json.load(open('out/day1/summary.json'))['validation']; print(v); assert v['legal']"
+      - name: 命令行：按规范 v3.0 复算 1 天计划（应 0 错误）
+        run: docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan score /out/day1/plan.json
       - name: 命令行：复核随仓库的最好计划
         run: docker run --rm obsplan python -m obsplan validate outputs/final_best/longrun_chain_best.csv
       - name: 界面检查

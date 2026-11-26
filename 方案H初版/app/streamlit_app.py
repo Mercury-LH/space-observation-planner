@@ -25,7 +25,7 @@ sys.path.insert(0, str(SCHEME_DIR))
 from obsplan.app_backend import (ALGOS, CLOUD_THRESHOLD, Run, csv_bytes, explain_target, list_runs,  # noqa: E402
                                  load_problem, orbit_class, pass_profile, replan_changed, replan_run, replay_weather,
                                  run_name, run_planning, save_replan, schedule_csv_bytes, scope_metrics, simulate_days,
-                                 station_nights, structural_check, subset_problem, summary_json, task_rows,
+                                 station_nights, submission_json_bytes, structural_check, subset_problem, summary_json, task_rows,
                                  validate_replan, validate_run, weather_stats, status_csv_bytes, status_rows,
                                  optimality_gap)
 from obsplan.replan import KINDS, MODES, STATUS_ORDER, Event, busiest_station, suggest_targets  # noqa: E402
@@ -576,13 +576,17 @@ def skyfield_button(key: str):
 
 
 def download_buttons(key: str):
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     c1.download_button("下载观测计划（CSV）", lambda: csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv",
                        mime="text/csv", use_container_width=True, key=f"{key}_plan")
-    c2.download_button("下载目标状态表（CSV）", lambda: status_csv_bytes(srows),
+    c2.download_button("下载提交文件（JSON，规范 v3.0）", lambda: submission_json_bytes(pb.cfg, pb.ds, run.schedule()),
+                       file_name=f"submission_{run.run_id}.json", mime="application/json",
+                       use_container_width=True, key=f"{key}_submission")
+    c3, c4 = st.columns(2)
+    c3.download_button("下载目标状态表（CSV）", lambda: status_csv_bytes(srows),
                        file_name=f"target_status_{run.run_id}.csv", mime="text/csv", use_container_width=True,
                        key=f"{key}_status")
-    c3.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
+    c4.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
                        mime="application/json", use_container_width=True, key=f"{key}_summary")
 
 
@@ -834,6 +838,9 @@ def show_replan(got: dict):
         c2.caption("原样保留和冻结的任务与原计划完全相同" + ("，原计划已通过 Skyfield 校验。" if run.validation and run.validation["legal"]
                                                   else "；原计划可在「校验与导出」页签校验。"))
 
+    st.download_button("下载提交文件（JSON，规范 v3.0）", lambda: submission_json_bytes(cfg, res["ds"], new),
+                       file_name=f"submission_{run.run_id}_replan.json", mime="application/json",
+                       use_container_width=True, key=f"rp_dls_{rid}")
     c1, c2, c3 = st.columns(3)
     c1.download_button("下载重排后的计划（CSV）", lambda: schedule_csv_bytes(cfg, res["ds"], new, f"replan_{run.run_id}"),
                        file_name=f"plan_{run.run_id}_replan.csv", mime="text/csv", use_container_width=True,

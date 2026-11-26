@@ -33,5 +33,8 @@
   uv sync --extra app
   uv run python -m obsplan plan --validate                                       # 推荐档（约 2 分钟，综合 ~0.991）
   uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv    # 复核最好计划（0.9977）
+  uv run python -m obsplan export outputs/final_best/longrun_chain_best.csv -o outputs/submission/best_plan.json   # 导出主办方格式 v3.0 的提交文件
+  uv run python -m obsplan score outputs/submission/best_plan.json --shrink 0,1,2   # 按规范 v3.0 复算（软/硬错误、错误率系数）
   ```
+  `plan` 也会在 `outputs/plan/` 同时写出提交文件 `plan.json`；规范差异与待确认问题见 [规则口径.md](规则口径.md) 第四节。
 - **Docker**：见 [方案H初版/README.md](方案H初版/README.md#评委运行指南)。

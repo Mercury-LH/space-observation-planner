@@ -28,7 +28,7 @@ uv run python -m obsplan plan --validate               # 推荐档全量规划�
 uv run streamlit run app/streamlit_app.py              # 网页界面：浏览器打开 http://localhost:8501
 ```
 
-`outputs/plan/` 里是 `plan.csv`（观测计划，含 Skyfield 复核的仰角和太阳角）、`target_status.csv`（每颗目标的观测情况）和 `summary.json`（指标、用时、校验结果）。不带参数就是推荐档（快速价格协调 + 按秒精修 + 弹射链），应得到覆盖 9999 颗、综合约 0.9913，Skyfield 校验全部合法；各档的实测用时和分数见下文"时间-质量前沿"的表。弹射链按时间截停，电脑快慢不同，分数会有千分之一以内的差别；需要逐字节可复现时加 `--chain 0`（覆盖 9987 颗、得分 28237.8、综合 0.9690）。
+`outputs/plan/` 里是 `plan.csv`（观测计划，含 Skyfield 复核的仰角和太阳角）、`plan.json`（按主办方提交格式 v3.0 写的提交文件，见下文"提交文件"）、`target_status.csv`（每颗目标的观测情况）和 `summary.json`（指标、用时、校验结果）。不带参数就是推荐档（快速价格协调 + 按秒精修 + 弹射链），应得到覆盖 9999 颗、综合约 0.9913，Skyfield 校验全部合法；各档的实测用时和分数见下文"时间-质量前沿"的表。弹射链按时间截停，电脑快慢不同，分数会有千分之一以内的差别；需要逐字节可复现时加 `--chain 0`（覆盖 9987 颗、得分 28237.8、综合 0.9690）。
 
 **随仓库提供的最好计划**（长跑 + 弹射链 + 深度换位置，9999 颗 / 29924.8 分 / 综合 0.9977）一条命令复核（约 1.5 分钟）：
 
@@ -38,6 +38,17 @@ uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv
 
 网页第一次打开就能在左侧「查看结果」里选到推荐档和最好计划两份全量结果（`results/app_runs/`），不用先跑规划。
 
+**提交文件（主办方《提交格式规范》v3.0，2026-11-23）**：`plan` 会在 `outputs/plan/` 里同时写出 `plan.json`。它是 JSON 数组，每条有 `noradId`、`siteCode`（`site_1`…`site_10`）、`startTime`、`endTime` 四个字段，按站点分组、组内按开始时间升序。任何一份计划都能这样转换格式，再按规范复算得分：
+
+```bash
+uv run python -m obsplan export outputs/final_best/longrun_chain_best.csv -o outputs/submission/best_plan.json
+uv run python -m obsplan score outputs/submission/best_plan.json --shrink 0,1,2     # 约 1.5 分钟
+```
+
+`score` 按规范把每条判为正常、软错误或硬错误，再算出错误率系数和最终得分；`--shrink` 假设主办方的窗口两端各短几秒；`--details 明细.csv` 输出逐条结果。规范里的"预报窗口"由主办方给出，这里用 Skyfield 逐秒近似；规范没写清楚的地方一律取更严的理解，见 `obsplan/submission.py` 开头。
+
+最好计划的复算结果：13217 条正常，5 条硬错误（这 5 条结束在 8 月 7 日 0 点，超出规范的时间范围），最终得分 29891.2。如果主办方的窗口两端各短 1 秒，最终得分降到 26960.2（590 条 120 秒的任务不足 120 秒）；短 2 秒时降到 24334.2。结果文件是 `results/submission_v3/best_plan_score.json`，由上面第二条命令加 `--shrink 0,1,2,3,5 --out` 生成。新规范和现行口径的差异、待主办方确认的问题，见仓库根目录 `规则口径.md` 的第四节。
+
 **Docker**（在仓库根目录执行，不用装 uv）
 
 ```bash
@@ -45,6 +56,8 @@ docker build -f 方案H初版/Dockerfile -t obsplan .
 docker run --rm -p 127.0.0.1:8501:8501 obsplan        # 网页界面：浏览器打开 http://localhost:8501
 docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --validate --out /out/plan
 docker run --rm obsplan python -m obsplan validate outputs/final_best/longrun_chain_best.csv   # 复核最好计划
+docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan export outputs/final_best/longrun_chain_best.csv -o /out/best_plan.json   # 导出提交文件
+docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan score /out/best_plan.json --shrink 0,1,2   # 按规范 v3.0 复算
 ```
 
 结果写到当前目录的 `out/plan/`（Windows 命令提示符里把 `$PWD` 换成 `%cd%`）。构建时已算好默认规则的可见窗口和按秒真实边界、取好星历、编译好 numba 函数，容器里的规划不用再等这几步；最好计划也在镜像里。Docker Desktop 的内存上限（Settings → Resources）建议 6 GB 以上，否则规划可能被系统终止（退出码 137）。
@@ -92,7 +105,7 @@ Docker 首次构建除下载依赖外，预先计算约 1–2 分钟。
 
 ```bash
 uv sync
-uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 plan.csv、target_status.csv 与 summary.json
+uv run python -m obsplan plan --mode fast --validate      # 规划 + Skyfield 校验，输出 plan.csv、plan.json（提交文件）、target_status.csv 与 summary.json
 uv run python -m obsplan validate 某个计划.csv             # 复核任何人的计划（含目标受照、48 小时、切换时间）
 uv run python -m obsplan status 某个计划.csv               # 目标状态分析：每颗目标观测几次、时长、未覆盖原因
 uv run python run_compare.py                              # A–H 全部方案统一对比（--add-evolved 只补 H+ 两行）
@@ -588,6 +601,8 @@ uv run python -m obsplan env outputs/plan/plan.csv outputs/env/plan.csv --out re
 
 8 月口径下保守设置只损失 0.15%（10 月口径下约 0.7%）。评审以 Skyfield 为准，默认余量已与它对齐、校验 0 违规，所以保持默认；容差明确后改配置即可重跑。
 
+主办方 11-23 的提交格式规范 v3.0 规定，有效时长按观测与"预报窗口"的交集算，偏差超过 1 秒就扣分。上面这些余量是按角度和距离留的，换算成时间不到 1 秒。最好计划里有 783 个任务至少有一端紧贴可见边界。用 `obsplan score --shrink` 试算：主办方的窗口每端短 1 秒时，最终得分少 9.8%；短 2 秒时少 18.6%（见上文"提交文件"）。要防这个风险，得把按秒计的余量加进窗口后重新规划，等主办方说明预报窗口怎么算再定。
+
 ## 主要发现
 
 1. **局部搜索比构造方式更关键**：同一套局部搜索（挤让插入、压紧碎片、按单位时间收益分档补空、延长）让 D 从 0.896 到 0.939、G 从 0.814 到 0.962。
@@ -613,6 +628,7 @@ uv run python -m obsplan env outputs/plan/plan.csv outputs/env/plan.csv --out re
 | `obsplan/data.py` | 数据读取与一致性检查 |
 | `obsplan/visibility.py` | SGP4 传播与合法窗口（30 秒网格） |
 | `obsplan/validator.py` | Skyfield 独立校验、得分复算 |
+| `obsplan/submission.py` | 主办方提交格式 v3.0：导出 JSON；按规范复算得分（软错误、硬错误、错误率系数），可假设主办方窗口短几秒 |
 | `obsplan/ephemeris.py` | DE421 星历的下载（JPL / PyPI 两个来源，核对 SHA-256）与读取 |
 | `obsplan/greedy.py` | A/B/C/D 贪心引擎 |
 | `obsplan/ga.py` | D：遗传算法学习价值函数权重 |

@@ -487,6 +487,12 @@ def schedule_csv_bytes(cfg: Config, ds: Dataset, sch: Schedule, name: str) -> by
     return data
 
 
+def submission_json_bytes(cfg: Config, ds: Dataset, sch: Schedule) -> bytes:
+    """主办方提交格式 v3.0 的 JSON（obsplan/submission.py）：按站点分组、组内按开始时间升序。"""
+    from .submission import to_records
+    return (json.dumps(to_records(cfg, ds, sch), ensure_ascii=False, indent=2) + "\n").encode("utf-8")
+
+
 def save_replan(run: Run, res: dict, folder: Path) -> Run:
     """把重排后的计划另存为一份结果，其他页签（甘特图、目标状态、校验、导出）都能直接查看。"""
     sch = res["schedule"]
