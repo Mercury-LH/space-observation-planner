@@ -287,7 +287,8 @@ def print_submission_notes(info: dict) -> None:
     if info["six_digit"] > 0:
         print(f"  注意：有 {info['six_digit']} 条的编号是 6 位（Alpha-5 编号转成的数字，写法待主办方确认）")
     if info["out_of_range"] > 0:
-        print(f"  注意：有 {info['out_of_range']} 条超出规范时间范围 2026-07-31 ~ 2026-08-06，会被判硬错误")
+        print(f"  注意：有 {info['out_of_range']} 条超出规范时间范围 2026-07-31 ~ 2026-08-06，会被判硬错误"
+              f"（`obsplan export 计划 --fit-spec-range` 可以裁进范围）")
 
 
 def cmd_export(args) -> int:
@@ -305,6 +306,11 @@ def cmd_export(args) -> int:
     print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）")
     for n, why in skipped[:5]:
         print(f"  第 {n + 2} 行：{why}")
+    if args.fit_spec_range:
+        from .submission import fit_to_range
+        sch, fi = fit_to_range(cfg, sch)
+        print(f"裁进规范时间范围：裁短 {fi['trimmed']} 条（共 {fi['trimmed_s']} 秒），"
+              f"删掉 {fi['dropped']} 条（裁完不够 {cfg.obs_min_s:g} 秒）")
     info = write_json(cfg, ds, sch, out)
     print(f"共 {info['records']} 条")
     print_submission_notes(info)
@@ -494,6 +500,8 @@ def main(argv=None) -> int:
     p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
     p.add_argument("--days", type=float)
     p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
+    p.add_argument("--fit-spec-range", action="store_true",
+                   help="把跨出规范时间范围（2026-07-31 ~ 08-06 23:59:59）的任务裁进范围，裁完不够 120 秒的删掉")
     p = sub.add_parser("score", help="按主办方规范 v3.0 复算一份提交的得分")
     p.add_argument("plan", help="提交 JSON 或计划 CSV")
     p.add_argument("--shrink", default="0", help="假设主办方窗口两端各短几秒，逗号分隔，如 0,1,2（默认 0）")

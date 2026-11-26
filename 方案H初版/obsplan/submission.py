@@ -75,6 +75,26 @@ def to_records(cfg: Config, ds: Dataset, sch: Schedule) -> list[dict]:
              "endTime": (t0 + timedelta(seconds=int(end[i]))).strftime(TIME_FMT)} for i in order]
 
 
+def fit_to_range(cfg: Config, sch: Schedule, spec_start: str = SPEC_START,
+                 spec_end: str = SPEC_END) -> tuple[Schedule, dict]:
+    """把计划裁进规范的时间范围（含两端）：跨出范围的任务裁掉超出的部分，裁完仍不短于最短观测时长的保留，
+    否则删掉。只缩短、不挪动，所以 30 秒切换、48 小时间隔、可见性和边界余量都仍然满足，代价只是这几条短了
+    几秒（删掉的任务会让覆盖变少，返回值里有条数）。
+    规划期是 8/1 0 点到 8/7 0 点，规范的截止是 8/6 23:59:59，最好计划有几条正好结束在 8/7 0 点，裁 1 秒即可。"""
+    t0 = cfg.start_dt
+    lo = int(round((_utc(spec_start) - t0).total_seconds()))
+    hi = int(round((_utc(spec_end) - t0).total_seconds()))
+    s = np.rint(np.asarray(sch.start_s, float)).astype(np.int64)
+    e = np.rint(np.asarray(sch.start_s, float) + np.asarray(sch.dur_s, float)).astype(np.int64)
+    ns, ne = np.maximum(s, lo), np.minimum(e, hi)
+    keep = ne - ns >= cfg.obs_min_s
+    trimmed = keep & ((ns != s) | (ne != e))
+    out = Schedule(np.asarray(sch.station)[keep], np.asarray(sch.target)[keep], ns[keep], (ne - ns)[keep],
+                   algo=sch.algo, runtime_s=sch.runtime_s, info=dict(sch.info))
+    return out, {"trimmed": int(trimmed.sum()), "dropped": int((~keep).sum()),
+                 "trimmed_s": int(((ns - s) + (e - ne))[trimmed].sum())}
+
+
 def write_json(cfg: Config, ds: Dataset, sch: Schedule, path: str | Path) -> dict:
     """写出提交文件（UTF-8、JSON 数组），返回需要提醒的情况：编号不是 5 位的条数、超出规范时间范围的条数。"""
     recs = to_records(cfg, ds, sch)

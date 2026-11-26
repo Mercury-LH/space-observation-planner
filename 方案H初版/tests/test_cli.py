@@ -39,6 +39,23 @@ def test_read_plan_submission_format(cfg, ds, tmp_path):
     assert np.isclose(back.start_s[0], 600.0) and np.isclose(back.dur_s[0], 180.0)
 
 
+def test_export_fit_spec_range(cfg, ds, tmp_path, capsys):
+    """export --fit-spec-range：正好结束在 8/7 0 点的任务裁到 8/6 23:59:59，其余不动；不加时原样导出并提醒。"""
+    a = int(ds.satnum[0])
+    src = tmp_path / "edge.csv"
+    src.write_text("station_id,target_id,observation_start_utc,observation_end_utc\n"
+                   f"1,{a},2026-08-06T23:56:00Z,2026-08-07T00:00:00Z\n"
+                   f"2,{a},2026-08-01T01:00:00Z,2026-08-01T01:03:00Z\n", encoding="utf-8")
+    assert main(["export", str(src), "-o", str(tmp_path / "raw.json")]) == 0
+    assert "--fit-spec-range" in capsys.readouterr().out
+    assert main(["export", str(src), "--fit-spec-range", "-o", str(tmp_path / "fit.json")]) == 0
+    assert "裁短 1 条" in capsys.readouterr().out
+    raw = json.loads((tmp_path / "raw.json").read_text(encoding="utf-8"))
+    fit = json.loads((tmp_path / "fit.json").read_text(encoding="utf-8"))
+    assert [r["endTime"] for r in fit] == ["2026-08-06T23:59:59Z", "2026-08-01T01:03:00Z"]
+    assert [r["startTime"] for r in fit] == [r["startTime"] for r in raw]
+
+
 def test_export_csv_to_submission(cfg, ds, tmp_path, capsys):
     """export 子命令：CSV → 规范 JSON，字段齐全、按站点分组、组内按开始时间升序，默认输出 <stem>_submission.json。"""
     a, b = int(ds.satnum[0]), int(ds.satnum[1])

@@ -14,7 +14,7 @@ from obsplan.config import Config
 from obsplan.schedule import Schedule, task_score
 from obsplan.submission import (HARD, NORMAL, SOFT, Parsed, classify, judge_window, load_json,
                                 parse_records, resource_errors, score_submission, site_code,
-                                summarize, to_records, write_json)
+                                summarize, to_records, write_json, fit_to_range)
 
 TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
@@ -551,3 +551,26 @@ def test_integration_20_records_and_corruption(cfg, ds, sub):
     rep, det = out["reports"][0], out["details"][0]
     assert det["status"][0] == HARD
     assert rep["hard"] >= 1 and rep["normal"] <= 19
+
+
+# ---------------------------------------------------------------- 裁进规范时间范围
+
+def test_fit_to_range_trims_and_drops(c0):
+    """规划期 8/1 0 点 ~ 8/7 0 点，规范截止 8/6 23:59:59：正好结束在 8/7 0 点的裁 1 秒；
+    裁完不够 120 秒的删掉；范围内的原样不动；只缩短不挪动。"""
+    end = 6 * 86400                                              # 8/7 0 点（相对规划开始的秒数）
+    sch = Schedule(np.array([0, 1, 2, 3]), np.array([0, 1, 2, 3]),
+                   np.array([1000, end - 240, end - 120, end + 10]), np.array([180, 240, 120, 150]), algo="x")
+    out, fi = fit_to_range(c0, sch)
+    assert fi == {"trimmed": 1, "dropped": 2, "trimmed_s": 1}
+    assert out.start_s.tolist() == [1000, end - 240] and out.dur_s.tolist() == [180, 239]
+    assert out.station.tolist() == [0, 1] and out.algo == "x"
+    recs = to_records(c0, SimpleNamespace(satnum=np.array([1, 2, 3, 4])), out)
+    assert max(r["endTime"] for r in recs) == "2026-08-06T23:59:59Z"
+
+
+def test_fit_to_range_noop_inside(c0):
+    sch = Schedule(np.array([0]), np.array([0]), np.array([3600.4]), np.array([200.0]))
+    out, fi = fit_to_range(c0, sch)
+    assert fi == {"trimmed": 0, "dropped": 0, "trimmed_s": 0}
+    assert out.start_s.tolist() == [3600] and out.dur_s.tolist() == [200]

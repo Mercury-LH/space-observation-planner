@@ -42,6 +42,7 @@ uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv
 
 ```bash
 uv run python -m obsplan export outputs/final_best/longrun_chain_best.csv -o outputs/submission/best_plan.json
+uv run python -m obsplan score outputs/final_best/submission_edge5.json --shrink 0,5   # 正式提交文件（留 5 秒余量，见下文）
 uv run python -m obsplan score outputs/submission/best_plan.json --shrink 0,1,2     # 约 1.5 分钟
 ```
 
@@ -68,7 +69,9 @@ uv run python scripts/margin_repair.py --margin 3                         # 最�
 | 推荐档 | 0 | 29525.0 | 26584.0 | 23614.5 | 22309.4 | 18835.7 |
 | 推荐档 | 3 | 29474.9 | 29474.9 | 29474.9 | 29474.9 | 23307.2 |
 
-余量的代价很小：最好计划留 1 / 2 / 3 / 5 秒，只少 7 / 10 / 46 / 80 分（0.02%～0.27%），主办方的窗口每端短 B 秒以内时分数完全不变；没有余量时，每短 1 秒要丢两三千分。留 1 秒起会少 1 颗目标（66205，优先级 5，整个规划期只有一个 121 秒的窗口），留 5 秒再少 1 颗。修补好的计划在 `outputs/final_best/edge_margin/`（`best_edge{1,2,3,5}.json`，提交格式），都经 Skyfield 逐秒校验合法。`plan` 的默认余量仍是 0，以保证各档结果和文档一致；正式提交用哪一份，等主办方说明预报窗口怎么算再定（见 `规则口径.md` 第四节）。
+余量的代价很小：最好计划留 1 / 2 / 3 / 5 秒，只少 7 / 10 / 46 / 80 分（0.02%～0.27%），主办方的窗口每端短 B 秒以内时分数完全不变；没有余量时，每短 1 秒要丢两三千分。留 1 秒起会少 1 颗目标（66205，优先级 5，整个规划期只有一个 121 秒的窗口），留 5 秒再少 1 颗。修补好的计划在 `outputs/final_best/edge_margin/`（`best_edge{1,2,3,5}.json`，提交格式），都经 Skyfield 逐秒校验合法。`plan` 的默认余量仍是 0，以保证各档结果和文档一致。
+
+**正式提交文件（2026-11-26 定为留 5 秒的版本）**：`outputs/final_best/submission_edge5.json`。它是 `best_edge5.json` 再把 5 条正好结束在 8 月 7 日 0 点的任务各裁掉 1 秒（规范的截止是 8 月 6 日 23:59:59），命令是 `uv run python -m obsplan export outputs/final_best/edge_margin/best_edge5.json --fit-spec-range -o outputs/final_best/submission_edge5.json`。按规范复算 13168 条全部正常（没有软错误和硬错误，错误率系数 1.0），最终得分 29844.5，覆盖 9997 颗；主办方的窗口每端短 1～5 秒时分数不变，短 6 秒降到 27157.7（`results/submission_v3/submission_edge5_score.json`）；Skyfield 逐秒校验全部合法。`--fit-spec-range` 只缩短、不挪动任务，所以切换、48 小时间隔、可见性和边界余量都仍然满足，裁完不够 120 秒的任务会删掉并在屏幕上报条数。主办方说明预报窗口和规划期（规范写 7 月 31 日 ~ 8 月 6 日，见 `规则口径.md` 第四节）后再看要不要换。
 
 **Docker**（在仓库根目录执行，不用装 uv）
 
