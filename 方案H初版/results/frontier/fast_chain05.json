@@ -14,33 +14,33 @@
   "processor": "arm",
   "cpus": 10
  },
- "time": "2026-11-22 00:56:28",
+ "time": "2026-11-26 02:40:03",
  "median": {
-  "wall_s": 54.4,
-  "combined": 0.986248,
+  "wall_s": 53.6,
+  "combined": 0.9886,
   "covered": 9999,
-  "score": 29238.19,
-  "avg_cores": 2.44
+  "score": 29379.62,
+  "avg_cores": 3.09
  },
  "all_legal": true,
  "runs": [
   {
-   "wall_s": 54.4,
-   "cpu_s": 132.6,
-   "avg_cores": 2.44,
-   "load_before": 7.64,
+   "wall_s": 53.6,
+   "cpu_s": 169.4,
+   "avg_cores": 3.16,
+   "load_before": 4.46,
    "phases_s": {
     "data_and_windows": 0.3,
-    "planning": 53.3,
-    "solve": 23.1,
-    "refine": 3.4,
-    "chain": 26.8
+    "planning": 52.7,
+    "solve": 22.8,
+    "refine": 3.3,
+    "chain": 26.6
    },
    "covered": 9999,
-   "score": 29238.19,
-   "combined": 0.986248,
-   "tasks": 13022,
-   "repeat_tasks": 3023,
+   "score": 29375.52,
+   "combined": 0.988532,
+   "tasks": 13016,
+   "repeat_tasks": 3017,
    "chain": {
     "start": {
      "covered": 9989,
@@ -50,32 +50,32 @@
     },
     "best": {
      "covered": 9999,
-     "score": 29238.193,
-     "combined": 0.986248,
-     "tasks": 13022
+     "score": 29375.52,
+     "combined": 0.988532,
+     "tasks": 13016
     },
-    "seconds": 26.8,
+    "seconds": 26.5,
     "stats": {
      "删重复换延长": 99,
-     "成功_深度1": 817,
-     "成功_深度0": 361,
-     "留节奏": 650,
-     "并行冲突改期": 243,
-     "不划算": 6153,
-     "留节奏失败": 562,
-     "并行冲突重找": 244,
-     "找不到链": 10243,
-     "成功_深度1_删": 10,
-     "成功_深度0_删": 7,
+     "成功_深度1": 1379,
+     "成功_深度0": 432,
+     "留节奏": 653,
+     "并行冲突改期": 247,
+     "不划算": 19960,
+     "留节奏失败": 592,
+     "并行冲突重找": 245,
+     "找不到链": 12779,
+     "成功_深度1_删": 12,
+     "成功_深度0_删": 21,
      "成功_深度2": 194,
      "成功_深度2_删": 26,
-     "成功_深度4": 111,
+     "成功_深度4": 119,
      "成功_深度3": 22,
      "成功_深度3_删": 3,
      "成功_深度4_删": 11,
-     "换位置回退": 1358,
-     "换位置成功": 257,
-     "换位置试探": 64
+     "换位置回退": 7035,
+     "换位置成功": 906,
+     "换位置试探": 217
     }
    },
    "plan": "outputs/frontier/fast_chain05/run1/plan.csv",
@@ -83,8 +83,136 @@
     "legal": true,
     "violations": {},
     "covered_valid": 9999,
-    "score_valid": 29238.19,
-    "seconds": 378.4,
+    "score_valid": 29375.52,
+    "seconds": 75.2,
+    "returncode": 0
+   }
+  },
+  {
+   "wall_s": 53.7,
+   "cpu_s": 166.0,
+   "avg_cores": 3.09,
+   "load_before": 4.02,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 52.8,
+    "solve": 22.9,
+    "refine": 3.3,
+    "chain": 26.6
+   },
+   "covered": 9999,
+   "score": 29379.62,
+   "combined": 0.9886,
+   "tasks": 13014,
+   "repeat_tasks": 3015,
+   "chain": {
+    "start": {
+     "covered": 9989,
+     "score": 28145.76,
+     "combined": 0.967579,
+     "tasks": 11873
+    },
+    "best": {
+     "covered": 9999,
+     "score": 29379.617,
+     "combined": 0.9886,
+     "tasks": 13014
+    },
+    "seconds": 26.5,
+    "stats": {
+     "删重复换延长": 97,
+     "成功_深度1": 1396,
+     "成功_深度0": 437,
+     "留节奏": 654,
+     "并行冲突改期": 247,
+     "不划算": 22482,
+     "留节奏失败": 593,
+     "并行冲突重找": 275,
+     "找不到链": 12629,
+     "成功_深度1_删": 14,
+     "成功_深度0_删": 24,
+     "成功_深度2": 194,
+     "成功_深度2_删": 26,
+     "成功_深度4": 120,
+     "成功_深度3": 22,
+     "成功_深度3_删": 3,
+     "成功_深度4_删": 11,
+     "换位置回退": 7758,
+     "换位置成功": 934,
+     "换位置试探": 223
+    }
+   },
+   "plan": "outputs/frontier/fast_chain05/run2/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9999,
+    "score_valid": 29379.62,
+    "seconds": 74.5,
+    "returncode": 0
+   }
+  },
+  {
+   "wall_s": 52.7,
+   "cpu_s": 162.2,
+   "avg_cores": 3.08,
+   "load_before": 7.24,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 51.7,
+    "solve": 21.9,
+    "refine": 3.2,
+    "chain": 26.5
+   },
+   "covered": 9999,
+   "score": 29379.67,
+   "combined": 0.988601,
+   "tasks": 13014,
+   "repeat_tasks": 3015,
+   "chain": {
+    "start": {
+     "covered": 9989,
+     "score": 28145.76,
+     "combined": 0.967579,
+     "tasks": 11873
+    },
+    "best": {
+     "covered": 9999,
+     "score": 29379.667,
+     "combined": 0.988601,
+     "tasks": 13014
+    },
+    "seconds": 26.5,
+    "stats": {
+     "删重复换延长": 97,
+     "成功_深度1": 1396,
+     "成功_深度0": 439,
+     "留节奏": 654,
+     "并行冲突改期": 247,
+     "不划算": 22921,
+     "留节奏失败": 593,
+     "并行冲突重找": 275,
+     "找不到链": 12632,
+     "成功_深度1_删": 14,
+     "成功_深度0_删": 24,
+     "成功_深度2": 194,
+     "成功_深度2_删": 26,
+     "成功_深度4": 120,
+     "成功_深度3": 22,
+     "成功_深度3_删": 3,
+     "成功_深度4_删": 11,
+     "换位置回退": 7907,
+     "换位置成功": 936,
+     "换位置试探": 223
+    }
+   },
+   "plan": "outputs/frontier/fast_chain05/run3/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9999,
+    "score_valid": 29379.67,
+    "seconds": 74.7,
     "returncode": 0
    }
   }

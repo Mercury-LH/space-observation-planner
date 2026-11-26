@@ -13,13 +13,13 @@
 <!-- frontier-table:begin -->
 | 档位 | 命令 | 全程用时（秒） | 综合 | 覆盖 / 得分 | 平均占用核数 | Skyfield 逐秒校验 |
 |---|---|---:|---:|---:|---:|---|
-| 快速 + 30 秒 | `python -m obsplan plan --mode fast --chain 0.5` | 54 | 0.9862 | 9999 / 29238 | 2.4 | 1 次全部合法 |
-| 快速（不跑弹射链） | `python -m obsplan plan --mode fast --chain 0` | 59 | 0.9690 | 9987 / 28238 | 1.7 | 1 次全部合法 |
-| 推荐档（默认，约 2 分钟） | `python -m obsplan plan` | 103 | 0.9899 | 9999 / 29456 | 2.5 | 1 次全部合法 |
-| 快速 + 3 分钟 | `python -m obsplan plan --mode fast --chain 3` | 242 | 0.9905 | 9999 / 29495 | 1.6 | 1 次全部合法 |
-| 十分钟档（快速 + 9 分钟） | `python -m obsplan plan --mode fast --chain 9` | 565 | 0.9940 | 9999 / 29702 | 2.1 | 1 次全部合法 |
+| 快速（不跑弹射链） | `python -m obsplan plan --mode fast --chain 0` | 53（45–57） | 0.9690（0.9690–0.9690） | 9987 / 28238 | 2.1 | 3 次全部合法 |
+| 快速 + 30 秒 | `python -m obsplan plan --mode fast --chain 0.5` | 54（53–54） | 0.9886（0.9885–0.9886） | 9999 / 29380 | 3.1 | 3 次全部合法 |
+| 推荐档（默认，约 2 分钟） | `python -m obsplan plan` | 96（96–101） | 0.9913（0.9913–0.9914） | 9999 / 29539 | 3.2 | 3 次全部合法 |
+| 快速 + 3 分钟 | `python -m obsplan plan --mode fast --chain 3` | 202（202–202） | 0.9943（0.9940–0.9943） | 9999 / 29720 | 3.8 | 3 次全部合法 |
+| 十分钟档（快速 + 9 分钟） | `python -m obsplan plan --mode fast --chain 9` | 562（562–562） | 0.9955（0.9954–0.9955） | 9999 / 29792 | 3.7 | 3 次全部合法 |
 
-每档从启动进程到写出计划端到端跑 1 次取中位数（括号里是最小–最大），可见窗口已缓存，用时不含 Skyfield 校验；测速机器 macOS-27.2.1-arm64-arm-64bit，10 核。原始记录在 `results/frontier/`，本表由 `scripts/frontier_table.py` 生成。
+每档从启动进程到写出计划端到端跑 3 次取中位数（括号里是最小–最大），可见窗口已缓存，用时不含 Skyfield 校验；测速机器 macOS-27.2.1-arm64-arm-64bit，10 核。原始记录在 `results/frontier/`，本表由 `scripts/frontier_table.py` 生成。
 <!-- frontier-table:end -->
 
 - **离线最好计划**（随仓库提供：`方案H初版/outputs/final_best/longrun_chain_best.csv`，支持 `python -m obsplan validate` 一条命令复核）：覆盖 **9,999 / 9,999** 颗可观测目标（另 1 颗 SGP4 外推异常），得分 **29,924.8**，综合指标 **0.9977**（`0.997667`），离可证明按秒数学上界 **1.0047**（附 10 秒细网格对偶价格证书）差距 **≤ 0.70%**。
@@ -31,7 +31,7 @@
 - **命令行规划与校验**：
   ```bash
   uv sync --extra app
-  uv run python -m obsplan plan --validate                                       # 推荐档（约 2 分钟，综合 ~0.990）
+  uv run python -m obsplan plan --validate                                       # 推荐档（约 2 分钟，综合 ~0.991）
   uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv    # 复核最好计划（0.9977）
   ```
 - **Docker**：见 [方案H初版/README.md](方案H初版/README.md#评委运行指南)。
