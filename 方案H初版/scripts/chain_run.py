@@ -48,7 +48,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(ROOT / "outputs" / "chain"))
     ap.add_argument("--bounds", default=str(ROOT / "outputs" / "fable" / "bounds_all.npz"))
     ap.add_argument("--depth", type=int, default=4, help="一条链最多顶掉几个任务")
-    ap.add_argument("--rounds", default="0:0,40:0,40:20,0:0", help="依次使用的时间线切法，见文件开头")
+    ap.add_argument("--rounds", default="0:0", help="依次使用的时间线切法，见文件开头（以前默认 0:0,40:0,40:20,0:0）")
     ap.add_argument("--passes", type=int, default=4, help="每种切法最多做几遍")
     ap.add_argument("--minutes", type=float, default=0.0, help="总时长上限，0 = 不限")
     ap.add_argument("--workers", type=int, default=4, help="算按秒边界用的进程数")

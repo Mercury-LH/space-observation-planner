@@ -14,3 +14,6 @@
 **/.env*
 **/*.csv
 **/*.log
+!方案H初版/outputs/final_best/longrun_chain_best.csv
+!方案H初版/outputs/final_best/longrun_chain_best.json
+!方案H初版/outputs/final_best/longrun_chain_best_validate.json

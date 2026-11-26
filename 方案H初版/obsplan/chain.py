@@ -1750,13 +1750,13 @@ def repattern_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: 
             "copied": copied, "redone": redone}
 
 
-def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, rounds: str = "0:0,40:0,40:20,0:0",
+def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, rounds: str = "0:0",
             passes: int = 1, shift: int = 4, retries: int = 6, drop: bool = True, repattern: bool = True,
             repattern_depth: int = 3, min_priority: float = 5.0, seed: int = 0, extra_windows: dict | None = None,
             bounds=None, workers: int = 4, verbose: bool = False, on_best=None,
             threads: int | None = None, cover: bool = True, pattern: bool = True,
             cycles: int | None = None, staged: bool = True, fill: bool = True,
-            reserve_s: float = 4.0, relocate: bool = True) -> tuple[Schedule, dict]:
+            reserve_s: float = 4.0, relocate: bool = True, escalate_gain: float = 3e-4) -> tuple[Schedule, dict]:
     """弹射链的整套流程（scripts/chain_run.py 与 `obsplan plan --chain` 共用）：按 rounds 里的时间线切法轮换，
     每种切法：删低价值重复 → 补覆盖 → 弹射链一遍（留节奏）→ 删低价值重复 → 重排节奏（先做"节奏卡死"的目标）
     → 全局按秒精修，只保留变好的。每轮结束后（以及限时收尾阶段）做多线程"换位置"（relocate）把低/中优先级任务
@@ -1770,6 +1770,13 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
     fill：每种切法的最后，给优先级低于 min_priority 的目标补重复观测（只往空当里直接塞），再删一遍不划算的重复观测。
     reserve_s：限时的时候给每轮收尾的便宜步骤（补低优先级、删重复、全局精修）留出的秒数——耗时的搜索提前这么多秒停。
     relocate：是否启用多线程"换位置"收尾与轮间交替（默认开启）。
+    rounds 默认只用整夜一种切法：实测（rep5 起点，9 分钟）四种切法轮换时后三种每种 30～70 秒只涨 0～7 分，
+    换成"整夜弹射链 → 换位置"更频繁地交替，240 秒就到了原来 9 分钟的分数。
+    escalate_gain：一轮（弹射链 + 换位置）综合指标涨不到这么多（默认 3e-4，约 18 分）时，之后每轮只做深度 2 的
+    换位置（贵，但在弹射链和浅层换位置都做到头的计划上仍然有效：实测 90 秒 +39 分，而再做一轮 8 层弹射链 47 秒 +0）；
+    深度 2 也不涨了才停。
+    限时收尾的换位置做完还有时间就再做一遍（换过之后别的任务又有了新位置）：推荐档实测（rep5 起点，77 秒）
+    0.9899 → 0.9913，原来收尾只做一遍、门槛也更高，常常提前二十几秒就停了。
     on_best(sch, ev, used)：每次变好时回调（存盘用）。返回最好计划和统计。"""
     from pathlib import Path
     from .refine import refine
@@ -1823,13 +1830,14 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                    **{"pass": k})
         log.append(rec)
 
-    def run_relocate(min_abs: float, r_retries: int, dl: float | None, tag: str) -> int:
+    def run_relocate(min_abs: float, r_retries: int, dl: float | None, tag: str, r_depth: int = 1) -> int:
         nonlocal best, best_ev, best_used
         tick("其他")
         tl_r = Timeline(pb, wL, wR, best, piece=0, offset=0, extra_windows=extra_windows)
         tick("建时间线")
-        rr = relocate_pass_parallel(tl_r, threads=threads, max_depth=1, min_absorb=min_abs,
+        rr = relocate_pass_parallel(tl_r, threads=threads, max_depth=r_depth, min_absorb=min_abs,
                                     shift=shift, retries=r_retries, deadline=dl)
+        rr["depth"] = r_depth
         tick("换位置")
         dp_r = drop_pass(tl_r)
         tick("删重复")
@@ -1848,15 +1856,16 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
             best, best_ev, best_used = cur_r, e1_r, used_r
             if on_best is not None:
                 on_best(best, best_ev, best_used)
-        say(f"  [换位置] {tag}：挪动 {rr['relocated']} 次，删 {dp_r['dropped']} 次，综合 {best_ev['combined']:.6f}"
+        say(f"  [换位置·深度{r_depth}] {tag}：挪动 {rr['relocated']} 次，删 {dp_r['dropped']} 次，综合 {best_ev['combined']:.6f}"
             f"（{rr['seconds']:.1f}s）")
         return int(rr["relocated"] + dp_r["dropped"])
 
     reloc_done_since_change = False
+    reloc_depth = 1
     for cyc in range(n_cycles):
         cyc_best = best_ev["combined"]
         cur_depth = depth if cyc == 0 else min(depth + 2 * cyc, 8)
-        for spec in specs:
+        for spec in (specs if reloc_depth < 2 else []):          # 升级之后每轮只做深度 2 的换位置
             if late():
                 break
             piece, offset = (int(v) for v in spec.split(":"))
@@ -1984,15 +1993,23 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                 if on_best is not None:
                     on_best(best, best_ev, best_used)
         if relocate and not late():
-            moved = run_relocate(0.5, min(retries, 3), deadline, f"reloc_cyc{cyc}")
+            moved = run_relocate(0.5, min(retries, 3), deadline, f"reloc_cyc{cyc}", reloc_depth)
             reloc_done_since_change = moved == 0
-        if late() or best_ev["combined"] <= cyc_best + 1e-9:
+        if late():
             break
+        if best_ev["combined"] <= cyc_best + escalate_gain:
+            if relocate and reloc_depth < 2:                 # 浅层做到头了：换位置升到深度 2 再试
+                reloc_depth = 2
+                reloc_done_since_change = False
+                continue
+            if best_ev["combined"] <= cyc_best + 1e-9:
+                break
     if relocate and not reloc_done_since_change and (deadline is None or time.time() < deadline - 1.0):
-        rem = 999.0 if deadline is None else (deadline - time.time())
-        min_abs = 1.5 if rem < 42.0 else 0.5
-        r_retries = 2 if rem < 42.0 else min(retries, 3)
-        run_relocate(min_abs, r_retries, deadline, "reloc_final")
+        moved, n_final = run_relocate(0.5, min(retries, 3), deadline, "reloc_final", reloc_depth), 1
+        # 还有时间就接着换：换过之后别的任务又有了新位置（每遍几秒，做到没得换或到点为止）
+        while moved > 0 and deadline is not None and time.time() < deadline - 5.0:
+            moved = run_relocate(0.5, min(retries, 3), deadline, f"reloc_final{n_final}", reloc_depth)
+            n_final += 1
     tick("其他")
     best.algo = (sch.algo + " + " if sch.algo else "") + "按秒跨站弹射链"
     profile = {k: {"wall_s": round(w, 1), "cores": round(c / w, 2) if w > 0 else None}
