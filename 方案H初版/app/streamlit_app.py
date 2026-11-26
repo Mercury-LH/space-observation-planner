@@ -329,7 +329,11 @@ def page_gantt():
 # ------------------------------------------------------------------ 时间价格
 def page_price():
     if run.mu is None:
-        st.info("时间价格只有价格协调方案（H）才有。")
+        if run.algo == "H":
+            st.info("这份结果是从计划文件读入的（如长跑得到的最好计划），没有保存价格协调过程中的时间价格。"
+                    "在左侧「查看结果」里选推荐档结果，或新建一次 H 规划，就能看到各站各时段的价格。")
+        else:
+            st.info("时间价格只有价格协调方案（H）才有。")
     else:
         mu = run.mu.astype(float)
         day = st.slider("查看第几天", 1, int(cfg.days), 2, key="price_day", persist_state="page")
