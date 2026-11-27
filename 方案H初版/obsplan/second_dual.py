@@ -52,7 +52,7 @@ def fine_problem(pb: Problem, wL: np.ndarray, wR: np.ndarray, cell: int = 10, ve
     dark = [[(max(a * r - r, 0), min(b * r + r, last)) for a, b in runs] for runs in pb.win.dark]
     win = Windows(w_st[order].astype(np.int16), w_tg[order].astype(np.int32), f0[order].astype(np.int32),
                   f1[order].astype(np.int32), dark, last + 1, pb.win.sgp4_failed)
-    return Problem.build(fcfg, pb.ds, win)
+    return pb.rebuild(win, fcfg)
 
 
 @njit(parallel=True, cache=True)
@@ -97,32 +97,27 @@ def _kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc, gap, m_mi
                 else:
                     hi = mid
             rq[q] = lo
-        pm1 = np.full(nw + 1, -1e18)
-        am1 = np.full(nw + 1, -1, np.int64)
-        for q in range(nw):
-            if pi[q] > pm1[q]:
-                pm1[q + 1], am1[q + 1] = pi[q], q
-            else:
-                pm1[q + 1], am1[q + 1] = pm1[q], am1[q]
-        f2 = np.full(nw, -1e18)
-        for q in range(nw):
-            if rq[q] > 0:
-                f2[q] = pi[q] + pm1[rq[q]]
-        pm2 = np.full(nw + 1, -1e18)
-        am2 = np.full(nw + 1, -1, np.int64)
-        for q in range(nw):
-            if f2[q] > pm2[q]:
-                pm2[q + 1], am2[q + 1] = f2[q], q
-            else:
-                pm2[q + 1], am2[q + 1] = pm2[q], am2[q]
+        # 链式 DP（同 lagrange._subproblem_kernel）：K = out_task.shape[1] = Problem.k_max；K = 3 时与原来逐位相同。
+        K = out_task.shape[1]
+        f = np.full((K, nw), -1e18)
+        pm = np.full((K, nw + 1), -1e18)
+        am = np.full((K, nw + 1), -1, np.int64)
+        for k in range(K):
+            for q in range(nw):
+                if k == 0:
+                    f[0, q] = pi[q]
+                elif rq[q] > 0 and (k == 1 or pm[k - 1, rq[q]] > -1e17):
+                    f[k, q] = pi[q] + pm[k - 1, rq[q]]
+            for q in range(nw):
+                if f[k, q] > pm[k, q]:
+                    pm[k, q + 1], am[k, q + 1] = f[k, q], q
+                else:
+                    pm[k, q + 1], am[k, q + 1] = pm[k, q], am[k, q]
         best, bq, bk = -1e18, -1, 0
         for q in range(nw):
-            if pi[q] > best:
-                best, bq, bk = pi[q], q, 1
-            if f2[q] > best:
-                best, bq, bk = f2[q], q, 2
-            if rq[q] > 0 and pm2[rq[q]] > -1e17 and pi[q] + pm2[rq[q]] > best:
-                best, bq, bk = pi[q] + pm2[rq[q]], q, 3
+            for k in range(K):
+                if f[k, q] > best:
+                    best, bq, bk = f[k, q], q, k + 1
         total = best + vc
         if total <= 0:
             continue
@@ -133,10 +128,8 @@ def _kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc, gap, m_mi
             c = out_cnt[i]
             out_task[i, c, 0], out_task[i, c, 1], out_task[i, c, 2] = w_st[w], ba[q], bm[q]
             out_cnt[i] = c + 1
-            if k == 3:
-                q = am2[rq[q]]
-            elif k == 2:
-                q = am1[rq[q]]
+            if k >= 2:
+                q = am[k - 2, rq[q]]
 
 
 @njit(cache=True)
@@ -152,15 +145,13 @@ def _demand(out_task, out_cnt, S, T, sw):
 
 class Dual:
     def __init__(self, pb: Problem):
-        if 3 * (pb.gap + pb.m_min) + pb.m_min <= pb.n_samples - 1:
-            raise NotImplementedError("规划期长到一颗目标可能观测 4 次以上；子问题只算到 3 次")
         self.pb = pb
         self.sw = pb.cfg.switch_s // pb.cfg.cell_s
         self.S, self.T = pb.n_stations, pb.n_samples + self.sw + 1
         N = pb.n_targets
         self.order = balanced_order(target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
         self.out_total = np.zeros(N)
-        self.out_task = np.zeros((N, 3, 3), np.int64)
+        self.out_task = np.zeros((N, pb.k_max, 3), np.int64)   # 每颗目标最多 k_max 次（>= 精确最多次数 max_obs，上界仍合法）
         self.out_cnt = np.zeros(N, np.int64)
 
     def value(self, mu: np.ndarray) -> float:

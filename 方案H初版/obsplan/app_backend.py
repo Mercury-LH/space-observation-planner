@@ -168,7 +168,7 @@ def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: i
     w = pb.win
     w2 = Windows(pb.w_st[sel].astype(np.int16), pb.w_tg[sel].astype(np.int32), pb.w_k0[sel].astype(np.int32),
                  pb.w_k1[sel].astype(np.int32), w.dark, w.n_samples, w.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, w2)
+    return pb.rebuild(w2)
 
 
 CLOUD_THRESHOLD = 30.0
@@ -271,6 +271,9 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
                 progress(0.98, f"按秒跨站弹射链（最多 {chain_minutes:g} 分钟）：把高优先级任务的延长换成多一次观测……")
             sch, ci = chain_improve(pb, sch, minutes=chain_minutes)
             notes["chain"] = {"minutes": chain_minutes, "seconds": ci["seconds"], "start": ci["start"], "best": ci["best"]}
+    from .submission import fit_applies, fit_to_range
+    if full_problem and fit_applies(cfg):                   # 与命令行相同：贴着规划期终点的任务裁进规范时间范围
+        sch, notes["spec_fit"] = fit_to_range(cfg, sch)
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"
@@ -485,6 +488,12 @@ def schedule_csv_bytes(cfg: Config, ds: Dataset, sch: Schedule, name: str) -> by
     data = tmp.read_bytes()
     tmp.unlink(missing_ok=True)
     return data
+
+
+def submission_json_bytes(cfg: Config, ds: Dataset, sch: Schedule) -> bytes:
+    """主办方提交格式 v3.0 的 JSON（obsplan/submission.py）：按站点分组、组内按开始时间升序。"""
+    from .submission import to_records
+    return (json.dumps(to_records(cfg, ds, sch), ensure_ascii=False, indent=2) + "\n").encode("utf-8")
 
 
 def save_replan(run: Run, res: dict, folder: Path) -> Run:

@@ -98,7 +98,7 @@ def collect(tl: Timeline, xs, **kw) -> tuple[np.ndarray, np.ndarray, np.ndarray]
     """按顺序逐颗试（与 run_pass 相同），记下每次尝试前的特征、成败和用时。"""
     F, y, t = [], [], []
     for x in np.asarray(xs, np.int64):
-        if tl.tg_cnt[x] >= 3:
+        if tl.tg_cnt[x] >= tl.k_max:
             continue
         F.append(features(tl, [x])[0])
         t0 = time.perf_counter()

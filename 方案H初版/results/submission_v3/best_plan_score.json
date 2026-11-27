@@ -1,0 +1,133 @@
+{
+  "input": "outputs/submission/best_plan.json",
+  "reports": [
+    {
+      "records": 13222,
+      "covered": 9999,
+      "covered_scoring": 9999,
+      "normal": 13217,
+      "soft": 0,
+      "hard": 5,
+      "valid_score": 29906.153333333332,
+      "factor": 0.9994999499949995,
+      "final_score": 29891.198761209453,
+      "factor_loose": 0.9994999499949995,
+      "final_score_loose": 29891.198761209453,
+      "combined": 0.9971091837071627,
+      "shrink_s": 0.0,
+      "reasons": {
+        "超出规定时间范围": 5
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 949,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 141
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 13222,
+      "covered": 9999,
+      "covered_scoring": 9594,
+      "normal": 12627,
+      "soft": 0,
+      "hard": 595,
+      "valid_score": 28742.716666666667,
+      "factor": 0.9379820721284136,
+      "final_score": 26960.152937599887,
+      "factor_loose": 0.9404940494049405,
+      "final_score_loose": 27032.353988732208,
+      "combined": 0.928109170008647,
+      "shrink_s": 1.0,
+      "reasons": {
+        "有效时长不足 120 秒": 590,
+        "超出规定时间范围": 5
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 949,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 141
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 13222,
+      "covered": 9999,
+      "covered_scoring": 9338,
+      "normal": 12079,
+      "soft": 192,
+      "hard": 951,
+      "valid_score": 27728.181666666664,
+      "factor": 0.8775969158278004,
+      "final_score": 24334.166712179624,
+      "factor_loose": 0.8856885688568856,
+      "final_score_loose": 24558.53353735373,
+      "combined": 0.8716329970091747,
+      "shrink_s": 2.0,
+      "reasons": {
+        "有效时长不足 120 秒": 946,
+        "偏差 1–5 秒": 192,
+        "超出规定时间范围": 5
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 949,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 141
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 13222,
+      "covered": 9999,
+      "covered_scoring": 9236,
+      "normal": 11838,
+      "soft": 293,
+      "hard": 1091,
+      "valid_score": 27282.48,
+      "factor": 0.8501515807708965,
+      "final_score": 23194.243499350367,
+      "factor_loose": 0.8615861586158615,
+      "final_score_loose": 23506.20714071407,
+      "combined": 0.8475734598388391,
+      "shrink_s": 3.0,
+      "reasons": {
+        "有效时长不足 120 秒": 1086,
+        "偏差 1–5 秒": 293,
+        "超出规定时间范围": 5
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 949,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 141
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 13222,
+      "covered": 9999,
+      "covered_scoring": 8773,
+      "normal": 11150,
+      "soft": 354,
+      "hard": 1718,
+      "valid_score": 25926.046666666665,
+      "factor": 0.763820813860709,
+      "final_score": 19802.854065124055,
+      "factor_loose": 0.7927792779277928,
+      "final_score_loose": 20553.632555922257,
+      "combined": 0.7680168762079045,
+      "shrink_s": 5.0,
+      "reasons": {
+        "有效时长不足 120 秒": 1682,
+        "偏差 1–5 秒": 354,
+        "偏差超过 5 秒": 31,
+        "超出规定时间范围": 5
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 949,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 141
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    }
+  ]
+}

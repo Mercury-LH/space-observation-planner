@@ -25,8 +25,8 @@ def all_bounds(pb: Problem, path: Path | None = None, workers: int = 4, chunk_ta
     W = len(pb.w_st)
     if path is not None and Path(path).exists():
         z = np.load(path)
-        if len(z["L"]) == W:
-            return z["L"], z["R"]
+        if len(z["L"]) == W:                                         # 旧缓存可能到规划期终点；截到最晚结束时刻
+            return z["L"], np.minimum(z["R"], pb.cfg.end_s)
     jobs, parts = [], []
     for i0 in range(0, pb.n_targets, chunk_targets):
         ws = pb.t_win[pb.t_ptr[i0]:pb.t_ptr[min(i0 + chunk_targets, pb.n_targets)]]

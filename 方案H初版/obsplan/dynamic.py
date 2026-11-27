@@ -50,11 +50,11 @@ class Status:
 
 
 def residual_problem(pb: Problem, status: Status) -> Problem:
-    """剩余问题：各站从 c_now 起；已成功观测过的目标，窗口从上次成功观测结束 48 小时后起，观测满 3 次的不再有窗口。"""
+    """剩余问题：各站从 c_now 起；已成功观测过的目标，窗口从上次成功观测结束 48 小时后起，观测满 k_max 次（6 天 3 次，7 天 4 次）的不再有窗口。"""
     k0 = np.maximum(pb.w_k0, status.c_now[pb.w_st])
     if status.succ:
         tg = np.fromiter(status.succ, np.int64, len(status.succ))
-        full = np.array([len(obs) >= 3 for obs in status.succ.values()])
+        full = np.array([len(obs) >= pb.k_max for obs in status.succ.values()])
         last_end = np.array([max(a + m for a, m in obs) for obs in status.succ.values()], np.int64)
         lim = np.full(pb.n_targets, np.iinfo(np.int64).min)
         lim[tg] = np.where(full, np.iinfo(np.int64).max, last_end + pb.gap)
@@ -63,7 +63,7 @@ def residual_problem(pb: Problem, status: Status) -> Problem:
     w = pb.win
     w2 = Windows(pb.w_st[keep].astype(np.int16), pb.w_tg[keep].astype(np.int32), k0[keep].astype(np.int32),
                  pb.w_k1[keep].astype(np.int32), w.dark, w.n_samples, w.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, w2)
+    return pb.rebuild(w2)
 
 
 def clip_windows(pb: Problem, usable_h: np.ndarray) -> Problem:
@@ -104,7 +104,7 @@ def clip_cells(pb: Problem, ok: np.ndarray) -> Problem:
     w = pb.win
     w2 = Windows(st[order].astype(np.int16), tg[order].astype(np.int32), k0[order].astype(np.int32),
                  k1[order].astype(np.int32), w.dark, w.n_samples, w.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, w2)
+    return pb.rebuild(w2)
 
 
 def _fill(pb: Problem, status: Status, sch, q: np.ndarray, vct: np.ndarray):
@@ -124,10 +124,11 @@ def state_factory(pb: Problem, status: Status):
         st = State(pb)
         for s in range(pb.n_stations):
             st.owner[s, :status.c_now[s]] = -3                 # 过去的时段不可再用
+        K = st.t_task.shape[1]                                  # = pb.k_max
         for t, obs in status.succ.items():
-            for x, (a, m) in enumerate(obs[:3]):
+            for x, (a, m) in enumerate(obs[:K]):
                 st.t_obs_a[t, x], st.t_obs_m[t, x] = a, m
-            st.t_cnt[t] = min(len(obs), 3)
+            st.t_cnt[t] = min(len(obs), K)
         return st
     return make
 
@@ -242,10 +243,10 @@ def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, thre
                 usable[:, a:b] = q_h[:, a:b] >= clip_p
                 pr = clip_windows(full, usable)
             vct = np.full(pb.n_targets, pb.vc)
-            left = np.full(pb.n_targets, 3, np.int64)
+            left = np.full(pb.n_targets, pb.k_max, np.int64)
             for t, obs in status.succ.items():
                 vct[t] = 0.0
-                left[t] = 3 - len(obs)
+                left[t] = pb.k_max - len(obs)
             qc = cell_probability(pr, q_h)
             sch, _ = lagrange.solve(pr, iters=iters, fast=fast, verbose=False,
                                     cell_weight=qc, backup=np.zeros(pb.n_targets),

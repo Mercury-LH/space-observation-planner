@@ -1,0 +1,112 @@
+{
+ "name": "fast_chain0",
+ "label": "快速（不跑弹射链）",
+ "note": "",
+ "plan_args": [
+  "--mode",
+  "fast",
+  "--chain",
+  "0"
+ ],
+ "env": {},
+ "machine": {
+  "platform": "macOS-27.2.1-arm64-arm-64bit",
+  "processor": "arm",
+  "cpus": 10
+ },
+ "time": "2026-11-26 02:33:39",
+ "median": {
+  "wall_s": 53.2,
+  "combined": 0.969009,
+  "covered": 9987,
+  "score": 28237.78,
+  "avg_cores": 2.15
+ },
+ "all_legal": true,
+ "runs": [
+  {
+   "wall_s": 45.3,
+   "cpu_s": 98.8,
+   "avg_cores": 2.18,
+   "load_before": 7.18,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 44.4,
+    "solve": 41.0,
+    "refine": 3.3,
+    "chain": 0.0
+   },
+   "covered": 9987,
+   "score": 28237.78,
+   "combined": 0.969009,
+   "tasks": 12097,
+   "repeat_tasks": 2110,
+   "chain": null,
+   "plan": "outputs/frontier/fast_chain0/run1/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9987,
+    "score_valid": 28237.78,
+    "seconds": 74.9,
+    "returncode": 0
+   }
+  },
+  {
+   "wall_s": 53.2,
+   "cpu_s": 114.2,
+   "avg_cores": 2.15,
+   "load_before": 4.87,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 52.3,
+    "solve": 49.0,
+    "refine": 3.3,
+    "chain": 0.0
+   },
+   "covered": 9987,
+   "score": 28237.78,
+   "combined": 0.969009,
+   "tasks": 12097,
+   "repeat_tasks": 2110,
+   "chain": null,
+   "plan": "outputs/frontier/fast_chain0/run2/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9987,
+    "score_valid": 28237.78,
+    "seconds": 75.0,
+    "returncode": 0
+   }
+  },
+  {
+   "wall_s": 56.9,
+   "cpu_s": 122.2,
+   "avg_cores": 2.15,
+   "load_before": 4.51,
+   "phases_s": {
+    "data_and_windows": 0.3,
+    "planning": 55.9,
+    "solve": 52.6,
+    "refine": 3.3,
+    "chain": 0.0
+   },
+   "covered": 9987,
+   "score": 28237.78,
+   "combined": 0.969009,
+   "tasks": 12097,
+   "repeat_tasks": 2110,
+   "chain": null,
+   "plan": "outputs/frontier/fast_chain0/run3/plan.csv",
+   "skyfield": {
+    "legal": true,
+    "violations": {},
+    "covered_valid": 9987,
+    "score_valid": 28237.78,
+    "seconds": 75.0,
+    "returncode": 0
+   }
+  }
+ ]
+}

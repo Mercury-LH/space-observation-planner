@@ -108,16 +108,30 @@ def flow_upper_bound(pb: Problem, bucket_cells: int = 10, verbose=True) -> dict:
 
 
 def _short_windows(pb: Problem):
-    """比最短观测少一格的网格窗口 (station, target, k0, k1)。get_windows 顺带缓存；没有缓存时现算。"""
+    """比最短观测少一格的网格窗口 (station, target, k0, k1)。get_windows 顺带缓存；没有缓存时现算。
+    另外并进"截到规划期最后一秒（Config.end_s）后只剩 m_min − 1 格"的窗口：visibility._clip_end 把它们从网格窗口里
+    去掉了，但按秒可能仍够 120 秒（结束在 23:59:59），按秒放宽问题要包含它们，上界才对任何按秒合法的计划成立。"""
     cfg = pb.cfg
     path = Path(cfg.cache_dir) / f"short_{cfg.scenario_key()}.npz"
     if path.exists():
         z = np.load(path)
-        return z["station"], z["target"], z["k0"], z["k1"]
-    from dataclasses import replace
-    from .visibility import compute_windows
-    w = compute_windows(replace(cfg, obs_min_s=(pb.m_min - 1) * cfg.cell_s), pb.ds, verbose=False)
-    return w.station, w.target, w.k0, w.k1
+        st, tg, k0, k1 = z["station"], z["target"], z["k0"], z["k1"]
+    else:
+        from dataclasses import replace
+        from .visibility import compute_windows
+        w = compute_windows(replace(cfg, obs_min_s=(pb.m_min - 1) * cfg.cell_s), pb.ds, verbose=False)
+        st, tg, k0, k1 = w.station, w.target, w.k0, w.k1
+    from .visibility import Windows
+    kmax = cfg.end_s // cfg.cell_s
+    raw = Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz"            # 缓存里存的是没截的窗口
+    if raw.exists() and kmax < pb.n_samples - 1:
+        w = Windows.load(raw, pb.ds.n_stations)
+        cut = (w.k1 > kmax) & (kmax - w.k0 == pb.m_min - 1)
+        if cut.any():
+            st, tg, k0, k1 = (np.concatenate([a, b]) for a, b in
+                              zip((st, tg, k0, k1), (w.station[cut], w.target[cut], w.k0[cut],
+                                                     np.full(int(cut.sum()), kmax, w.k1.dtype))))
+    return st, tg, k0, k1
 
 
 def by_second_problem(pb: Problem, short=None, targets: np.ndarray | None = None) -> Problem:
@@ -139,17 +153,17 @@ def by_second_problem(pb: Problem, short=None, targets: np.ndarray | None = None
     dark = [[(max(a - 1, 0), min(b + 1, last)) for a, b in runs] for runs in pb.win.dark]
     win = Windows(w_st[order].astype(np.int16), w_tg[order].astype(np.int32), w_k0[order].astype(np.int32),
                   w_k1[order].astype(np.int32), dark, pb.n_samples, pb.win.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, win)
+    return pb.rebuild(win)
 
 
 def _dual_setup(pb: Problem):
     from . import lagrange
-    if 3 * (pb.gap + pb.m_min) + pb.m_min <= pb.n_samples - 1:
-        raise NotImplementedError("规划期长到一颗目标可能观测 4 次以上；价格子问题只算到 3 次，对偶上界不适用")
     N = pb.n_targets
     order = lagrange.balanced_order(lagrange.target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
-    bufs = (np.zeros(N), np.zeros((N, 3, 3), np.int64), np.zeros(N, np.int64))
-    const = (pb.vs * pb.P, np.full(N, pb.vc), np.full(N, 3, np.int64), np.zeros((1, 1)), np.zeros(N))
+    # 子问题每颗目标最多排 k_max 次（>= 精确的最多次数 max_obs），任何可行计划都在子问题的可行域里，上界合法
+    K = pb.k_max
+    bufs = (np.zeros(N), np.zeros((N, K, 3), np.int64), np.zeros(N, np.int64))
+    const = (pb.vs * pb.P, np.full(N, pb.vc), np.full(N, K, np.int64), np.zeros((1, 1)), np.zeros(N))
     return order, bufs, const
 
 

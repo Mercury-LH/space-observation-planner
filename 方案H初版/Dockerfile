@@ -28,13 +28,16 @@ COPY 方案H初版/results ./results
 COPY 方案H初版/scripts/check_app.py ./scripts/
 COPY 方案H初版/app ./app
 COPY 方案H初版/obsplan ./obsplan
+COPY 方案H初版/outputs/final_best ./outputs/final_best
 
-# 预先算好默认规则下的可见窗口、取好 DE421 星历，再用 1 天的小场景把 numba 函数编译进缓存，
-# 容器里第一次规划就不用再等这几步（星历下载失败不影响构建，第一次校验时会再试）
+# 预先算好默认规则下的可见窗口和全部窗口的按秒真实边界（弹射链用）、取好 DE421 星历，
+# 再用 1 天的小场景（带 12 秒弹射链）把 numba 函数编译进缓存，容器里第一次规划就不用再等这几步
+# （星历下载失败不影响构建，第一次校验时会再试）
 RUN python -m obsplan windows \
+ && python -c "from pathlib import Path; from obsplan.config import Config; from obsplan.data import load; from obsplan.problem import Problem; from obsplan.visibility import get_windows; from obsplan.second_bounds import all_bounds; cfg = Config(); ds = load(cfg); pb = Problem.build(cfg, ds, get_windows(cfg, ds)); all_bounds(pb, Path(cfg.cache_dir) / f'bounds_all_{cfg.scenario_key()}.npz')" \
  && (python -c "from obsplan.config import Config; from obsplan.ephemeris import ensure_de421; ensure_de421(Config().cache_dir)" \
      || echo "DE421 星历暂未下载，第一次校验时会再试") \
- && python -m obsplan plan --days 1 --out /tmp/warmup > /dev/null \
+ && python -m obsplan plan --days 1 --chain 0.2 --out /tmp/warmup > /dev/null \
  && rm -rf /tmp/warmup cache/*_1d_*
 
 EXPOSE 8501

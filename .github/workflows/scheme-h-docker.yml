@@ -21,15 +21,21 @@ jobs:
       - uses: actions/checkout@v7
       - name: 构建镜像
         run: docker build -f 方案H初版/Dockerfile -t obsplan .
-      - name: 命令行：默认规则全量快速规划
+      - name: 命令行：默认命令（推荐档）全量规划
         run: |
           mkdir -p out && chmod 777 out
-          docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --mode fast --out /out/plan
+          docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --out /out/plan
           python3 -c "import json; d = json.load(open('out/plan/summary.json')); print(d['metrics'], d['seconds'])"
       - name: 命令行：规划 1 天并做 Skyfield 逐秒校验
         run: |
           docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan plan --days 1 --validate --out /out/day1
           python3 -c "import json; v = json.load(open('out/day1/summary.json'))['validation']; print(v); assert v['legal']"
+      - name: 命令行：按规范 v3.0 复算 1 天计划（应 0 错误）
+        run: docker run --rm -v "$PWD/out:/out" obsplan python -m obsplan score /out/day1/plan.json
+      - name: 命令行：复核随仓库的正式计划（7 天，留 5 秒余量）
+        run: docker run --rm obsplan python -m obsplan validate outputs/final_best/best_7d_edge5.csv
+      - name: 命令行：按规范 v3.0 复算正式提交文件（应 0 错误）
+        run: docker run --rm obsplan python -m obsplan score outputs/final_best/submission_7d_edge5.json --shrink 0,5
       - name: 界面检查
         run: docker run --rm obsplan python scripts/check_app.py
       - name: 网页服务

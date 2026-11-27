@@ -1,0 +1,162 @@
+{
+  "input": "outputs/final_best/submission_7d_edge5.json",
+  "reports": [
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 0.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 1.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 2.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 3.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 4.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9998,
+      "normal": 15030,
+      "soft": 0,
+      "hard": 0,
+      "valid_score": 35912.276666666665,
+      "factor": 1.0,
+      "final_score": 35912.276666666665,
+      "factor_loose": 1.0,
+      "final_score_loose": 35912.276666666665,
+      "combined": 1.0972035171756147,
+      "shrink_s": 5.0,
+      "reasons": {},
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    },
+    {
+      "records": 15030,
+      "covered": 9998,
+      "covered_scoring": 9553,
+      "normal": 14285,
+      "soft": 1,
+      "hard": 744,
+      "valid_score": 34342.655,
+      "factor": 0.9220140270072229,
+      "final_score": 31664.409634669737,
+      "factor_loose": 0.9254850970194038,
+      "final_score_loose": 31783.615394578912,
+      "combined": 1.0043017469674296,
+      "shrink_s": 6.0,
+      "reasons": {
+        "有效时长不足 120 秒": 744,
+        "偏差 1–5 秒": 1
+      },
+      "warnings": {
+        "noradId 不足 5 位（整数没有前导 0）": 1062,
+        "noradId 超过 5 位（Alpha-5 编号转成的数字，写法待主办方确认）": 157
+      },
+      "cascade_48h": false,
+      "spec": "v3.0"
+    }
+  ]
+}

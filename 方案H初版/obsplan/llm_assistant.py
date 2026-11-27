@@ -273,7 +273,7 @@ def explain_plan(metrics: dict, status: dict | None = None, extra: dict | None =
     """返回 (说明文字, 来源)。有 key 时请大模型写，失败或没有 key 时用模板。"""
     lcfg = llm_config() if use_llm else None
     if lcfg:
-        prompt = ("下面是一份地面望远镜观测空间目标的 6 天计划的统计数据（JSON）。请用 200 字以内的中文、"
+        prompt = ("下面是一份地面望远镜观测空间目标的计划的统计数据（JSON）。请用 200 字以内的中文、"
                   "给不熟悉航天的评委解释：这份计划做得怎么样、为什么这么安排、还有哪些不足。只依据给出的数据，不要编造数字。\n"
                   + json.dumps(_facts(metrics, status, extra), ensure_ascii=False, default=float))
         try:

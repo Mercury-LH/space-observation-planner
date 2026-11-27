@@ -38,6 +38,6 @@ def pb(cfg, ds):
 
 @pytest.fixture(scope="session")
 def sub(pb):
-    """小场景：10% 目标 × 3 个站 × 6 天，几秒内能跑完各算法。"""
+    """小场景：10% 目标 × 3 个站 × 默认规划期（规范 v3.0 的 7 天），几秒内能跑完各算法。"""
     from obsplan.ga import sub_problem
     return sub_problem(pb, np.random.default_rng(7), target_frac=0.1, n_st=3)

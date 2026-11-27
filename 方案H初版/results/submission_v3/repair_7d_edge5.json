@@ -1,0 +1,41 @@
+{
+ "margin_s": 5,
+ "plan": "outputs/run7d/A_fresh/plan.csv",
+ "minutes": 20.0,
+ "input": {
+  "covered": 9998,
+  "score": 35904.41,
+  "combined": 1.0970726764686316,
+  "tasks": 15019
+ },
+ "clipped": {
+  "moved": 0,
+  "dropped": 0,
+  "unmatched": 0,
+  "covered": 9998,
+  "score": 35904.41,
+  "combined": 1.0970726764686316,
+  "tasks": 15019
+ },
+ "repaired": {
+  "covered": 9998,
+  "score": 35912.27666666667,
+  "combined": 1.097203517175615,
+  "tasks": 15030
+ },
+ "short_of_margin": 0,
+ "legal": true,
+ "violations": {},
+ "chain_seconds": 210.1,
+ "spec_fit": {
+  "trimmed": 0,
+  "dropped": 0,
+  "trimmed_s": 0
+ },
+ "submission_notes": {
+  "records": 15030,
+  "not_5_digit": 1219,
+  "six_digit": 157,
+  "out_of_range": 0
+ }
+}

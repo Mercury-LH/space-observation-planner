@@ -124,7 +124,7 @@ def solve_slice(ctx: Context, sch: Schedule, s: int, A: int, B: int, time_limit:
     p1 = np.searchsorted(fx_t, tg, side="right")
     cov = p1 == p0
     for i in range(len(idx)):
-        if p1[i] - p0[i] >= 3:
+        if p1[i] - p0[i] >= ctx.pb.k_max:
             cr[i] = cl[i] - 1
             continue
         for k in range(p0[i], p1[i]):

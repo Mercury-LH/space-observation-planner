@@ -71,7 +71,7 @@ def improve_slice(pb: Problem, st: State, s: int, c0: int, c1: int, time_limit: 
     hint = {(t, w): (a, m) for k, t, a, m, w in removed}
     for w in sel:
         t = int(pb.w_tg[w])
-        if st.t_cnt[t] >= 3:
+        if st.t_cnt[t] >= st.t_task.shape[1]:
             continue
         lo0, hi0 = max(int(pb.w_k0[w]), c0), min(int(pb.w_k1[w]), c1 - 1)
         for m in durations:

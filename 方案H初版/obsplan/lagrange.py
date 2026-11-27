@@ -53,7 +53,7 @@ def _subproblem(pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min,
 @njit(parallel=True, cache=True)
 def _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vct, gap, m_min, m_max,
                        out_total, out_task, out_cnt, qpref, use_q, beta, max_k):
-    """每颗目标独立求解：窗口内最优 (开始, 时长)，再在窗口间做 ≤3 次、间隔 ≥48h 的链式 DP。
+    """每颗目标独立求解：窗口内最优 (开始, 时长)，再在窗口间做 ≤K 次（out_task 的第二维）、间隔 ≥48h 的链式 DP。
     窗口间隔用放松的判定（前一窗口最早结束 + 48h <= 后一窗口最晚开始），保证对偶值是合法上界。
     首次观测价值 = (覆盖奖励 + 得分) × q，重复观测价值 = (得分 + 覆盖奖励 × beta) × q；
     不考虑天气时 q = 1、beta = 0，即原问题。"""
@@ -117,33 +117,28 @@ def _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc
                 else:
                     hi = mid
             rq[q] = lo
-        f1 = pi1.copy()
-        pm1 = np.full(nw + 1, -1e18)
-        am1 = np.full(nw + 1, -1, np.int64)
-        for q in range(nw):
-            if f1[q] > pm1[q]:
-                pm1[q + 1], am1[q + 1] = f1[q], q
-            else:
-                pm1[q + 1], am1[q + 1] = pm1[q], am1[q]
-        f2 = np.full(nw, -1e18)
-        for q in range(nw):
-            if rq[q] > 0:
-                f2[q] = pi2[q] + pm1[rq[q]]
-        pm2 = np.full(nw + 1, -1e18)
-        am2 = np.full(nw + 1, -1, np.int64)
-        for q in range(nw):
-            if f2[q] > pm2[q]:
-                pm2[q + 1], am2[q + 1] = f2[q], q
-            else:
-                pm2[q + 1], am2[q + 1] = pm2[q], am2[q]
+        # 链式 DP：f[k][q] = 以窗口 q 为第 k+1 次观测、前面再排 k 次的最好值；pm[k] 是 f[k] 的前缀最大值。
+        # K = out_task.shape[1]（Problem.k_max：6 天 3 次，7 天 4 次）；K = 3 时与原来逐位相同。
+        K = out_task.shape[1]
+        f = np.full((K, nw), -1e18)
+        pm = np.full((K, nw + 1), -1e18)
+        am = np.full((K, nw + 1), -1, np.int64)
+        for k in range(K):
+            for q in range(nw):
+                if k == 0:
+                    f[0, q] = pi1[q]
+                elif rq[q] > 0 and (k == 1 or pm[k - 1, rq[q]] > -1e17):
+                    f[k, q] = pi2[q] + pm[k - 1, rq[q]]
+            for q in range(nw):
+                if f[k, q] > pm[k, q]:
+                    pm[k, q + 1], am[k, q + 1] = f[k, q], q
+                else:
+                    pm[k, q + 1], am[k, q + 1] = pm[k, q], am[k, q]
         best, bq, bk = -1e18, -1, 0
         for q in range(nw):
-            if f1[q] > best:
-                best, bq, bk = f1[q], q, 1
-            if max_k[i] >= 2 and f2[q] > best:
-                best, bq, bk = f2[q], q, 2
-            if max_k[i] >= 3 and rq[q] > 0 and pm2[rq[q]] > -1e17 and pi2[q] + pm2[rq[q]] > best:
-                best, bq, bk = pi2[q] + pm2[rq[q]], q, 3
+            for k in range(K):
+                if max_k[i] >= k + 1 and f[k, q] > best:
+                    best, bq, bk = f[k, q], q, k + 1
         total = best if use_q else best + vc
         if total <= 0:
             continue
@@ -157,10 +152,8 @@ def _subproblem_kernel(order, pref, t_ptr, t_win, w_st, w_k0, w_k1, Pv, frac, vc
             else:
                 out_task[i, c, 0], out_task[i, c, 1], out_task[i, c, 2] = w_st[w], ba2[q], bm2[q]
             out_cnt[i] = c + 1
-            if k == 3:
-                q = am2[rq[q]]
-            elif k == 2:
-                q = am1[rq[q]]
+            if k >= 2:
+                q = am[k - 2, rq[q]]
 
 
 @njit(cache=True)
@@ -272,11 +265,11 @@ def solve(pb: Problem, iters: int = 150, recover_at=None, local_search=True,
     N = pb.n_targets
     order = balanced_order(target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
     out_total = np.zeros(N)
-    out_task = np.zeros((N, 3, 3), np.int64)
+    out_task = np.zeros((N, pb.k_max, 3), np.int64)        # 每颗目标最多 k_max 次（6 天 3 次，7 天 4 次）
     out_cnt = np.zeros(N, np.int64)
     Pv = pb.vs * pb.P
     vct = np.full(N, pb.vc) if vc_target is None else np.asarray(vc_target, float)
-    maxk = np.full(N, 3, np.int64) if max_obs_left is None else np.asarray(max_obs_left, np.int64)
+    maxk = np.full(N, pb.k_max, np.int64) if max_obs_left is None else np.asarray(max_obs_left, np.int64)
     use_q = cell_weight is not None
     if use_q:
         qw = np.asarray(cell_weight, float)

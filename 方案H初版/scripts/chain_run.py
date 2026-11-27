@@ -48,7 +48,7 @@ def main() -> int:
     ap.add_argument("--out", default=str(ROOT / "outputs" / "chain"))
     ap.add_argument("--bounds", default=str(ROOT / "outputs" / "fable" / "bounds_all.npz"))
     ap.add_argument("--depth", type=int, default=4, help="一条链最多顶掉几个任务")
-    ap.add_argument("--rounds", default="0:0,40:0,40:20,0:0", help="依次使用的时间线切法，见文件开头")
+    ap.add_argument("--rounds", default="0:0", help="依次使用的时间线切法，见文件开头（以前默认 0:0,40:0,40:20,0:0）")
     ap.add_argument("--passes", type=int, default=4, help="每种切法最多做几遍")
     ap.add_argument("--minutes", type=float, default=0.0, help="总时长上限，0 = 不限")
     ap.add_argument("--workers", type=int, default=4, help="算按秒边界用的进程数")
@@ -106,7 +106,7 @@ def main() -> int:
               f"不可行的时间线 {int((~tl.unit_ok).sum())} 条，准备 {time.time() - t0:.0f}s", flush=True)
         dp = drop_pass(tl)
         for k in range(args.passes):
-            cand = np.nonzero((pb.P >= args.min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+            cand = np.nonzero((pb.P >= args.min_priority) & (tl.tg_cnt < np.minimum(tl.k_max, pb.max_obs)) & (tl.tg_cnt > 0))[0]
             cand = cand[rng.permutation(len(cand))]
             cand = cand[np.argsort(-pb.P[cand], kind="stable")]
             if args.limit:

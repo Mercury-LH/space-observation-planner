@@ -25,7 +25,7 @@ def test_dynamic_execution_is_legal(cfg, sub):
     assert res["executed"] > 0 and res["covered"] > 0
     bad_all = structural_violations(sub, _sched(sub, status.tasks))
     bad_all.pop("48 小时间隔不足", None)          # 失败的尝试不计入 48 小时规则
-    bad_all.pop("同目标超过 3 次", None)
+    bad_all.pop(f"同目标超过 {sub.k_max} 次", None)
     assert bad_all == {}
     assert structural_violations(sub, _sched(sub, status.tasks, only_ok=True)) == {}
 

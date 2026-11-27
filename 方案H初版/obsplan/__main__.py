@@ -2,13 +2,16 @@
 
     uv run python -m obsplan plan [--mode fast|quality] [--chain 分钟] [--start 2026-08-01] [--moon 30] [--weather] [--validate] [--no-refine] [--manual-rule]
     uv run python -m obsplan validate 计划文件.csv|.json [--start 2026-08-01] [--seconds-from-start]
+    uv run python -m obsplan export 计划.csv|.json [-o 输出.json（默认 <输入名>_submission.json）] [--start 2026-08-01]   # 转成主办方提交格式 v3.0 的 JSON
+    uv run python -m obsplan score 提交.json|计划.csv [--shrink 0,1,2] [--cascade-48h] [--out 报告.json] [--details 明细.csv]   # 按规范 v3.0 复算得分
     uv run python -m obsplan status 计划文件.csv [--out 目标状态.csv]       # 目标状态分析
     uv run python -m obsplan windows [--refresh]
     uv run python -m obsplan env 标准计划.csv [考虑环境的计划.csv ...] [--moon-sep 30]   # 加分项：环境影响对比
 
 validate 可以复核任何团队成员的计划：CSV 需含 站点/station_id、目标编号/target_id、开始/start、结束/end 列
 （时间为 UTC 的 ISO 格式，或配合 --seconds-from-start 使用相对规划开始的秒数）；
-JSON 为观测列表或 {"observations": [...]}，字段 station_id、target_id、start、end。
+JSON 为观测列表或 {"observations": [...]}，字段 station_id、target_id、start、end；
+也认主办方提交格式 v3.0 的字段 siteCode（site_1 … site_10）、noradId、startTime、endTime。
 """
 from __future__ import annotations
 
@@ -25,10 +28,10 @@ import numpy as np
 from .config import Config
 from .tiers import RECOMMENDED_CHAIN_MIN, TEN_MINUTE_CHAIN_MIN, local_search_kw
 
-STATION_KEYS = ("station_id", "站点", "station", "观测站")
-TARGET_KEYS = ("target_id", "目标编号", "norad", "satnum", "目标")
-START_KEYS = ("observation_start_utc", "start", "start_time", "开始", "开始时间")
-END_KEYS = ("observation_end_utc", "end", "end_time", "结束", "结束时间")
+STATION_KEYS = ("station_id", "站点", "station", "观测站", "siteCode")
+TARGET_KEYS = ("target_id", "目标编号", "norad", "satnum", "目标", "noradId")
+START_KEYS = ("observation_start_utc", "start", "start_time", "开始", "开始时间", "startTime")
+END_KEYS = ("observation_end_utc", "end", "end_time", "结束", "结束时间", "endTime")
 
 
 def _cfg(args) -> Config:
@@ -39,7 +42,20 @@ def _cfg(args) -> Config:
         kw["days"] = float(args.days)
     if getattr(args, "moon", None):
         kw["moon_sep_deg"] = float(args.moon)
+    if getattr(args, "edge_margin", 0):
+        kw["edge_margin_s"] = int(args.edge_margin)
     return Config(**kw)
+
+
+def _edge_margin(v: str) -> int:
+    """--edge-margin：0～10 秒（规范的软错误只到 5 秒；按秒边界的探查也只覆盖窗口往里收一格的情况）。"""
+    try:
+        b = int(v)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"边界余量要是整数秒：{v}") from None
+    if not 0 <= b <= 10:
+        raise argparse.ArgumentTypeError(f"边界余量要在 0～10 秒之间：{v}")
+    return b
 
 
 def _pick(row: dict, keys) -> str | None:
@@ -76,12 +92,21 @@ def read_plan(cfg: Config, ds, path: Path, seconds_from_start: bool = False):
             skipped.append((n, "缺少站点/目标/开始/结束字段"))
             continue
         try:
-            sj = int(str(s).replace("号站", "").replace("号", "").strip()) - 1
+            s = str(s).strip()
+            if s.lower().startswith("site_"):                  # 主办方格式 site_3 → 下标 2
+                s = s[5:]
+            sj = int(s.replace("号站", "").replace("号", "").strip()) - 1
             ti = idx[int(t)]
         except (ValueError, KeyError):
             skipped.append((n, f"无法识别的站点 {s} 或目标 {t}"))
             continue
-        ta, tb = _to_seconds(cfg, a, seconds_from_start), _to_seconds(cfg, b, seconds_from_start)
+        try:
+            ta, tb = _to_seconds(cfg, a, seconds_from_start), _to_seconds(cfg, b, seconds_from_start)
+            if not (np.isfinite(ta) and np.isfinite(tb)):
+                raise ValueError("非有限的时间")
+        except (ValueError, OverflowError, TypeError):
+            skipped.append((n, "无法解析的开始/结束时间"))
+            continue
         st.append(sj)
         tg.append(ti)
         s0.append(ta)
@@ -89,6 +114,56 @@ def read_plan(cfg: Config, ds, path: Path, seconds_from_start: bool = False):
     sch = Schedule(np.array(st, np.int64), np.array(tg, np.int64), np.array(s0, float), np.array(du, float),
                    algo=path.name)
     return sch, skipped
+
+
+def _iso_z(dt: datetime) -> str:
+    """取整到秒后写成 ISO 8601 UTC；与 submission.to_records 一样用 np.rint（.5 秒取偶数）。"""
+    sec = float(np.rint(dt.timestamp()))
+    return datetime.fromtimestamp(sec, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def csv_to_records(cfg: Config, path: Path, seconds_from_start: bool = False) -> list:
+    """把 CSV 的每一行都转成规范格式的 dict，一行都不丢：认不出的值原样保留，交给 score_submission 判硬错误。"""
+    from datetime import timedelta
+    with open(path, encoding="utf-8-sig", newline="") as f:
+        rows = list(csv.DictReader(f))
+
+    def site(v) -> str:
+        s = str(v).strip()
+        if s.lower().startswith("site_"):
+            return s
+        try:
+            return f"site_{int(s.replace('号站', '').replace('号', '').strip())}"
+        except ValueError:
+            return s
+
+    def target(v):
+        try:
+            return int(str(v).strip())
+        except ValueError:
+            return v
+
+    def when(v):
+        try:
+            if seconds_from_start:
+                return _iso_z(cfg.start_dt + timedelta(seconds=float(v)))
+            dt = datetime.fromisoformat(str(v).strip().replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            return _iso_z(dt.astimezone(timezone.utc))
+        except (ValueError, OverflowError, TypeError):
+            return v
+
+    out = []
+    for r in rows:
+        rec = {}
+        for name, keys, conv in (("noradId", TARGET_KEYS, target), ("siteCode", STATION_KEYS, site),
+                                 ("startTime", START_KEYS, when), ("endTime", END_KEYS, when)):
+            v = _pick(r, keys)
+            if v is not None:
+                rec[name] = conv(v)
+        out.append(rec)
+    return out
 
 
 def cmd_validate(args) -> int:
@@ -165,6 +240,10 @@ def cmd_plan(args) -> int:
         from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
         sch, ci = improve(pb, sch, minutes=chain_min)
         cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
+    spec_fit = None
+    from .submission import fit_applies, fit_note, fit_to_range
+    if fit_applies(cfg):                                    # 规划期最后 1 秒不在规范范围里：贴着终点的任务裁 1 秒
+        sch, spec_fit = fit_to_range(cfg, sch)
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -186,7 +265,7 @@ def cmd_plan(args) -> int:
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1),
                            "solve": round(t_solve - t1, 1), "refine": round(t_refine - t_solve, 1),
                            "chain": round(t2 - t_refine, 1)}, "refine": rinfo,
-               "chain": cinfo,
+               "chain": cinfo, "spec_fit": spec_fit,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
                "target_status": summarize(status_rows)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
@@ -194,6 +273,8 @@ def cmd_plan(args) -> int:
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
     if cinfo is not None:
         print(f"弹射链 {cinfo['seconds']:.0f} 秒：综合 {cinfo['start']['combined']:.6f} → {cinfo['best']['combined']:.6f}")
+    if spec_fit and (spec_fit["trimmed"] or spec_fit["dropped"]):
+        print(fit_note(spec_fit) + "（规范 v3.0 的时间范围到 2026-08-06 23:59:59）")
     if pf is not None:
         o = pf["objective"]
         print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
@@ -201,7 +282,96 @@ def cmd_plan(args) -> int:
         print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
     print("目标状态：" + describe(summary["target_status"]))
     print("已写出", out / "plan.csv", "、", out / "target_status.csv", "和", out / "summary.json")
+    from .submission import write_json
+    print_submission_notes(write_json(cfg, ds, sch, out / "plan.json"))
     return 0
+
+
+def print_submission_notes(info: dict) -> None:
+    """写出提交文件后的提示：路径，以及编号为 6 位、时间超出规范范围的提醒。"""
+    print(f"已写出 {info['path']}（主办方提交格式 v3.0）")
+    if info["six_digit"] > 0:
+        print(f"  注意：有 {info['six_digit']} 条的编号是 6 位（Alpha-5 编号转成的数字，写法待主办方确认）")
+    if info["out_of_range"] > 0:
+        print(f"  注意：有 {info['out_of_range']} 条超出规范时间范围 2026-07-31 ~ 2026-08-06，会被判硬错误"
+              f"（`obsplan export 计划 --fit-spec-range` 可以裁进范围）")
+
+
+def cmd_export(args) -> int:
+    """把任何团队成员的计划（CSV/JSON）转成主办方提交格式 v3.0 的 JSON。"""
+    from .data import load
+    from .submission import write_json
+    cfg = _cfg(args)
+    ds = load(cfg)
+    src = Path(args.plan)
+    sch, skipped = read_plan(cfg, ds, src, args.seconds_from_start)
+    if args.out:
+        out = Path(args.out)
+    else:                                                       # 绝不覆盖输入旁边已有的同名 .json
+        out = src.with_name(src.stem + "_submission.json")
+    print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）")
+    for n, why in skipped[:5]:
+        print(f"  第 {n + 2} 行：{why}")
+    if args.fit_spec_range:
+        from .submission import fit_to_range
+        sch, fi = fit_to_range(cfg, sch)
+        print(f"裁进规范时间范围：裁短 {fi['trimmed']} 条（共 {fi['trimmed_s']} 秒），"
+              f"删掉 {fi['dropped']} 条（裁完不够 {cfg.obs_min_s:g} 秒）")
+    info = write_json(cfg, ds, sch, out)
+    print(f"共 {info['records']} 条")
+    print_submission_notes(info)
+    return 0
+
+
+def cmd_score(args) -> int:
+    """按主办方规范 v3.0 复算一份提交的得分（Skyfield 逐秒近似预报窗口）。"""
+    from .data import load
+    from .submission import details_rows, load_json, score_submission
+    cfg = _cfg(args)
+    ds = load(cfg)
+    src = Path(args.plan)
+    if src.suffix.lower() == ".json":
+        rows = load_json(src)
+    else:
+        rows = csv_to_records(cfg, src, args.seconds_from_start)   # 每行都保留，读不懂的交给复算判硬错误
+    try:
+        shrinks = [float(x) for x in args.shrink.split(",") if x.strip()] or [0.0]
+    except ValueError:
+        print("--shrink 应为逗号分隔的秒数，如 0,1,2")
+        return 2
+    t = time.time()
+    res = score_submission(cfg, ds, rows, shrinks=shrinks, cascade_48h=args.cascade_48h, verbose=True)
+    print(f"复算 {time.time() - t:.0f} 秒")
+    for sh, rep in zip(shrinks, res["reports"]):
+        title = "按规范 v3.0 复算" if sh == 0 else f"假设主办方窗口两端各短 {sh:g} 秒"
+        print(f"\n== {title} ==")
+        print(f"条数 {rep['records']}；覆盖卫星 {rep['covered']} 颗（至少有一条计分的 {rep['covered_scoring']} 颗）")
+        print(f"正常 {rep['normal']} 条，软错误 {rep['soft']} 条，硬错误 {rep['hard']} 条")
+        for why, cnt in rep["reasons"].items():
+            print(f"  原因：{why}：{cnt} 条")
+        for why, cnt in rep["warnings"].items():
+            print(f"  提醒：{why}（{cnt} 处）")
+        print(f"有效得分之和 {rep['valid_score']:.1f}；错误率系数 {rep['factor']:.6f}；最终得分 {rep['final_score']:.1f}；"
+              f"内部综合指标 combined {rep['combined']:.6f}")
+        if rep["factor_loose"] != rep["factor"]:
+            print(f"  对照：覆盖卫星数按\"编号认得出就算\"（{rep['covered']} 颗）时，系数 {rep['factor_loose']:.6f}，"
+                  f"最终得分 {rep['final_score_loose']:.1f}")
+    print("\n说明：预报窗口由主办方给出，这里用 Skyfield 逐秒近似，规范不清楚处取更严的理解（详见 obsplan/submission.py 开头）。")
+    if args.out:
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps({"input": str(src), "reports": res["reports"]}, ensure_ascii=False,
+                                             indent=2, default=float), encoding="utf-8")
+        print("报告已写入", args.out)
+    if args.details:
+        Path(args.details).parent.mkdir(parents=True, exist_ok=True)
+        dr = details_rows(rows, res["details"][0])
+        with open(args.details, "w", encoding="utf-8-sig", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=list(dr[0]) if dr else list(("noradId", "siteCode", "startTime", "endTime")))
+            w.writeheader()
+            w.writerows(dr)
+        print("明细已写入", args.details)
+    r0 = res["reports"][0]
+    return 0 if r0["hard"] == 0 and r0["soft"] == 0 else 1
 
 
 def cmd_status(args) -> int:
@@ -292,9 +462,12 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("plan", "validate", "windows", "status"):
         p = sub.add_parser(name)
-        p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+        p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
         p.add_argument("--days", type=float)
         p.add_argument("--moon", type=float, help="月光规避角（度），0 为不考虑")
+        if name in ("plan", "windows"):
+            p.add_argument("--edge-margin", type=_edge_margin, default=0,
+                           help="按秒边界余量：每个可见窗口两端各往里收几秒（默认 0；应对主办方预报窗口比我们短的情况）")
         if name == "plan":
             p.add_argument("--mode", choices=["fast", "quality"], default="fast")
             p.add_argument("--weather", action="store_true", help="按历史晴空概率做期望价值规划（需联网一次）")
@@ -319,7 +492,7 @@ def main(argv=None) -> int:
             p.add_argument("--refresh", action="store_true")
     p = sub.add_parser("env", help="加分项：几份计划在月光、目标亮度、真实天气下的对比")
     p.add_argument("plans", nargs="+", help="计划文件（第一份通常是标准计划）")
-    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
     p.add_argument("--days", type=float)
     p.add_argument("--moon-sep", type=float, default=30.0, help="月亮在地平线以上时，目标离月亮至少多少度")
     p.add_argument("--m-std", type=float, default=6.0, help="目标在 1000 km、相位角 90° 时的视星等（赛题无尺寸数据，统一取典型值）")
@@ -327,9 +500,26 @@ def main(argv=None) -> int:
     p.add_argument("--no-weather", action="store_true", help="不算天气（不需要云量数据）")
     p.add_argument("--seconds-from-start", action="store_true")
     p.add_argument("--out", default="outputs/env_compare.json")
+    p = sub.add_parser("export", help="把计划（CSV/JSON）转成主办方提交格式 v3.0 的 JSON")
+    p.add_argument("plan")
+    p.add_argument("-o", "--out", help="输出文件（默认与输入同目录的 <文件名>_submission.json）")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
+    p.add_argument("--days", type=float)
+    p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
+    p.add_argument("--fit-spec-range", action="store_true",
+                   help="把跨出规范时间范围（2026-07-31 ~ 08-06 23:59:59）的任务裁进范围，裁完不够 120 秒的删掉")
+    p = sub.add_parser("score", help="按主办方规范 v3.0 复算一份提交的得分")
+    p.add_argument("plan", help="提交 JSON 或计划 CSV")
+    p.add_argument("--shrink", default="0", help="假设主办方窗口两端各短几秒，逗号分隔，如 0,1,2（默认 0）")
+    p.add_argument("--cascade-48h", action="store_true", help="48 小时冷却违规后，该卫星之后的观测都判硬错误")
+    p.add_argument("--out", help="把复算报告写成 JSON")
+    p.add_argument("--details", help="第一个 shrink 的逐条明细 CSV")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
+    p.add_argument("--days", type=float)
+    p.add_argument("--seconds-from-start", action="store_true", help="计划 CSV 中的时间是相对规划开始的秒数")
     args = ap.parse_args(argv)
     return {"plan": cmd_plan, "validate": cmd_validate, "windows": cmd_windows, "status": cmd_status,
-            "env": cmd_env}[args.cmd](args)
+            "env": cmd_env, "export": cmd_export, "score": cmd_score}[args.cmd](args)
 
 
 if __name__ == "__main__":

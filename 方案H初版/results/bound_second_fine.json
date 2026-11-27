@@ -1,0 +1,10 @@
+{
+ "口径": "按秒口径（真实按秒窗口，10 秒细网格上的对偶上界；对任何按秒合法的计划都成立）",
+ "scenario": "2026-08-01_6d_sun-6_lit_el10-85_c30",
+ "cell_s": 10,
+ "windows": 530994,
+ "combined_ub": 1.004687,
+ "prices": "results/dual_prices_second_c10.npz",
+ "verify": "uv run python scripts/second_dual_bound.py --verify",
+ "time": "2026-11-26 01:13:32"
+}

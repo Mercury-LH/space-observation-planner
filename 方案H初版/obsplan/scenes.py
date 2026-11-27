@@ -12,7 +12,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .config import Config
+from .config import OLD_DAYS, Config
 from .data import load
 from .problem import Problem
 from .visibility import Windows, compute_windows
@@ -76,8 +76,8 @@ def generate(cid: str, out: Path = OUT) -> Path:
 
 def scene_config(cid: str, out: Path = OUT) -> Config:
     spec = json.loads((scene_dir(cid, out) / "spec.json").read_text(encoding="utf-8"))
-    return Config(start_utc=spec["start_utc"], data_dir=str(scene_dir(cid, out)), cache_dir=str(out / "cache" / cid),
-                  seed=int(spec["seed"]))
+    return Config(start_utc=spec["start_utc"], days=OLD_DAYS, data_dir=str(scene_dir(cid, out)),      # 合成场景都是 6 天
+                  cache_dir=str(out / "cache" / cid), seed=int(spec["seed"]))
 
 
 def load_scene(cid: str, out: Path = OUT, workers: int = 8):

@@ -4,7 +4,7 @@
     uv run python scripts/make_bundled_runs.py --only best     # 只生成最好计划那一份
 
 1. 推荐档：和不带任何参数的 `python -m obsplan plan` 同一套设置（快速价格协调 + 按秒精修 + 弹射链），现场跑一遍；
-2. 最好计划：outputs/final_best/longrun_chain_best.csv（长跑优化 + 弹射链，综合 0.9958），只读入、不重算。
+2. 最好计划：outputs/final_best/longrun_chain_best.csv（长跑优化 + 弹射链 + 深度换位置，综合 0.997667），只读入、不重算。
 
 两份都做 Skyfield 逐秒校验，校验结果和每个任务复核出的仰角、太阳角一起存进结果文件。弹射链按时间截停，
 推荐档每次生成的分数会有微小差别；文档里的用时和分数以 scripts/frontier_bench.py 的三次中位数为准。

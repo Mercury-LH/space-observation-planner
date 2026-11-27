@@ -167,3 +167,45 @@ def test_chain_ai_features_and_model(sub):
     if pred is not None:
         p = pred.prob(F)
         assert ((p >= 0) & (p <= 1)).all()
+
+
+def test_compiled_local_lp_matches_glop(sub):
+    """局部重排的编译版（_lp_fast，释放全局锁）与原来的 GLOP 实现给出同样的最优得分；
+    同一目标两次观测同时进规划（跨夜、要隔 48 小时）的耦合情形也一样。时间线得分的编译版与逐个相加逐位相同。"""
+    sch, _ = lagrange.solve(sub, iters=20, verbose=False)
+    ref, _ = refine(sub, sch)
+    wL, wR = all_bounds(sub, None, workers=2, verbose=False)
+    tl = Timeline(sub, wL, wR, ref)
+    k = 0.4 / (tl.dmax - tl.dmin)
+    for u in range(tl.n_units):
+        py = sum(tl.P[tl.tk_tg[p]] * (0.6 + k * (tl.tk_e[p] - tl.tk_s[p] - tl.dmin)) for p in tl.seq[u])
+        assert tl.units_score([u]) == py
+    checked = coupled = 0
+    rng = np.random.default_rng(0)
+    for y in rng.permutation(np.nonzero(tl.alive[:tl.n] & (tl.tk_w[:tl.n] >= 0))[0])[:60]:
+        u = int(tl.tk_unit[y])
+        seq = [p for p in tl.seq[u] if p != y]
+        for lp_k in (tl.lp_k, 0):
+            a = tl._lp({u: seq}, {}, (int(y),), lp_k)
+            b = tl._lp_glop({u: seq}, {}, (int(y),), lp_k)
+            assert (a is None) == (b is None)
+            if a is not None:
+                assert a[0] == pytest.approx(b[0], abs=1e-6)
+                assert set(a[1]) == set(b[1])
+                checked += 1
+    for x in np.nonzero(tl.tg_cnt >= 2)[0][:40]:              # 两次观测在不同的夜：两条时间线整条进规划，耦合
+        p, q = (int(v) for v in tl.tg_tasks[x, :2])
+        ua, ub = int(tl.tk_unit[p]), int(tl.tk_unit[q])
+        if ua == ub:
+            continue
+        new_seqs = {ua: list(tl.seq[ua]), ub: list(tl.seq[ub])}
+        a = tl._lp(new_seqs, {}, (), 0)
+        b = tl._lp_glop(new_seqs, {}, (), 0)
+        assert (a is None) == (b is None)
+        if a is not None:
+            assert a[0] == pytest.approx(b[0], abs=1e-6)
+            s_p, e_p = a[1][p]
+            s_q, e_q = a[1][q]
+            assert s_q >= e_p + tl.gap or s_p >= e_q + tl.gap
+            coupled += 1
+    assert checked > 50 and coupled > 5

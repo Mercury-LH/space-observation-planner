@@ -52,13 +52,14 @@ def structural_violations(pb: Problem, sch: Schedule, by_second: bool = False,
         if sch.start_s[i] % cfg.cell_s or sch.dur_s[i] % cfg.cell_s:
             bad["未对齐时间网格"].append(i)
 
-    # 同站相邻任务（按开始时间）之间留切换时间；同一目标至多 3 次，相邻两次观测间隔 48 小时
+    # 同站相邻任务（按开始时间）之间留切换时间；同一目标相邻两次观测间隔 48 小时（由此 6 天至多 3 次、7 天至多 4 次）
     gap = cfg.repeat_gap_h * 3600
     order = np.lexsort((sch.start_s, sch.target))
     first = np.r_[True, sch.target[order[1:]] != sch.target[order[:-1]]]
     rank = np.arange(len(order)) - np.maximum.accumulate(np.where(first, np.arange(len(order)), 0))
-    if (rank == 3).any():
-        bad["同目标超过 3 次"] = [int(i) for i in order[rank == 3]]
+    K = pb.k_max
+    if (rank == K).any():
+        bad[f"同目标超过 {K} 次"] = [int(i) for i in order[rank == K]]
     for key, need, name in ((sch.station, cfg.switch_s, "站点冲突或切换不足"), (sch.target, gap, "48 小时间隔不足")):
         order = np.lexsort((sch.start_s, key))
         p, q = order[:-1], order[1:]

@@ -16,7 +16,7 @@ import numpy as np
 
 from obsplan import cpsat, ga, lagrange
 from obsplan.refine import finish
-from obsplan.config import Config
+from obsplan.config import OLD_DAYS, OLD_START_UTC, Config
 from obsplan.data import load
 from obsplan.greedy import MANUAL_WEIGHTS, algo_priority, algo_random, algo_weighted
 from obsplan.local_search import improve
@@ -150,7 +150,7 @@ def main():
     ap.add_argument("--h-iters", type=int, default=300)
     args = ap.parse_args()
 
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     ds = load(cfg)
     win = get_windows(cfg, ds)
     pb = Problem.build(cfg, ds, win)

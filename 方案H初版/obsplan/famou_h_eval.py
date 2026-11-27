@@ -60,16 +60,16 @@ def price_features(pb: Problem, mu: np.ndarray, cw: np.ndarray, cm: np.ndarray) 
     # 子问题：每颗目标在价格 mu 下的最优观测链
     N = pb.n_targets
     out_total = np.zeros(N)
-    out_task = np.zeros((N, 3, 3), np.int64)
+    out_task = np.zeros((N, pb.k_max, 3), np.int64)
     out_cnt = np.zeros(N, np.int64)
     _subproblem(pref, pb.t_ptr, pb.t_win, pb.w_st, pb.w_k0, pb.w_k1, vs * pb.P, pb.frac, np.full(N, pb.vc), pb.gap,
                 pb.m_min, pb.m_max, out_total, out_task, out_cnt, np.zeros((1, 1)), False, np.zeros(N),
-                np.full(N, 3, np.int64))
+                np.full(N, pb.k_max, np.int64))
     tg = pb.w_tg[cw]
     st, k0, k1 = pb.w_st[cw], pb.w_k0[cw], pb.w_k1[cw]
     pick = np.zeros(len(cw), bool)
     pick_m = np.zeros(len(cw), bool)
-    for c in range(3):
+    for c in range(pb.k_max):
         ok = out_cnt[tg] > c
         s_c, a_c, m_c = out_task[tg, c, 0], out_task[tg, c, 1], out_task[tg, c, 2]
         hit = ok & (s_c == st) & (a_c >= k0) & (a_c + m_c <= k1)

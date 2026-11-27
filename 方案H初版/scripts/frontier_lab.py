@@ -172,7 +172,8 @@ def cmd_chain(a) -> int:
                                    "depth", "tried", "redo", "copied", "redone", "seconds", "t_propose", "t_redo") if k in p} for p in info["passes"]]
     rec = {"kind": "chain", "start": a.start, "minutes": a.minutes, "set": a.set, "args": kw, "wall_s": round(wall, 1),
            "avg_cores": round(cpu / wall, 2), "from": info["start"], "to": info["best"], "stats": info["stats"],
-           "profile": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in prof.items()}, "passes": traj}
+           "profile": {k: (round(v, 2) if isinstance(v, float) else v) for k, v in prof.items()},
+           "stages": info.get("profile"), "passes": traj}
     if trace:
         t = np.array([x[0] for x in trace])
         okm = np.array([x[1] for x in trace])
