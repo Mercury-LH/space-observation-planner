@@ -55,9 +55,10 @@ def raw_bounds(pb: Problem, sch: Schedule) -> tuple[np.ndarray, np.ndarray]:
     return L, R
 
 
-def shrink(L: np.ndarray, R: np.ndarray, B: int, horizon: int):
-    """不留余量的区间两端各往里收 B 秒；规划期的起点 0 和终点不收（与 refine.probe_bounds 相同）。"""
-    return np.where(L > 0, L + B, L), np.where(R < horizon, R - B, R)
+def shrink(L: np.ndarray, R: np.ndarray, B: int, end: int):
+    """不留余量的区间两端各往里收 B 秒；规划期的起点 0 和终点 end（Config.end_s，窗口已截到这里）不收，
+    与 refine.probe_bounds 相同。"""
+    return np.where(L > 0, L + B, L), np.where(R < end, R - B, R)
 
 
 def main() -> int:
@@ -80,9 +81,9 @@ def main() -> int:
     pb0 = Problem.build(cfg0, ds, get_windows(cfg0, ds))
     sch = read_plan(cfg0, ds, plan)[0]
     e_in = evaluate(cfg0, ds, sch)
-    horizon = cfg0.n_cells * cfg0.cell_s
+    end = cfg0.end_s                                     # 规划期最后一秒（规范 v3.0 截止 08-06 23:59:59）
     L, R = raw_bounds(pb0, sch)
-    LB, RB = shrink(L, R, B, horizon)
+    LB, RB = shrink(L, R, B, end)
     s0 = np.rint(sch.start_s).astype(np.int64)
     e0 = s0 + np.rint(sch.dur_s).astype(np.int64)
     ns, ne = np.maximum(s0, LB), np.minimum(e0, RB)
@@ -105,7 +106,7 @@ def main() -> int:
         rep, spec_fit = fit_to_range(cfgB, rep)
     e_rep = evaluate(cfgB, ds, rep)
     L2, R2 = raw_bounds(pb0, rep)                        # 修补后再按不留余量的边界核对一遍
-    LB2, RB2 = shrink(L2, R2, B, horizon)
+    LB2, RB2 = shrink(L2, R2, B, end)
     rs = np.rint(rep.start_s).astype(np.int64)
     re = rs + np.rint(rep.dur_s).astype(np.int64)
     short_of_margin = int(((L2 < 0) | (rs < LB2) | (re > RB2)).sum())

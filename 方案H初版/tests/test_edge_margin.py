@@ -123,3 +123,16 @@ def test_windows_and_bounds_stop_at_spec_end(cfg, ds, pb):
     assert int(pb.w_k1.max()) * cfg.cell_s <= cfg.end_s
     L, R = all_bounds(pb, Path(cfg.cache_dir) / f"bounds_all_{cfg.scenario_key()}.npz", verbose=False)
     assert int(R.max()) == cfg.end_s and (L < R).all()
+
+
+def test_margin_repair_shrink_keeps_plan_end():
+    """scripts/margin_repair.py 的裁边：规划期起点 0 和最后一秒 end_s 都不收（窗口已截到 end_s，
+    结束在 08-06 23:59:59 的任务不能被当成贴着窗口边界）。"""
+    import importlib.util
+    path = Path(__file__).resolve().parents[1] / "scripts" / "margin_repair.py"
+    spec = importlib.util.spec_from_file_location("margin_repair", path)
+    mr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mr)
+    end = 604799
+    L, R = mr.shrink(np.array([0, 100, 200]), np.array([300, 400, end]), 5, end)
+    assert L.tolist() == [0, 105, 205] and R.tolist() == [295, 395, end]

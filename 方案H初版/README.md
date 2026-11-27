@@ -30,10 +30,11 @@ uv run streamlit run app/streamlit_app.py              # 网页界面：浏览�
 
 `outputs/plan/` 里是 `plan.csv`（观测计划，含 Skyfield 复核的仰角和太阳角）、`plan.json`（按主办方提交格式 v3.0 写的提交文件，见下文"提交文件"）、`target_status.csv`（每颗目标的观测情况）和 `summary.json`（指标、用时、校验结果）。不带参数就是推荐档（快速价格协调 + 按秒精修 + 弹射链），应得到覆盖 9999 颗、综合约 0.9913，Skyfield 校验全部合法；各档的实测用时和分数见下文"时间-质量前沿"的表。弹射链按时间截停，电脑快慢不同，分数会有千分之一以内的差别；需要逐字节可复现时加 `--chain 0`（覆盖 9987 颗、得分 28237.8、综合 0.9690）。
 
-**随仓库提供的最好计划**（长跑 + 弹射链 + 深度换位置，9999 颗 / 29924.8 分 / 综合 0.9977）一条命令复核（约 1.5 分钟）：
+**随仓库提供的正式计划**（7 天，留 5 秒边界余量，9998 颗 / 35912.3 分）和 **6 天旧口径的最好计划**（长跑 + 弹射链 + 深度换位置，9999 颗 / 29924.8 分 / 综合 0.9977）各一条命令复核（各约 1.5 分钟）：
 
 ```bash
-uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv
+uv run python -m obsplan validate outputs/final_best/best_7d_edge5.csv
+uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv --start 2026-08-01 --days 6
 ```
 
 网页第一次打开就能在左侧「查看结果」里选到推荐档和最好计划两份全量结果（`results/app_runs/`），不用先跑规划。
@@ -42,13 +43,13 @@ uv run python -m obsplan validate outputs/final_best/longrun_chain_best.csv
 
 ```bash
 uv run python -m obsplan export outputs/final_best/longrun_chain_best.csv -o outputs/submission/best_plan.json
-uv run python -m obsplan score outputs/final_best/submission_edge5.json --shrink 0,5   # 正式提交文件（留 5 秒余量，见下文）
+uv run python -m obsplan score outputs/final_best/submission_7d_edge5.json --shrink 0,5   # 正式提交文件（7 天，留 5 秒余量，见下文）
 uv run python -m obsplan score outputs/submission/best_plan.json --shrink 0,1,2     # 约 1.5 分钟
 ```
 
 `score` 按规范把每条判为正常、软错误或硬错误，再算出错误率系数和最终得分；`--shrink` 假设主办方的窗口两端各短几秒；`--details 明细.csv` 输出逐条结果。规范里的"预报窗口"由主办方给出，这里用 Skyfield 逐秒近似；规范没写清楚的地方一律取更严的理解，见 `obsplan/submission.py` 开头。
 
-最好计划的复算结果：13217 条正常，5 条硬错误（这 5 条结束在 8 月 7 日 0 点，超出规范的时间范围），最终得分 29891.2。如果主办方的窗口两端各短 1 秒，最终得分降到 26960.2（590 条 120 秒的任务不足 120 秒）；短 2 秒时降到 24334.2。结果文件是 `results/submission_v3/best_plan_score.json`，由上面第二条命令加 `--shrink 0,1,2,3,5 --out` 生成。新规范和现行口径的差异、待主办方确认的问题，见仓库根目录 `规则口径.md` 的第四节。
+6 天旧口径最好计划的复算结果：13217 条正常，5 条硬错误（这 5 条结束在 8 月 7 日 0 点，超出规范的时间范围），最终得分 29891.2。如果主办方的窗口两端各短 1 秒，最终得分降到 26960.2（590 条 120 秒的任务不足 120 秒）；短 2 秒时降到 24334.2。结果文件是 `results/submission_v3/best_plan_score.json`，由上面第二条命令加 `--shrink 0,1,2,3,5 --out` 生成。新规范和现行口径的差异、待主办方确认的问题，见仓库根目录 `规则口径.md` 的第四节。
 
 **按秒边界余量**：为防主办方的窗口比我们算的短，可以让每个任务离可见边界至少 B 秒（规划期的起止不算边界）。从头规划用 `plan --edge-margin B`；已经长跑优化过的计划用 `scripts/margin_repair.py --margin B` 裁边后修补（弹射链 10 分钟以内），不用从头再跑：
 
@@ -57,7 +58,7 @@ uv run python -m obsplan plan --edge-margin 3 --validate                 # 推�
 uv run python scripts/margin_repair.py --margin 3                         # 最好计划留 3 秒余量，约 10 分钟
 ```
 
-实测（按规范复算的最终得分，结果文件 `results/submission_v3/edge_margin_cost.json`）：
+实测（6 天旧口径，按规范复算的最终得分，结果文件 `results/submission_v3/edge_margin_cost.json`）：
 
 | 计划 | 余量 | 主办方窗口不短 | 短 1 秒 | 短 2 秒 | 短 3 秒 | 短 5 秒 |
 |---|---:|---:|---:|---:|---:|---:|
@@ -71,7 +72,9 @@ uv run python scripts/margin_repair.py --margin 3                         # 最�
 
 余量的代价很小：最好计划留 1 / 2 / 3 / 5 秒，只少 7 / 10 / 46 / 80 分（0.02%～0.27%），主办方的窗口每端短 B 秒以内时分数完全不变；没有余量时，每短 1 秒要丢两三千分。留 1 秒起会少 1 颗目标（66205，优先级 5，整个规划期只有一个 121 秒的窗口），留 5 秒再少 1 颗。修补好的计划在 `outputs/final_best/edge_margin/`（`best_edge{1,2,3,5}.json`，提交格式），都经 Skyfield 逐秒校验合法。`plan` 的默认余量仍是 0，以保证各档结果和文档一致。
 
-**正式提交文件（2026-11-26 定为留 5 秒的版本）**：`outputs/final_best/submission_edge5.json`。它是 `best_edge5.json` 再把 5 条正好结束在 8 月 7 日 0 点的任务各裁掉 1 秒（规范的截止是 8 月 6 日 23:59:59），命令是 `uv run python -m obsplan export outputs/final_best/edge_margin/best_edge5.json --fit-spec-range -o outputs/final_best/submission_edge5.json`。按规范复算 13168 条全部正常（没有软错误和硬错误，错误率系数 1.0），最终得分 29844.5，覆盖 9997 颗；主办方的窗口每端短 1～5 秒时分数不变，短 6 秒降到 27157.7（`results/submission_v3/submission_edge5_score.json`）；Skyfield 逐秒校验全部合法。`--fit-spec-range` 只缩短、不挪动任务，所以切换、48 小时间隔、可见性和边界余量都仍然满足，裁完不够 120 秒的任务会删掉并在屏幕上报条数。主办方说明预报窗口和规划期（规范写 7 月 31 日 ~ 8 月 6 日，见 `规则口径.md` 第四节）后再看要不要换。
+**正式提交文件（7 天，留 5 秒余量；2026-11-27 起按规范 v3.0 的规划期）**：`outputs/final_best/submission_7d_edge5.json`（计划明细 `best_7d_edge5.csv`）。生成步骤：十分钟档加余量从头规划 `uv run python -m obsplan plan --mode fast --edge-margin 5 --chain 9`（弹射链 537 秒，得分 35904.4），再用 `scripts/margin_repair.py --margin 5 --plan <上一步的 plan.csv> --minutes 20` 接着修补（弹射链 210 秒后做到头，35912.3）。按规范复算 15030 条全部正常（没有软错误和硬错误，错误率系数 1.0），最终得分 35912.3，覆盖 9998 颗；主办方的窗口每端短 1～5 秒时分数不变，短 6 秒降到 31664.4（`results/submission_v3/submission_7d_edge5_score.json`）；Skyfield 逐秒校验全部合法，每个任务离可见边界都至少 5 秒（规划期的起止不算边界），最后一个任务结束在 08-06 23:59:59。和 6 天旧口径的正式文件比多了 7 月 31 日整整一天，第 4 次观测也排上了：高优先级目标观测 4 / 3 / 2 次的分别有 593 / 1406 / 23 颗（7 天里能排 4 次的高优先级目标 1875 颗）。
+
+6 天旧口径的正式文件（2026-11-26 定）改名为 `outputs/final_best/submission_6d_edge5.json`：`best_edge5.json` 再把 5 条正好结束在 8 月 7 日 0 点的任务各裁掉 1 秒（`obsplan export … --fit-spec-range`，只缩短、不挪动），13168 条全部正常，最终得分 29844.5，覆盖 9997 颗，主办方窗口每端短 1～5 秒时不变（`results/submission_v3/submission_6d_edge5_score.json`）。它全部落在规范的时间范围内，但少了 7 月 31 日一整天。
 
 **Docker**（在仓库根目录执行，不用装 uv）
 
@@ -113,7 +116,7 @@ Docker 首次构建除下载依赖外，预先计算约 1–2 分钟。
 
 | 项目 | 取值 | 依据 |
 |---|---|---|
-| 规划期 | **2026-08-01 00:00 至 08-07 00:00 UTC**（TLE 历元约 8 月 3 日） | 企业老师 2026-10-21 群内确认（取代答疑 #26 的 10 月写法）；时间制见答疑 #42 |
+| 规划期 | **2026-07-31 00:00:00 至 08-06 23:59:59 UTC，共 7 天**（TLE 历元约 8 月 3 日；计划不用最后一秒之后的时间） | 主办方《提交格式规范》v3.0（2026-11-23），2026-11-27 起采用；此前是企业老师 2026-10-21 群内确认的 8 月 1–7 日（取代答疑 #26 的 10 月写法），旧口径用 `--start 2026-08-01 --days 6`；时间制见答疑 #42 |
 | 仰角 | 全程 10°–85° | 站址文件、答疑 #26 |
 | 站点太阳高度角 | 全程 < −6° | 答疑 #26（−6° 为建议值） |
 | 目标受照 | 全程不在地球影子内（与 Skyfield `is_sunlit` 同一球形地球模型） | 答疑 #26、#36、#44 |
@@ -137,7 +140,7 @@ uv run python run_compare.py                              # A–H 全部方案�
 
 `plan` 的选项：`--mode fast|quality`、`--start 2026-10-01`（换规划期）、`--moon 30`（月光规避）、`--weather`（按历史晴空概率规划）、`--manual-rule`（放置规则只用人工的"价值 − 价格"）、`--rule-only`（只用伐谋演化的规则）。默认是稳健模式：两条规则各排一份，取综合高的，用时只多 1–6 秒，见"泛化检验"。
 
-**目标状态分析**（`obsplan/target_status.py`；答疑 #26：赛题中的"目标状态分析"按观测任务状态理解）：`target_status.csv` 每颗目标一行——状态（外推异常 / 无可见窗口 / 未覆盖 / 已观测 1–3 次）、观测次数与理论最多次数、总观测秒数、得分、首次与最近一次观测时间、所用站点、可见窗口数，以及未覆盖或未观测满的原因；只计满足 48 小时间隔的观测，与计分口径相同。`summary.json` 里有按优先级、轨道类别的汇总，界面"概览"页可按状态查看明细并下载。默认流水线（H+）的结果：可观测 9999 颗中覆盖 9994 颗，高优先级 2023/2024（另 1 颗外推异常），观测 2 次以上的目标 1684 颗；未覆盖的 5 颗都是低优先级低轨目标，可见窗口的站点时间都已被占满。融合模式 9999 颗全部覆盖（汇总见 `results/target_status_*.json`）。
+**目标状态分析**（`obsplan/target_status.py`；答疑 #26：赛题中的"目标状态分析"按观测任务状态理解）：`target_status.csv` 每颗目标一行——状态（外推异常 / 无可见窗口 / 未覆盖 / 已观测 1–4 次；6 天最多 3 次）、观测次数与理论最多次数、总观测秒数、得分、首次与最近一次观测时间、所用站点、可见窗口数，以及未覆盖或未观测满的原因；只计满足 48 小时间隔的观测，与计分口径相同。`summary.json` 里有按优先级、轨道类别的汇总，界面"概览"页可按状态查看明细并下载。默认流水线（H+）的结果：可观测 9999 颗中覆盖 9994 颗，高优先级 2023/2024（另 1 颗外推异常），观测 2 次以上的目标 1684 颗；未覆盖的 5 颗都是低优先级低轨目标，可见窗口的站点时间都已被占满。融合模式 9999 颗全部覆盖（汇总见 `results/target_status_*.json`）。
 `validate` 能读本方案导出的 CSV、方案G初版的 `schedule.csv`（列 station_id、target_id、start、end），以及观测列表 JSON（方案E初版的格式；时间是相对规划开始的秒数时加 `--seconds-from-start`）。
 
 数据在仓库根目录 `data/`：`数据.zip`、`优先级.zip` 已随仓库提交，程序直接读取；换成解压后的 `轨道.txt`、`站址.txt`、`高/中/低优先级目标.txt` 也可以。
@@ -688,5 +691,5 @@ uv run python -m obsplan env outputs/plan/plan.csv outputs/env/plan.csv --out re
 ## 尚未完成
 
 - 伐谋：演化 H 放置规则的第三次实验已采纳（+0.8%，见 `integrations/famou_h/README.md`；最早一次演化方案 E 打分函数的试验见 `integrations/famou/README.md`）。下一步演化局部搜索的算子调度和价格协调的调价规则。
-- 规划期已确认为 8 月 1–7 日（企业老师 2026-10-21）；若再变更，改 `Config.start_utc` 或界面左侧日期即可重跑。
+- 规划期 2026-11-27 起按提交格式规范 v3.0 改为 7 月 31 日 ~ 8 月 6 日 23:59:59（此前是企业老师 10-21 确认的 8 月 1–7 日）；若再变更，改 `obsplan/config.py` 里的 `SPEC_START_UTC` / `SPEC_END_UTC` 和默认 `start_utc`、`days`，或在界面左侧改日期即可重跑。每颗目标最多观测几次按规划期自动算（`Problem.k_max`）。
 - 动态重规划已做（见加分项）；8 月口径下真实存档预报在 2024、2025 两年带来 +1.9%–2.3%，更准的预报源（如商业云量预报、站点全天相机）可以直接接入 `dynamic.simulate` 再评估。
