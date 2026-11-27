@@ -33,13 +33,16 @@ def main() -> int:
     t0 = time.time()
     at = AppTest.from_file(str(ROOT / "app" / "streamlit_app.py"), default_timeout=900).run()
     assert not at.exception, at.exception
+    at.sidebar.radio(key="plan_scope").set_value("自定义范围")
+    at.run()
+    assert not at.exception, at.exception
     sb = at.sidebar
-    sb.date_input[0].set_value(date(2026, 8, 1))
-    sb.number_input[0].set_value(DAYS)              # 规划天数
-    sb.number_input[1].set_value(ELEV_MIN)          # 最低仰角
-    sb.slider[2].set_value(0.05)                    # 演示模式：目标比例
-    sb.multiselect[0].set_value([1, 2])             # 演示模式：站点
-    sb.button[0].click()
+    sb.date_input(key="start_自定义范围").set_value(date(2026, 8, 1))
+    sb.number_input(key="days_自定义范围").set_value(DAYS)
+    sb.number_input(key="elev_min").set_value(ELEV_MIN)
+    sb.slider(key="target_frac").set_value(0.05)
+    sb.multiselect(key="plan_stations").set_value([1, 2])
+    sb.button(key="run_planning").click()
     at.run()
     assert not at.exception, at.exception
     assert (ROOT / "cache" / f"windows_{key}.npz").exists(), "界面没有算出可见窗口"

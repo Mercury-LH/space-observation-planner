@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import io
 import json
+import os
+import tempfile
 import time
+import zipfile
 from dataclasses import asdict, dataclass, field
 from datetime import timedelta
 from pathlib import Path
@@ -52,20 +55,68 @@ class Run:
         folder.mkdir(parents=True, exist_ok=True)
         meta = {k: v for k, v in asdict(self).items() if not isinstance(v, np.ndarray) and k not in ("mu", "per_task")}
         path = folder / f"{self.run_id}.npz"
-        np.savez_compressed(path, station=self.station, target=self.target, start_s=self.start_s, dur_s=self.dur_s,
-                            mu=self.mu if self.mu is not None else np.zeros((0, 0)),
-                            per_task=self.per_task if self.per_task is not None else np.zeros((0, 3)),
-                            meta=np.frombuffer(json.dumps(meta, ensure_ascii=False, default=float).encode(), np.uint8))
+        encoded_meta = np.frombuffer(json.dumps(meta, ensure_ascii=False, default=float).encode(), np.uint8)
+        temporary = None
+        try:
+            # 同目录保证替换在同一文件系统内；写入/关闭失败不能截断已有的计划。
+            with tempfile.NamedTemporaryFile(mode="wb", dir=folder, prefix=".run-", suffix=".tmp", delete=False) as f:
+                temporary = Path(f.name)
+                np.savez_compressed(f, station=self.station, target=self.target, start_s=self.start_s, dur_s=self.dur_s,
+                                    mu=self.mu if self.mu is not None else np.zeros((0, 0)),
+                                    per_task=self.per_task if self.per_task is not None else np.zeros((0, 3)),
+                                    meta=encoded_meta)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(temporary, path)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
         return path
 
     @classmethod
     def load(cls, path: Path) -> "Run":
-        z = np.load(path)
-        meta = json.loads(bytes(z["meta"]).decode())
-        mu = z["mu"] if z["mu"].size else None
-        pt = z["per_task"] if "per_task" in z and z["per_task"].size else None
-        return cls(station=z["station"], target=z["target"], start_s=z["start_s"], dur_s=z["dur_s"], mu=mu,
-                   per_task=pt, **meta)
+        """读取保存结果并检查文件结构；任务是否合法仍由独立校验器判定。"""
+        path = Path(path)
+        try:
+            with np.load(path, allow_pickle=False) as z:
+                meta = json.loads(bytes(z["meta"]).decode())
+                if not isinstance(meta, dict):
+                    raise ValueError("结果说明必须是对象")
+                for name in ("cfg", "subset", "metrics"):
+                    if not isinstance(meta.get(name), dict):
+                        raise ValueError(f"缺少有效的 {name} 结果说明")
+                for name in ("run_id", "algo"):
+                    if not isinstance(meta.get(name), str) or not meta[name]:
+                        raise ValueError(f"缺少有效的 {name}")
+                if not isinstance(meta.get("notes", {}), dict):
+                    raise ValueError("notes 结果说明必须是对象")
+                arrays = {name: z[name] for name in ("station", "target", "start_s", "dur_s")}
+                for name, arr in arrays.items():
+                    if arr.ndim != 1 or arr.dtype.kind not in "iuf" or not np.isfinite(arr).all():
+                        raise ValueError(f"{name} 必须是一维有限数值数组")
+                    if name in ("station", "target"):
+                        if (arr < 0).any() or not np.equal(arr, np.floor(arr)).all():
+                            raise ValueError(f"{name} 必须是非负整数编号")
+                        arrays[name] = arr.astype(np.int64)
+                if len({len(arr) for arr in arrays.values()}) != 1:
+                    raise ValueError("站点、目标和观测时间的任务数量不一致")
+                for name in ("tasks", "covered", "score", "combined"):
+                    value = meta["metrics"].get(name)
+                    if not isinstance(value, (int, float)) or not np.isfinite(value):
+                        raise ValueError(f"指标 {name} 缺失或不是有限数值")
+                runtime = meta.get("runtime_s")
+                if not isinstance(runtime, (int, float)) or not np.isfinite(runtime) or runtime < 0:
+                    raise ValueError("运行用时缺失或无效")
+                mu = z["mu"] if "mu" in z and z["mu"].size else None
+                if mu is not None and (mu.ndim != 2 or mu.dtype.kind not in "iuf" or not np.isfinite(mu).all()):
+                    raise ValueError("时间价格必须是二维有限数值数组")
+                pt = z["per_task"] if "per_task" in z and z["per_task"].size else None
+                # 传播失败时，校验器会留下 NaN；保留它以展示真实失败结果。
+                if pt is not None and (pt.shape != (len(arrays["station"]), 3) or pt.dtype.kind not in "iuf"):
+                    raise ValueError("逐任务校验明细与计划任务数量不一致")
+                return cls(**arrays, mu=mu, per_task=pt, **meta)
+        except (OSError, ValueError, TypeError, KeyError, EOFError, zipfile.BadZipFile) as e:
+            raise ValueError(f"无法读取结果「{path.name}」：文件损坏或格式不完整（{e}）") from e
 
 
 def run_name(run: Run) -> str:
@@ -154,6 +205,12 @@ def subset_mask(n_targets: int, target_frac: float, seed: int = 0) -> np.ndarray
 
 def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: int = 0) -> Problem:
     """演示模式：只保留部分目标和指定站点。"""
+    if not np.isfinite(target_frac) or not 0 < target_frac <= 1:
+        raise ValueError("目标比例必须大于 0 且不超过 100%。")
+    if not len(stations):
+        raise ValueError("请至少选择一个观测站点。")
+    if any(not isinstance(s, (int, np.integer)) or not 0 <= s < pb.n_stations for s in stations):
+        raise ValueError("所选站点不在当前数据范围内，请重新选择。")
     keep_t = subset_mask(pb.n_targets, target_frac, seed)
     keep_s = np.zeros(pb.n_stations, bool)
     keep_s[list(stations)] = True
@@ -235,7 +292,12 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
             notes["rule_pick"] = {"picked": pf["picked"], "objective": {k: float(v) for k, v in pf["objective"].items()}}
         notes["mode"] = "快速" if fast else "高质量"
         mu = info["mu"].astype(np.float32)
-        notes["ub_relaxed"] = float(info["ub_relaxed"])
+        if 3 * (pb.gap + pb.m_min) + pb.m_min > pb.n_samples - 1:
+            notes["ub_relaxed"] = float(info["ub_relaxed"])
+        else:
+            # 七天允许第四次观测，原价格子问题只选择至多三次；不能再称全问题上界。
+            notes["price_objective"] = float(info["ub_relaxed"])
+            notes["price_subproblem_observation_limit"] = 3
     elif algo == "E":
         if progress:
             progress(0.1, "遗传算法学习打分权重……")

@@ -9,6 +9,7 @@ import { ObservatoryNetwork } from "./ObservatoryNetwork";
 import { ElevationMenu } from "./ElevationMenu";
 import { EarthMark } from "./EarthMark";
 import Results from "./ResultsPanel";
+import { usePlanner } from "./plannerApi";
 import { WorkspaceDrawer } from "./WorkspaceDrawer";
 import { AuxiliaryDialog } from "./AuxiliaryDialog";
 import { captureWorkspacePill } from "./RunLaunchBadge";
@@ -27,7 +28,7 @@ import {
   FileArrowDownIcon,
 } from "@phosphor-icons/react";
 
-const planningWorkbenchUrl = "http://127.0.0.1:8501";
+const planningWorkbenchUrl = "#run-status";
 
 const algorithms = {
   H: "价格协调",
@@ -55,6 +56,8 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
   const [stations, setStations] = useState(configuration.stations);
   const savedAlgorithm = configuration.algo ?? defaultAlgorithm;
   const [algo, setAlgo] = useState(savedAlgorithm);
+  const validRange = date >= "2026-07-31" && date <= "2026-08-06"
+    && Date.parse(`${date}T00:00:00Z`) + Number(days) * 86400000 <= Date.parse("2026-08-07T00:00:00Z");
   const ready = saved && date === configuration.date && Number(days) === Number(configuration.days)
     && algo === savedAlgorithm && stations.length === configuration.stations.length
     && stations.every((station) => configuration.stations.includes(station));
@@ -79,7 +82,7 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
       className="plan-config"
       onSubmit={(e) => {
         e.preventDefault();
-        if (!date || !stations.length || ready) return;
+        if (!validRange || !stations.length || ready) return;
         saveInteraction.current = { moveFocus: document.activeElement === e.nativeEvent.submitter };
         onSave({ date, days, stations, algo });
       }}
@@ -140,7 +143,8 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
           </div>
         ) : (
           <p className="form-hint">
-            {stations.length ? "配置仅在本页保留，保存后可下载。" : "请至少选择一个参与站点。"}
+            {!stations.length ? "请至少选择一个参与站点。" : !validRange
+              ? "请选择 2026-07-31 至 2026-08-06 范围内的日期与天数。" : "配置仅在本页保留，保存后可下载。"}
           </p>
         )}
         <div className="form-actions">
@@ -161,7 +165,7 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
               </WorkspaceAction>
             </>
           ) : (
-            <WorkspaceAction className="primary" disabled={!stations.length || !date} type="submit">
+            <WorkspaceAction className="primary" disabled={!stations.length || !validRange} type="submit">
               保存规划配置 <CheckIcon size={20} aria-hidden="true" />
             </WorkspaceAction>
           )}
@@ -170,7 +174,7 @@ function ConfigurePlan({ configuration, saved, onSave, onRun }) {
     </form>
   );
 }
-function RunPlan({ configuration, saved, onConfigure }) {
+function RunPlan({ configuration, saved, onConfigure, planner, onResults }) {
   const algo = configuration.algo ?? defaultAlgorithm;
   return (
     <div className="plan-run">
@@ -195,15 +199,23 @@ function RunPlan({ configuration, saved, onConfigure }) {
           <dt>规划算法</dt>
           <dd>{algo} {algorithms[algo]}</dd>
         </dl>
-        <WorkspaceAction as="a"
-          className="primary"
-          href={planningWorkbenchUrl}
-          target="_blank"
-          rel="noreferrer"
-        >
-          进入规划安排
-          <ArrowUpRightIcon size={20} aria-hidden="true" />
+        <WorkspaceAction className="primary" type="button"
+          disabled={planner.submitting || planner.running} onClick={() => planner.submit(configuration)}>
+          {planner.submitting ? "正在提交" : planner.running ? "计算进行中" : planner.run ? "开始新规划" : "开始规划"}
+          <PlayIcon size={20} aria-hidden="true" />
         </WorkspaceAction>
+      </div>
+      <div id="run-status" className="run-status" aria-live="polite">
+        {planner.run && <>
+          <p>{planner.run.stage} · {planner.run.request.algo} · {planner.run.request.date} 起 {planner.run.request.days} 天</p>
+          {["queued", "running"].includes(planner.run.state) && <progress max="1" value={planner.run.progress} aria-label="本次规划阶段" />}
+          {planner.run.worker_online === false && planner.running && <p>计算服务暂时离线，任务记录已保留。</p>}
+          {planner.run.state === "failed" && <p role="alert">{planner.run.error}。可点击开始新规划重试。</p>}
+          {planner.run.state === "ready" && <WorkspaceAction type="button" className="secondary" onClick={onResults}>
+            查看本次结果 <ArrowRightIcon size={20} aria-hidden="true" />
+          </WorkspaceAction>}
+        </>}
+        {planner.error && <p role="alert">{planner.error}</p>}
       </div>
     </div>
   );
@@ -290,10 +302,11 @@ function DataNavButton({ label, direction, ...buttonProps }) {
 }
 
 export function App() {
+  const planner = usePlanner();
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [panel, setPanel] = useState(null);
   const [configuration, setConfiguration] = useState({
-    date: "2026-08-01",
+    date: "2026-07-31",
     days: "1",
     stations: ["1", "2"],
     algo: defaultAlgorithm,
@@ -347,6 +360,8 @@ export function App() {
       <RunPlan
         configuration={configuration}
         saved={saved}
+        planner={planner}
+        onResults={() => openPanel("results")}
         onConfigure={() => openPanel("configure")}
       />
     );
@@ -361,7 +376,7 @@ export function App() {
         onRun={() => openPanel("run")}
       />
     );
-    return <Results />;
+    return <Results planner={planner} onRun={() => openPanel("run")} />;
   }
   const subtitles = {
     upload: "选择文件，先检查数据内容。",
@@ -434,7 +449,7 @@ export function App() {
                 <button onClick={() => openPanel("results", downloadTrigger.current)}>
                   <ArrowUpRightIcon size={18} />
                   <span>
-                    查看示例输出<small>观测计划 CSV 与结果摘要</small>
+                    查看运行结果<small>提交计划 JSON、CSV 与校验报告</small>
                   </span>
                 </button>
               </div>
@@ -489,17 +504,15 @@ export function App() {
                 了解任务表和校验状态。生成计划与通过独立校验是两个步骤。
               </p>
               <p className="form-hint">
-                配置在刷新后恢复默认值。请在「规划安排」中确认参数并启动计算。
+                配置在刷新后恢复默认值；已提交的运行可在「查看与导出」中继续查看。
               </p>
-              <a
+              <button type="button"
                 className="primary"
-                href={planningWorkbenchUrl}
-                target="_blank"
-                rel="noreferrer"
+                onClick={() => openPanel("run")}
               >
-                进入规划安排
+                运行观测规划
                 <ArrowUpRightIcon size={18} />
-              </a>
+              </button>
             </div>
           )}
         </PanelContainer>

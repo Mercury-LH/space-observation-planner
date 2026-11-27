@@ -15,6 +15,16 @@ from obsplan.second_dual import Dual, warm_start
 from obsplan.visibility import Windows
 
 
+@pytest.fixture(scope="session")
+def cfg(legacy_cfg):
+    return legacy_cfg
+
+
+@pytest.fixture(scope="session")
+def sub(legacy_sub):
+    return legacy_sub
+
+
 def test_three_ok():
     gap = 48 * 3600
     dur = np.array([120, 120, 120], np.int64)

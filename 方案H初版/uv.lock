@@ -33,6 +33,15 @@ wheels = [
 ]
 
 [[package]]
+name = "annotated-doc"
+version = "0.0.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/0b/7d/bdbf3062e5dae31da8b3de1e3269110beb93d268df4a7f6d22b167c6cee0/annotated_doc-0.0.7.tar.gz", hash = "sha256:0a30ef8f5322a4173720ae6712dc9a5e58f5a19868f3f167b4b5778db066c2b5", size = 10764, upload-time = "2026-11-18T11:06:55.181Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5e/b1/9530d6bee606979d54501adcc767d958a38929827f11a524b0d93429d2ad/annotated_doc-0.0.7-py3-none-any.whl", hash = "sha256:6bc31bbbec6dfaaedc1676dbc11dbda96fe22a2b5c400e9ebad113fec44a9dc6", size = 5286, upload-time = "2026-11-18T11:06:54.096Z" },
+]
+
+[[package]]
 name = "annotated-types"
 version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -180,6 +189,24 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/63/db/ff75753e6820808442c1d49aa7c3d2b466c5ed256326ab3bbfb23467d51a/famou_sdk-2.5.0.tar.gz", hash = "sha256:bf0019f231ba4b9c1d3ae6e022bdeb8d73e63500ef06e6c2efc3dc5704288975", size = 137523, upload-time = "2026-09-13T15:04:45.981Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0a/f6/74a63f3fa119e3192e521a69eff1f6e840816d78f82d1138b74cbb7a4588/famou_sdk-2.5.0-py3-none-any.whl", hash = "sha256:ad9ddb9f1bbf97a136c94ce65d887b4eab309d3e6dd8141b1cd44a229b5ed165", size = 158522, upload-time = "2026-09-13T15:04:44.817Z" },
+]
+
+[[package]]
+name = "fastapi"
+version = "0.165.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "annotated-doc" },
+    { name = "anyio" },
+    { name = "opentelemetry-api" },
+    { name = "pydantic" },
+    { name = "starlette" },
+    { name = "typing-extensions" },
+    { name = "typing-inspection" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/27/f9/e7820ef181026fea100bde02d811445bf8e883362d7092b6928767147056/fastapi-0.165.0.tar.gz", hash = "sha256:dd94d4128319c1e1d50535ab023ab698f850a4d2822f0e181747b46f4ff3c0ab", size = 557984, upload-time = "2026-11-18T19:15:37.076Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c4/c1/3b74c030262a1b38b1fee180f80b4007bbc11c9ac12028cb18c7bcecaec9/fastapi-0.165.0-py3-none-any.whl", hash = "sha256:896f48462042bb4f162147eb8fac7e858753dc1f486765709baf105d70e4fc5b", size = 159475, upload-time = "2026-11-18T19:15:35.345Z" },
 ]
 
 [[package]]
@@ -470,6 +497,10 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+api = [
+    { name = "fastapi" },
+    { name = "uvicorn" },
+]
 app = [
     { name = "plotly" },
     { name = "streamlit" },
@@ -480,12 +511,14 @@ famou = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "httpx" },
     { name = "pytest" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "famou-sdk", marker = "extra == 'famou'", specifier = "==2.5.0" },
+    { name = "fastapi", marker = "extra == 'api'", specifier = ">=0.115" },
     { name = "matplotlib", specifier = ">=3.8" },
     { name = "numba", specifier = ">=0.60" },
     { name = "numpy", specifier = ">=2.0" },
@@ -494,11 +527,27 @@ requires-dist = [
     { name = "sgp4", specifier = ">=2.23" },
     { name = "skyfield", specifier = ">=1.49" },
     { name = "streamlit", marker = "extra == 'app'", specifier = ">=1.40" },
+    { name = "uvicorn", marker = "extra == 'api'", specifier = ">=0.32" },
 ]
-provides-extras = ["famou", "app"]
+provides-extras = ["famou", "app", "api"]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.1.1" }]
+dev = [
+    { name = "httpx", specifier = ">=0.28" },
+    { name = "pytest", specifier = ">=9.1.1" },
+]
+
+[[package]]
+name = "opentelemetry-api"
+version = "1.45.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/19/14/cf3a6b6448849656e1e5f4e2101f3988dc6789724050096aba1bc5ccf592/opentelemetry_api-1.45.2.tar.gz", hash = "sha256:d7b0008e21e5fd61cbe7a7f34ca3b6905a78ab677d9bc395e299359c75cda6b4", size = 73277, upload-time = "2026-10-29T17:29:37.888Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a9/2d/610db864d7513158cebb8f36cc88e67e73bd6c7aa1905ef18d89e1281c81/opentelemetry_api-1.45.2-py3-none-any.whl", hash = "sha256:2cbd737377e710ee740d261c94e93fa0f08e6d037c18f17513cc0a2d94479a34", size = 60335, upload-time = "2026-10-29T17:29:06.955Z" },
+]
 
 [[package]]
 name = "ortools"

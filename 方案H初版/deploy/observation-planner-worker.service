@@ -1,0 +1,35 @@
+[Unit]
+Description=Observation Planner computation worker
+After=network.target
+
+[Service]
+Type=simple
+User=obsplan
+Group=obsplan
+WorkingDirectory=/opt/observation-planner/current/方案H初版
+Environment=OBSPLAN_STORE=/var/lib/observation-planner
+Environment=OBSPLAN_CACHE=/var/cache/observation-planner
+Environment=NUMBA_CACHE_DIR=/var/cache/observation-planner/numba
+Environment=NUMBA_NUM_THREADS=1
+Environment=OMP_NUM_THREADS=1
+Environment=OPENBLAS_NUM_THREADS=1
+Environment=OBSPLAN_WINDOW_WORKERS=1
+Environment=OBSPLAN_WINDOW_CHUNK=40
+Environment=OBSPLAN_SUN_CHUNK=2000
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/observation-planner/current/方案H初版/.venv/bin/python -m obsplan.worker
+Restart=on-failure
+RestartSec=5
+MemoryMax=1250M
+CPUQuota=160%
+Nice=5
+KillMode=control-group
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/observation-planner /var/cache/observation-planner
+
+[Install]
+WantedBy=multi-user.target

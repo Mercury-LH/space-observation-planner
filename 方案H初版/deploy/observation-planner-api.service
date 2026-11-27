@@ -1,0 +1,24 @@
+[Unit]
+Description=Observation Planner API
+After=network.target
+
+[Service]
+Type=simple
+User=obsplan
+Group=obsplan
+WorkingDirectory=/opt/observation-planner/current/方案H初版
+Environment=OBSPLAN_STORE=/var/lib/observation-planner
+Environment=OBSPLAN_CACHE=/var/cache/observation-planner
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/observation-planner/current/方案H初版/.venv/bin/uvicorn obsplan.api:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+MemoryMax=220M
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/observation-planner /var/cache/observation-planner
+
+[Install]
+WantedBy=multi-user.target

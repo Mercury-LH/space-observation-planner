@@ -1,0 +1,97 @@
+{
+  "policy": {
+    "version": "v3.0-local-1",
+    "document": "学生拍摄方案 v3.0, 2026-11-23",
+    "repeat_anchor": "previous_end_to_next_start",
+    "repeat_adjacency": "all_parseable_records_including_hard_errors",
+    "repeat_recovery": "next_adjacent_gap_at_least_48h",
+    "deviation": "max_overrun_outside_one_forecast_window",
+    "over_5s_with_sufficient_overlap": "unresolved",
+    "coverage": "distinct_known_targets_with_normal_or_soft_scoring_records",
+    "zero_coverage_factor": 0.0,
+    "rounding": "no_per_task_rounding"
+  },
+  "forecast_source": {
+    "kind": "skyfield-local-1s",
+    "official": false,
+    "sample_step_s": 1,
+    "scope": "submitted intervals with 6s padding; not complete pass predictions",
+    "sha256": "1a782bf5057152356f0a118fd570619db8d26bef693cca684e46723506b288d5"
+  },
+  "tasks": [
+    {
+      "task_id": 1,
+      "observation": {
+        "noradId": 25004,
+        "siteCode": "site_1",
+        "startTime": "2026-07-31T00:00:00Z",
+        "endTime": "2026-07-31T00:03:11Z"
+      },
+      "status": "normal",
+      "reasons": [],
+      "effective_duration_s": 191.0,
+      "deviation_s": 0.0,
+      "duration_factor": 0.8366666666666667,
+      "priority_score": 5.0,
+      "score": 4.183333333333334,
+      "forecast": {
+        "startTime": "2026-07-30T23:59:54Z",
+        "endTime": "2026-07-31T00:03:17Z"
+      }
+    },
+    {
+      "task_id": 2,
+      "observation": {
+        "noradId": 37186,
+        "siteCode": "site_2",
+        "startTime": "2026-07-31T00:00:00Z",
+        "endTime": "2026-07-31T00:04:00Z"
+      },
+      "status": "normal",
+      "reasons": [],
+      "effective_duration_s": 240.0,
+      "deviation_s": 0.0,
+      "duration_factor": 1.0,
+      "priority_score": 5.0,
+      "score": 5.0,
+      "forecast": {
+        "startTime": "2026-07-30T23:59:54Z",
+        "endTime": "2026-07-31T00:04:03Z"
+      }
+    },
+    {
+      "task_id": 3,
+      "observation": {
+        "noradId": 64559,
+        "siteCode": "site_10",
+        "startTime": "2026-07-31T00:00:00Z",
+        "endTime": "2026-07-31T00:02:00Z"
+      },
+      "status": "normal",
+      "reasons": [],
+      "effective_duration_s": 120.0,
+      "deviation_s": 0.0,
+      "duration_factor": 0.6,
+      "priority_score": 2.0,
+      "score": 1.2,
+      "forecast": {
+        "startTime": "2026-07-30T23:59:54Z",
+        "endTime": "2026-07-31T00:02:06Z"
+      }
+    }
+  ],
+  "format_valid": true,
+  "format_errors": [],
+  "summary": {
+    "tasks": 3,
+    "covered": 3,
+    "hard_errors": 0,
+    "soft_errors": 0,
+    "unresolved": 0,
+    "base_score": 10.383333333333333,
+    "penalty_factor": 1.0,
+    "final_score": 10.383333333333333,
+    "clean": true
+  },
+  "submission_sha256": "bdff504d576fa578604c8921a81686bf9ed3ee7166a514eb15e261d8e491b532"
+}

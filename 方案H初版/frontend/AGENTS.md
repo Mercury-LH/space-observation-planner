@@ -1,5 +1,12 @@
 # Prototype Instructions
 
+## Current integration scope (2026-11-27)
+
+- The user explicitly authorized backend integration in this repository. The historical "Frontend only" boundary below is superseded for this work.
+- Preserve accepted appearance and motion. Run submission now uses the same-origin `/api` service, H/E/B, UTC date and stations. Results and immutable downloads belong to the selected persisted run; do not restore the fixed 239-task example as the live result.
+- Submission dates are limited to 2026-07-31 through 2026-08-06. A displayed next-day 00:00 is exclusive; exported observation endpoints may not exceed 2026-08-06T23:59:59Z.
+- Keep local Skyfield validation visibly distinct from unavailable official forecast validation. API and operational details live in `../docs/v3-integration.md`.
+
 Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
 
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.

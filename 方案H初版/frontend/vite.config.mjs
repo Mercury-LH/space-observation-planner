@@ -9,6 +9,7 @@ export default defineConfig({
     include: ["react", "react-dom/client"],
   },
   server: {
+    proxy: { "/api": { target: "http://127.0.0.1:8000", changeOrigin: false } },
     host: "0.0.0.0",
     allowedHosts: ["terminal.local"],
     warmup: {

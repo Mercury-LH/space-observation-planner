@@ -196,3 +196,11 @@
   .result-table__dash { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
   .result-details__head { align-items: flex-start; }
 }
+.result-filters { display: flex; flex-wrap: wrap; align-items: end; gap: 16px; margin-block: 16px; }
+.result-filters label { display: grid; gap: 8px; max-width: 100%; }
+.result-filters select { max-width: 100%; min-height: 44px; color: #e1edf4; background: #061422; border: 1px solid #597386; padding: 8px; }
+.result-validation { margin-block: 24px; }
+.result-validation .workspace-action { margin: 0 12px 12px 0; }
+.result-table small { display: block; font-size: 12px; line-height: 1.5; }
+.run-status { margin-top: 20px; overflow-wrap: anywhere; }
+.run-status progress { width: 100%; accent-color: #a5d6f3; }

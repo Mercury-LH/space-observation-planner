@@ -112,7 +112,7 @@ export default function PlanningWindow({ days, startDate, onDateChange, onDaysCh
                 <span className="planning-window__date-face" aria-hidden="true">
                   {startDate ? startDate.split("-").slice(1).join(".") : "月.日"}
                 </span>
-                <input id={dateId} type="date" value={startDate} required
+                <input id={dateId} type="date" value={startDate} required min="2026-07-31" max="2026-08-06"
                   onInput={(event) => onDateChange(event.currentTarget.value)} />
                 <CalendarBlankIcon aria-hidden="true" />
               </span>
@@ -131,13 +131,13 @@ export default function PlanningWindow({ days, startDate, onDateChange, onDaysCh
             </dd>
           </div>
           <div className="planning-window__end">
-            <dt>结束时间</dt>
+            <dt>结束时间（不含）</dt>
             <dd><DateValue date={endDate} /></dd>
           </div>
         </dl>
       ) : (
         <dl className="planning-window__summary">
-          {[[startDate, "开始时间"], [endDate, "结束时间"]].map(([date, label], i) => (
+          {[[startDate, "开始时间"], [endDate, "结束时间（不含）"]].map(([date, label], i) => (
             <div className="planning-window__date" key={label}>
               <dt>{label}</dt>
               <dd><DateValue date={date} showArrow={i === 0} /></dd>

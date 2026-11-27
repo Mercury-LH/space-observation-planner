@@ -20,7 +20,7 @@ export function WorkspaceDrawer({ runOrigin, workbenchUrl, workspacePage, pageTi
   }
   // The entry chosen on the homepage is the root of this navigation stack.
   const rootPage = openingPageRef.current;
-  const pages = rootPage === "results" ? [rootPage] : [rootPage, rootPage === "run" ? "configure" : "run"];
+  const pages = [rootPage, ...["run", "configure", "results"].filter(page => page !== rootPage)];
   const depth = pages.indexOf(workspacePage);
   const interactionRef = useRef({ resize: null, backdropDown: false });
   const [preferredWidth, setPreferredWidth] = useState(null);

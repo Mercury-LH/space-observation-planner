@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from dataclasses import replace
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -40,7 +41,7 @@ CHANGE_COLORS = {"冻结": "#b9bfca", "保留": BLUE, "移动": ORANGE, "删除"
 st.set_page_config(page_title="空间目标观测规划", page_icon="🛰️", layout="wide")
 
 
-@st.cache_resource(show_spinner="正在读取数据并计算可见窗口（首次约 30 秒）……")
+@st.cache_resource(show_spinner=False)
 def base(cfg_json: str):
     cfg = Config(**json.loads(cfg_json))
     ds, pb, timing = load_problem(cfg)
@@ -59,89 +60,178 @@ def problem_for(run: Run):
     return cfg_, ds, pb, orbit
 
 
+def recover_error(title: str, exc: Exception, hint: str):
+    """给出可恢复操作，不把运行失败误写成约束违规。"""
+    st.error(title)
+    st.info(hint)
+    with st.expander("查看错误详情"):
+        st.text(f"{type(exc).__name__}: {exc}")
+
+
+def choose_full():
+    st.session_state["plan_scope"] = "全量规划"
+
+
 # ------------------------------------------------------------------ 侧栏：选择结果 / 新建规划
 st.sidebar.title("🛰️ 观测规划")
 runs = list_runs(RUNS)
-labels = {}
+labels, unreadable = {}, []
 for p in runs:
     try:
         r = Run.load(p)
         m = r.metrics
         labels[p] = f"{run_name(r)} · 覆盖 {m['covered']} · 得分 {m['score']:.0f}" + (" · 演示" if r.subset else "")
-    except Exception:  # 损坏的结果文件不影响界面
-        continue
+    except Exception:
+        unreadable.append(p.name)
 choice = None
+if unreadable:
+    st.sidebar.warning(f"{len(unreadable)} 份历史结果无法读取，已跳过。原文件保留。")
+    with st.sidebar.expander("查看无法读取的文件"):
+        st.text("\n".join(unreadable))
+        st.caption("可选择其他结果或新建规划；修复文件后刷新页面。")
 if labels:
     default = st.session_state.get("selected")
     keys = list(labels)
     idx = next((i for i, p in enumerate(keys) if p.stem == default), 0)
     choice = st.sidebar.selectbox("查看结果", keys, index=idx, format_func=lambda p: labels[p])
 
-with st.sidebar.expander("新建规划", expanded=not labels):
-    st.caption("规则默认取自答疑文档，规划期默认为企业老师 2026-10-21 确认的 8 月 1–7 日（UTC），可按需修改。")
-    d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 8, 1))
-    days = st.number_input("规划天数", 1.0, 7.0, 6.0, 1.0)
+st.sidebar.subheader("新建规划")
+preset = st.sidebar.radio("运行范围", ["快速体验", "全量规划", "自定义范围"], key="plan_scope",
+                          help="快速体验使用真实输入的固定子集；全量规划使用 10000 颗目标、10 个站、7 天。")
+if preset == "快速体验":
+    frac, stations, default_days = 0.05, [1, 2], 1.0
+    st.sidebar.caption("真实数据 · 5% 目标 × 2 站 × 1 天。先熟悉操作，不代表全量成绩。")
+elif preset == "全量规划":
+    frac, stations, default_days = 1.0, list(range(1, 11)), 7.0
+    st.sidebar.caption("10000 颗目标 × 10 站 × 7 天。默认快速 + 30 秒弹射链，校验另行触发。")
+else:
+    frac = st.sidebar.slider("目标比例", 0.05, 1.0, 0.05, 0.05, key="target_frac")
+    stations = st.sidebar.multiselect("站点", list(range(1, 11)), default=[1, 2], key="plan_stations")
+    default_days = 1.0
+
+# 常用操作在上方；规则与算法保留在折叠区，切换预设时日期/天数独立保存。
+with st.sidebar.expander("高级设置 · 规则与算法"):
+    d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 7, 31), key=f"start_{preset}")
+    days = st.number_input("规划天数", 1.0, 7.0, default_days, 1.0, key=f"days_{preset}")
     c1, c2 = st.columns(2)
-    elev_min = c1.number_input("最低仰角 °", 0.0, 30.0, 10.0, 1.0)
-    elev_max = c2.number_input("最高仰角 °", 60.0, 90.0, 85.0, 1.0)
+    elev_min = c1.number_input("最低仰角 °", 0.0, 30.0, 10.0, 1.0, key="elev_min")
+    elev_max = c2.number_input("最高仰角 °", 60.0, 90.0, 85.0, 1.0, key="elev_max")
     sun_max = st.number_input("站点太阳高度角上限 °", -18.0, 0.0, -6.0, 1.0)
     use_sunlit = st.checkbox("目标须被太阳照亮", value=True)
     moon = st.slider("月光规避角 °（0 = 不考虑，加分项）", 0, 45, 0, 5)
     w_cov = st.slider("覆盖数权重（其余给得分）", 0.0, 1.0, 0.5, 0.05)
     algo = st.radio("算法", list(ALGOS), format_func=lambda k: ALGOS[k])
-    mode = st.radio("模式", ["快速（全量约 40 秒）", "高质量（全量约 1 分钟）"], horizontal=False)
-    fast = mode.startswith("快速")
+    mode = st.radio("求解模式", ["快速", "高质量"], horizontal=True)
+    fast = mode == "快速"
     iters = 150 if fast else 300
     weather = st.checkbox("按历史天气做期望价值规划（加分项，仅 H）", value=False, disabled=algo != "H")
-    evolved = st.checkbox("用伐谋演化的放置规则（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
-                          help="价格协调之后按伐谋演化、并已通过全量复评与 Skyfield 校验的规则放置任务；"
-                               "关闭则用人工的「价值 − 价格」。本赛题数据上综合指标高约 0.8%。"
-                               "勾选时人工规则也会同时排一份，自动取综合高的（稳健模式），换一份数据也不会比人工规则差，用时基本不变")
+    evolved = st.checkbox("人工 + 伐谋规则择优（仅 H，推荐）", value=True, disabled=algo != "H" or weather,
+                          help="两条规则各排一份，按内部综合指标选择较好的一份。关闭则只用人工规则。")
     refine_on = st.checkbox("按秒精修（推荐）", value=True,
-                            help="网格计划之后，把每个任务的起止按秒外推到真实可见边界，用线性规划重新分配观测时长；全量约多 3 秒")
-    chain_min = st.select_slider("按秒跨站弹射链（推荐）", options=[0, 0.5, 1, 2, 5, 10], value=0.5,
+                            help="按秒探查可见边界并优化观测时长；独立 Skyfield 校验仍需单独运行。")
+    chain_min = st.select_slider("按秒跨站弹射链", options=[0, 0.5, 1, 2, 5, 10], value=0.5,
                                  format_func=lambda m: "不跑" if m == 0 else ("30 秒" if m == 0.5 else f"{m} 分钟"),
-                                 disabled=not refine_on,
-                                 help="按秒精修之后，把高优先级任务的「延长」换成「给另一颗高优先级目标多观测一次」"
-                                      "（同样 150 秒，前者 2.5 分、后者 3 分），一条链可以跨站、跨夜连环挪动任务腾位置。"
-                                      "快速模式（M1 Pro 约 47 秒）之后：30 秒 0.969 → 0.984，1 分钟 0.985，2 分钟 0.986。"
-                                      "按时间截停，电脑越快结果略好。演示模式（缩小规模）下不跑")
-    st.markdown("**演示模式**（缩小规模，几秒出结果）")
-    frac = st.slider("目标比例", 0.05, 1.0, 1.0, 0.05)
-    stations = st.multiselect("站点", list(range(1, 11)), default=list(range(1, 11)))
-    go_btn = st.button("运行规划", type="primary", use_container_width=True)
+                                 disabled=not refine_on or frac < 1 or len(stations) < 10,
+                                 help="仅完整目标与站点范围启用，预算是搜索时间，不是整次运行时间。")
+    st.caption("默认规则：2026-07-31 至 08-06（含末日）（UTC），仰角 10°–85°，太阳角 < −6°，目标受照。修改后以本次设置为准。")
+
+is_subset = frac < 1 or len(stations) < 10
+st.sidebar.caption(f"本次：{d0:%m-%d} 起 {days:g} 天 · {frac:.0%} 目标 · {len(stations)} 站\n\n"
+                   f"{ALGOS[algo]} · {mode}" + (" · 子集不运行弹射链" if is_subset else
+                   (f" · 弹射链 {chain_min * 60:g} 秒" if refine_on and chain_min else "")))
+if not stations:
+    st.sidebar.warning("请至少选择一个站点后再运行。")
+go_btn = st.sidebar.button("运行演示规划" if is_subset else "运行全量规划", type="primary",
+                           use_container_width=True, disabled=not stations, key="run_planning")
+st.sidebar.caption("首次运行需准备可见窗口和编译计算函数；耗时随范围、缓存和机器变化。")
+
+st.title("空间目标观测规划")
+if choice is None:
+    st.markdown("从真实轨道数据生成观测计划，查看目标状态，并在独立校验后导出结果。")
+    c1, c2 = st.columns(2)
+    with c1.container(border=True):
+        st.subheader("先跑一份小规模演示")
+        st.write("固定 5% 真实目标 · 1、2 号站 · 1 天")
+        st.caption("沿用完整规划和校验流程。适合首次体验与答辩彩排；演示指标不代表全量表现。")
+        if st.button("运行小规模演示", type="primary", key="welcome_demo", use_container_width=True):
+            d0, days, frac, stations = date(2026, 7, 31), 1.0, 0.05, [1, 2]
+            elev_min, elev_max, sun_max, use_sunlit, moon, w_cov = 10.0, 85.0, -6.0, True, 0, 0.5
+            algo, fast, iters, weather, evolved, refine_on, chain_min = "H", True, 150, False, True, True, 0.0
+            go_btn = True
+    with c2.container(border=True):
+        st.subheader("准备全量规划")
+        st.write("10000 颗目标 · 10 个站 · 默认 7 天")
+        st.caption("H 稳健模式：人工和伐谋规则择优，快速规划后继续优化 30 秒。准备窗口、校验另计。")
+        st.button("选择全量配置", key="welcome_full", on_click=choose_full, use_container_width=True)
+    st.markdown("**操作路线**　配置规划 → 查看结果与目标状态 → 突发重规划 → 独立校验 → 导出")
+    st.info("计划生成后会明确标记「未校验」。请在「校验与导出」运行 Skyfield 逐秒校验。")
+
+pending = st.session_state.get("unsaved_run")
+if pending:
+    st.warning("有一份已算出的计划尚未保存，可直接重试保存，无需重新计算。")
+    if st.button("重试保存结果", key="retry_save"):
+        try:
+            pending.save(RUNS)
+        except Exception as exc:
+            recover_error("结果仍未保存", exc, "请检查 outputs/app_runs 的写入权限与磁盘空间，再点击重试。")
+        else:
+            st.session_state.pop("unsaved_run", None)
+            st.session_state["selected"] = pending.run_id
+            st.session_state["page"] = "概览"
+            st.rerun()
 
 if go_btn:
+    t_start = time.perf_counter()
     cfg = Config(start_utc=f"{d0:%Y-%m-%d}T00:00:00", days=float(days), elev_min=elev_min, elev_max=elev_max,
                  sun_max=sun_max, use_sunlit=use_sunlit, w_cov=w_cov, w_score=1 - w_cov, moon_sep_deg=float(moon))
-    st.info("正在运行新的规划，完成后这里自动换成新结果（下方变灰的内容是上一份结果）。")
-    cfg_, ds, pb, orbit, _ = base(cfg_key(cfg))
-    subset = {}
-    if frac < 1 or len(stations) < 10:
-        subset = {"target_frac": float(frac), "stations": [s - 1 for s in stations], "seed": 0}
-        pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
-    bars = [st.progress(0.0, text="开始规划……"), st.sidebar.progress(0.0, text="开始规划……")]   # 主区域和侧栏各一条
-
-    def tick(f, t):
-        for b in bars:
-            b.progress(min(1.0, f), text=t)
-
-    run = run_planning(pb, algo, iters=iters, progress=tick, weather=weather and algo == "H", fast=fast,
-                       refine_seconds=refine_on, full_problem=not subset, evolved_rule=evolved,
-                       chain_minutes=float(chain_min) if refine_on else 0.0)
-    run.subset = subset
-    tick(1.0, f"完成，用时 {run.runtime_s:.0f} 秒")
-    run.save(RUNS)
-    st.session_state["selected"] = run.run_id
-    st.rerun()
+    phase = "准备数据与可见窗口"
+    with st.status(f"1/3 · {phase}", expanded=True) as progress_status:
+        st.caption("正在生成新计划。进度表示计算阶段，不是剩余时间；完成后还需独立校验。")
+        try:
+            with st.spinner("读取轨道数据并准备可见窗口……", show_time=True):
+                cfg_, ds, pb, orbit, _ = base(cfg_key(cfg))
+            prepared_s = time.perf_counter() - t_start
+            st.write(f"数据与窗口就绪 · {prepared_s:.1f} 秒")
+            subset = {}
+            if frac < 1 or len(stations) < 10:
+                subset = {"target_frac": float(frac), "stations": [s - 1 for s in stations], "seed": 0}
+                pb = subset_problem(pb, subset["target_frac"], subset["stations"], 0)
+            phase = "生成计划"
+            progress_status.update(label="2/3 · 生成计划与优化")
+            bar = st.progress(0.0, text="开始规划……")
+            def tick(f, t):
+                bar.progress(min(1.0, max(0.0, f)), text=f"{t} · 已用 {time.perf_counter() - t_start:.1f} 秒")
+            with st.spinner("正在计算计划……", show_time=True):
+                new_run = run_planning(pb, algo, iters=iters, progress=tick, weather=weather and algo == "H", fast=fast,
+                                      refine_seconds=refine_on, full_problem=not subset, evolved_rule=evolved,
+                                      chain_minutes=float(chain_min) if refine_on else 0.0)
+            new_run.subset = subset
+            new_run.notes["ui_timing"] = {"prepare_s": prepared_s, "ready_s": time.perf_counter() - t_start}
+            phase = "保存结果"
+            progress_status.update(label="3/3 · 保存结果")
+            st.session_state["unsaved_run"] = new_run
+            new_run.save(RUNS)
+        except Exception as exc:
+            progress_status.update(label=f"{phase}未完成", state="error")
+            recover_error(f"{phase}失败", exc, "可重试当前配置，或选择快速体验缩小范围。若涉及 DE421 星历，检查网络后重试，或按 README 准备 cache/de421.bsp。")
+            st.stop()
+        else:
+            st.session_state.pop("unsaved_run", None)
+            progress_status.update(label=f"计划已生成并保存 · {time.perf_counter() - t_start:.1f} 秒 · 未校验", state="complete")
+            st.session_state["selected"] = new_run.run_id
+            st.session_state["page"] = "概览"
+            st.rerun()
 
 if choice is None:
-    st.title("空间目标观测规划")
-    st.info("左侧「新建规划」运行一次，结果会保存在这里。全量 10000 颗目标快速模式约 40 秒、高质量模式约 1 分钟（首次另需约半分钟计算可见窗口）；演示模式几秒钟。")
     st.stop()
 
-run = Run.load(choice)
-cfg, ds, pb, orbit = problem_for(run)
+try:
+    run = Run.load(choice)
+    with st.spinner("正在准备当前结果……", show_time=True):
+        cfg, ds, pb, orbit = problem_for(run)
+except Exception as exc:
+    recover_error("这份结果暂时无法打开", exc, "请在左侧选择其他结果，或重新运行规划。原结果文件保留；若星历或缓存准备失败，可修复后刷新重试。")
+    st.stop()
 m = run.metrics
 sc = scope_metrics(cfg, ds, run)
 in_scope = sc["mask"]              # 演示结果：参与规划的目标；全量为 None
@@ -193,7 +283,6 @@ def utc_of(seconds) -> datetime:
     return (cfg.start_dt + timedelta(seconds=float(seconds))).replace(tzinfo=None)
 
 
-st.title("空间目标观测规划")
 scope = "全量" if not run.subset else (f"演示：{run.subset['target_frac']:.0%} 目标（{n_scope:,} 颗）× "
                                          f"{len(run.subset['stations'])} 站")
 extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else "") + \
@@ -201,6 +290,25 @@ extra = (f" · 月光规避 {cfg.moon_sep_deg:g}°" if cfg.moon_sep_deg > 0 else
     (" · 按秒精修" if run.notes.get("refine", {}).get("refined") else "")
 st.caption(f"{ALGOS.get(run.algo, run.algo)} · {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC）· {scope} · "
            f"仰角 {cfg.elev_min:g}°–{cfg.elev_max:g}° · 太阳角 < {cfg.sun_max:g}° · 目标受照 {'是' if cfg.use_sunlit else '否'}{extra}")
+
+with st.container(border=True):
+    st.markdown(f"**当前结果：{run_name(run)}**")
+    if run.validation is None:
+        st.warning("计划已生成并保存 · Skyfield 未校验。请先完成独立校验，再判断是否满足全部约束。")
+    elif run.validation["legal"] and m["tasks"]:
+        st.success(f"Skyfield 校验通过 · 全部 {m['tasks']:,} 个任务 · 计划与校验结果已保存")
+    elif not m["tasks"]:
+        st.warning("当前计划没有观测任务 · 不视为有效规划结果。")
+    else:
+        st.error("Skyfield 校验未通过 · 已发现约束违规，请在「校验与导出」查看详情。")
+    if run.subset:
+        st.caption(f"演示子集：{n_scope:,} 颗目标 × {len(run.subset['stations'])} 站。综合指标按参与目标归一，只与相同范围比较；不是官方比赛成绩。")
+    else:
+        st.caption("综合指标采用内部比较口径，不是官方比赛成绩。")
+    timing = run.notes.get("ui_timing")
+    if timing:
+        st.caption(f"本次实测：准备数据与窗口 {timing['prepare_s']:.1f} 秒 · 求解 {run.runtime_s:.1f} 秒 · 结果就绪 {timing['ready_s']:.1f} 秒（不含校验与保存）")
+    links(["概览", "突发重规划", "校验与导出"], "current")
 
 # ------------------------------------------------------------------ 概览
 def page_overview():
@@ -215,7 +323,7 @@ def page_overview():
                                               if gap else f"覆盖权重 {cfg.w_cov:g}（内部口径）") if not run.subset else
          f"按本次参与的 {n_scope} 颗目标归一" + ("；目标少、站点有富余，重复观测多，所以超过 1" if sc["combined"] > 1 else "")),
         ("观测任务", f"{m['tasks']}", f"其中重复观测 {m['repeat_tasks']}"),
-        ("求解用时", f"{run.runtime_s:.0f} 秒", "不含窗口预处理"),
+        ("求解用时", fmt_s(run.runtime_s), "不含窗口预处理"),
         ("Skyfield 校验", "未校验" if v is None else ("全部合法" if v["legal"] else "有违规"),
          "到「校验与导出」运行" if v is None else f"违规 {sum(v['violations'].values())} 项"),
     ]
@@ -228,7 +336,8 @@ def page_overview():
                    if qf_key() else "没有配置千帆 API key，用模板生成；配置方法见 README 的「大模型助手」。")
         if st.button("生成说明", key="ov_explain"):
             extra = {"gap_to_bound_pct": gap["gap_pct"]} if gap and not run.subset else {}
-            text, how = explain_plan(m, None, extra)
+            text, how = explain_plan({**m, "combined": sc["combined"]}, None,
+                                     {**extra, "planning_days": cfg.days, "targets_in_scope": n_scope})
             st.markdown(text)
             st.caption(f"来源：{how}")
     c1, c2, c3 = st.columns(3)
@@ -295,6 +404,9 @@ def page_map():
 
 # ------------------------------------------------------------------ 甘特图
 def page_gantt():
+    if df.empty:
+        st.info("当前计划没有观测任务。请调整规划范围，或到概览查看未覆盖原因。")
+        return
     nights = station_nights(pb)
     c1, c2, c3 = st.columns([1, 2, 1])
     s_sel = c1.selectbox("站点", list(range(1, pb.n_stations + 1)), format_func=lambda s: f"{s}号站",
@@ -329,7 +441,11 @@ def page_price():
         st.info("时间价格只有价格协调方案（H）才有。")
     else:
         mu = run.mu.astype(float)
-        day = st.slider("查看第几天", 1, int(cfg.days), 2, key="price_day", persist_state="page")
+        if int(cfg.days) <= 1:
+            day = 1
+            st.caption("当前规划仅 1 天，显示第 1 天的时间价格。")
+        else:
+            day = st.slider("查看第几天", 1, int(cfg.days), min(2, int(cfg.days)), key="price_day", persist_state="page")
         bins = 20
         a0, b0 = (day - 1) * int(86400 / cfg.cell_s), min(day * int(86400 / cfg.cell_s), mu.shape[1])
         blk = mu[:, a0:b0]
@@ -561,42 +677,60 @@ def page_weather():
 
 # ------------------------------------------------------------------ 校验与导出
 def skyfield_button(key: str):
-    """校验当前结果（Skyfield 逐秒），结果写回结果文件。"""
-    if st.button("开始 Skyfield 校验（全量约 1.5 分钟）", type="primary", key=key):
-        with st.spinner("逐秒校验中……"):
-            validate_run(pb, run).save(RUNS)
-        st.rerun()
+    """校验当前结果（Skyfield 逐秒），失败时保留原记录并允许重试。"""
+    if st.button(f"{'重新' if run.validation is not None else '开始'} Skyfield 校验（{m['tasks']:,} 个任务）",
+                 type="primary", key=key, disabled=not m["tasks"]):
+        checked = None
+        try:
+            with st.spinner("正在独立逐秒校验……首次可能需下载 DE421 星历", show_time=True):
+                checked = validate_run(pb, replace(run))
+                checked.save(RUNS)
+        except Exception as exc:
+            recover_error("校验已完成，但新结论未保存；当前仍显示原记录" if checked is not None else
+                          "本次校验未完成，未获得新的校验结论", exc,
+                          "计划已保留。请检查网络或按 README 准备 cache/de421.bsp，再点击校验重试；保存失败时请检查目录权限与空间。")
+        else:
+            st.rerun()
 
 
 def download_buttons(key: str):
+    if run.validation is None:
+        st.warning("当前导出为未校验计划：CSV 的 Skyfield 复核列为空，JSON 的 validation 为 null。")
+    elif not run.validation["legal"]:
+        st.warning("当前计划校验未通过，导出仅供排查；违规详情见结果摘要。")
     c1, c2, c3 = st.columns(3)
-    c1.download_button("下载观测计划（CSV）", lambda: csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv",
-                       mime="text/csv", use_container_width=True, key=f"{key}_plan")
-    c2.download_button("下载目标状态表（CSV）", lambda: status_csv_bytes(srows),
+    c1.download_button("下载观测计划（CSV）", lambda pb=pb, run=run: csv_bytes(pb, run), file_name=f"plan_{run.run_id}.csv",
+                       mime="text/csv", use_container_width=True, key=f"{key}_plan", on_click="ignore")
+    c2.download_button("下载目标状态表（CSV）", lambda rows=srows: status_csv_bytes(rows),
                        file_name=f"target_status_{run.run_id}.csv", mime="text/csv", use_container_width=True,
-                       key=f"{key}_status")
+                       key=f"{key}_status", on_click="ignore")
     c3.download_button("下载结果摘要（JSON）", summary_json(run), file_name=f"summary_{run.run_id}.json",
-                       mime="application/json", use_container_width=True, key=f"{key}_summary")
+                       mime="application/json", use_container_width=True, key=f"{key}_summary", on_click="ignore")
 
 
 def page_export():
-    if run.validation is None:
-        st.write("用 Skyfield（评审参考标准）对每个任务逐秒重算仰角、站点太阳角和目标受照，并复算得分。")
-        skyfield_button("validate_export")
-    else:
+    st.subheader("独立校验与结果交付")
+    st.write("用 Skyfield 对每个任务逐秒重算仰角、站点太阳角和目标受照，并复算得分。规划完成、结构检查通过均不能代替此校验。")
+    if not m["tasks"]:
+        st.warning("当前计划没有观测任务，无法据此判断规划质量。可导出摘要排查，或调整范围后重新规划。")
+    if run.validation is not None:
         v = run.validation
-        if v["legal"]:
+        if v["legal"] and m["tasks"]:
             st.success(f"全部 {m['tasks']} 个任务通过 Skyfield 逐秒校验。")
-        else:
-            st.error(f"发现违规：{v['violations']}")
-        mg = v["margins"]
-        st.write(f"最小余量：仰角下限 {mg[0]:.3f}°，仰角上限 {mg[1]:.3f}°，太阳角 {mg[2]:.3f}°")
+        elif not v["legal"]:
+            st.error(f"发现违规：{v['violations']}。下载内容将保留该校验结论。")
+        mg = v.get("margins", [None, None, None])
+        margin_text = [f"{x:.3f}°" if x is not None and np.isfinite(x) else "无可用测量" for x in mg]
+        st.write(f"最小余量：仰角下限 {margin_text[0]}，仰角上限 {margin_text[1]}，太阳角 {margin_text[2]}")
+    skyfield_button("validate_export")
+    st.divider()
+    st.markdown("**下载当前结果**")
     download_buttons("export")
 
 # ------------------------------------------------------------------ 结果对比
 def page_compare():
     recs = []
-    for p in runs:
+    for p in labels:
         try:
             r = Run.load(p)
         except Exception:
@@ -640,7 +774,7 @@ def page_rules():
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
-| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 企业老师 2026-10-21 确认为 8 月 1–7 日；时间制见答疑 #42 |
+| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 学生拍摄方案 v3.0，2026-11-23；此实验界面保留自定义规则 |
 | 仰角 | {cfg.elev_min:g}°–{cfg.elev_max:g}°（规划时各留 {cfg.elev_margin:g}° 余量） | 站址文件、答疑 #26 |
 | 站点太阳高度角 | < {cfg.sun_max:g}°（留 {cfg.sun_margin:g}° 余量） | 答疑 #26 |
 | 目标受照 | {'须被太阳照亮（地影边界留 %g km 余量）' % cfg.sunlit_margin_km if cfg.use_sunlit else '不考虑'} | 答疑 #26、#36、#44 |
@@ -669,7 +803,13 @@ def default_event(t_s: int, hours: float = 6.0) -> Event:
 
 def run_replan(ev: Event, mode: str) -> dict:
     bar = st.progress(0.0, text="准备重排……")
-    res = replan_run(pb, run, ev, mode=mode, progress=lambda f, t: bar.progress(min(1.0, f), text=t))
+    try:
+        with st.spinner("正在重排事件后的观测任务……", show_time=True):
+            res = replan_run(pb, run, ev, mode=mode, progress=lambda f, t: bar.progress(min(1.0, f), text=t))
+    except Exception as exc:
+        bar.empty()
+        recover_error("本次重排未完成", exc, "请调整事件时刻或范围后重试。当前保存的原计划仍可查看与导出。")
+        st.stop()
     bar.empty()
     n = st.session_state.get("replan", {}).get("n", 0) + 1
     st.session_state["replan"] = {"run_id": run.run_id, "res": res, "n": n}
@@ -691,7 +831,8 @@ def show_replan(got: dict):
     b, n0, a = res["before"], res["no_replan"], res["after"]
     old, new = run.schedule(), res["schedule"]
     o_st, n_st = res["old_status"], res["new_status"]
-    st.success(f"**{res['describe']}** · {MODES[res['mode']]} · 用时 {res['seconds']:.0f} 秒")
+    st.info(f"**{res['describe']}** · {MODES[res['mode']]} · 重排完成，用时 {res['seconds']:.1f} 秒 · 尚未另存")
+    st.caption("先检查改动，随后另存为新结果并校验整份计划；原计划保留。下方局部 Skyfield 校验只覆盖所选任务。")
     base_name = "只取消受影响的任务" if ev.kind == "down" else "原计划"
     k = st.columns(4)
     k[0].metric("覆盖目标", f"{a['covered']}", f"{a['covered'] - n0['covered']:+d}（对比{base_name}）")
@@ -699,8 +840,11 @@ def show_replan(got: dict):
     k[1].metric("累计得分", f"{a['score']:.0f}", f"{a['score'] - n0['score']:+.0f}")
     k[1].caption(f"原计划 {b['score']:.0f}" + (f" → 只取消 {n0['score']:.0f}" if ev.kind == "down" else "")
                  + f" → 重排后 {a['score']:.0f}" + ("（按新优先级计分）" if ev.kind == "priority" else ""))
-    k[2].metric("综合指标", f"{a['combined']:.4f}", f"{a['combined'] - n0['combined']:+.4f}")
-    k[2].caption("0.5 × 覆盖/目标数 + 0.5 × 得分/满分（内部口径）")
+    # 与概览/另存结果采用相同范围，避免演示重排突然退回全量分母。
+    combined_after = scope_metrics(cfg, res["ds"], replace(run, metrics=a))["combined"]
+    combined_before = scope_metrics(cfg, res["ds"], replace(run, metrics=n0))["combined"]
+    k[2].metric("综合指标", f"{combined_after:.4f}", f"{combined_after - combined_before:+.4f}")
+    k[2].caption(f"按本次参与的 {n_scope} 颗目标归一（内部口径）" if run.subset else "内部比较口径，不是官方比赛成绩")
     k[3].metric("原计划任务保留", f"{d['保留'] / max(d['原计划 t 之后'], 1):.1%}")
     k[3].caption(f"事件之后原有 {d['原计划 t 之后']} 个任务，保留 {d['保留']} 个")
 
@@ -815,8 +959,11 @@ def show_replan(got: dict):
         go_val = st.button(f"Skyfield 逐秒校验{'事件后的全部' if allk else '改动过的'} {n_chk} 个任务", key=f"rp_val_{rid}",
                            type="primary")
     if go_val:
-        with st.spinner("Skyfield 逐秒校验中……"):
-            st.session_state["replan_val"] = (rid, validate_replan(pb, res, include_kept=allk))
+        try:
+            with st.spinner("Skyfield 逐秒校验中……", show_time=True):
+                st.session_state["replan_val"] = (rid, validate_replan(pb, res, include_kept=allk))
+        except Exception as exc:
+            recover_error("本次局部校验未完成", exc, "重排结果仍保留在当前会话。检查 DE421 星历与网络后可再次校验，也可先另存。")
     val = st.session_state.get("replan_val")
     if val and val[0] == rid:
         v = val[1]
@@ -828,9 +975,10 @@ def show_replan(got: dict):
                                                   else "；原计划可在「校验与导出」页签校验。"))
 
     c1, c2, c3 = st.columns(3)
-    c1.download_button("下载重排后的计划（CSV）", lambda: schedule_csv_bytes(cfg, res["ds"], new, f"replan_{run.run_id}"),
+    st.caption("直接下载的重排 CSV 不含整份计划的 Skyfield 校验结论；请另存后校验，并同时下载结果摘要。")
+    c1.download_button("下载重排后的计划（CSV）", lambda cfg=cfg, ds=res["ds"], sch=new, rid=run.run_id: schedule_csv_bytes(cfg, ds, sch, f"replan_{rid}"),
                        file_name=f"plan_{run.run_id}_replan.csv", mime="text/csv", use_container_width=True,
-                       key=f"rp_dl_{rid}")
+                       key=f"rp_dl_{rid}", on_click="ignore")
     crow = []
     for plan, sch, stt in (("原计划", old, o_st), ("新计划", new, n_st)):
         for i in np.nonzero(np.isin(stt, ["移动", "删除", "新增"]))[0]:
@@ -844,13 +992,18 @@ def show_replan(got: dict):
         cdf = cdf.sort_values(["目标编号", "计划", "开始"])
     c2.download_button("下载改动清单（CSV）", ("﻿" + cdf.to_csv(index=False)).encode("utf-8"),
                        file_name=f"changes_{run.run_id}.csv", mime="text/csv", use_container_width=True,
-                       key=f"rp_dlc_{rid}")
+                       key=f"rp_dlc_{rid}", on_click="ignore")
     if ev.kind == "priority":
         c3.caption("优先级变化后的结果不另存：其他页签按原始优先级计分。")
-    elif c3.button("另存为新结果（用其他页签查看）", use_container_width=True, key=f"rp_save_{rid}"):
-        new_run = save_replan(run, res, RUNS)
-        st.session_state["selected"] = new_run.run_id
-        st.rerun()
+    elif c3.button("另存并校验整份计划 →", use_container_width=True, key=f"rp_save_{rid}"):
+        try:
+            new_run = save_replan(run, res, RUNS)
+        except Exception as exc:
+            recover_error("重排结果未保存", exc, "请检查 outputs/app_runs 的写入权限与磁盘空间，再点击另存重试。")
+        else:
+            st.session_state["selected"] = new_run.run_id
+            st.session_state["pending_page"] = "校验与导出"
+            st.rerun()
     if len(cdf):
         with st.expander(f"改动明细（{len(cdf)} 行）"):
             st.dataframe(cdf, hide_index=True, use_container_width=True, height=320)
@@ -918,7 +1071,7 @@ def page_replan():
                 c4.info("没有合适的推荐目标，请在右侧输入编号。")
             ev = Event(kind, t_s, target=int(x)) if x is not None else None
         go_btn = st.button("执行重排", type="primary", disabled=ev is None, key="rp_go")
-        st.caption("全量 10000 颗目标一次重排约 10 秒，演示模式几秒。")
+        st.caption("重排耗时随任务数与事件变化，运行时显示本次耗时。")
     if go_btn and ev is not None:
         run_replan(ev, mode)
     got = current_replan()
@@ -993,10 +1146,10 @@ def page_demo():
              ("③ 优先级判断", f"{hi_obs:,} 颗高优先", fmt_s(t_pri)),
              ("④ 任务规划", f"{m['tasks']:,} 个任务", fmt_s(run.runtime_s)),
              ("⑤ 约束校验", "全部合法" if (not sv and v is not None and v["legal"]) else
-              ("结构合法" if not sv else "有违规"), fmt_s(sv_t + (v.get("seconds", 0) if v else 0))),
+              ("未校验" if v is None and not sv else "校验未通过"), fmt_s(sv_t + (v.get("seconds", 0) if v else 0))),
              ("⑥ 状态更新", f"覆盖 {ssum['covered']:,} 颗", fmt_s(table_timing["status_s"])),
              ("⑦ 动态重规划", f"保留 {rp['res']['diff']['保留'] / max(rp['res']['diff']['原计划 t 之后'], 1):.0%} 原任务" if rp
-              else "待演示", fmt_s(rp["res"]["seconds"]) if rp else "约 10 秒"),
+              else "待演示", fmt_s(rp["res"]["seconds"]) if rp else "运行后显示耗时"),
              ("⑧ 结果输出", "CSV / JSON", "点击即下载")]
     html = "<div class='pipe'>" + "<span class='ar'>›</span>".join(
         f"<div class='s'><b>{a}</b><span>{b}</span><small>{c}</small></div>" for a, b, c in chips) + "</div>"
@@ -1096,8 +1249,8 @@ def page_demo():
                  for v_ in json.loads(dyn_path.read_text(encoding="utf-8"))["years"].values()
                  if {"static", "dynamic_clim"} <= set(v_["policies"])]
             gain = f"{min(g):+.1%}" if g else "—"
-        nums = [("事件", "未运行", "可在「突发重规划」自选事件"), ("每天按天气重排", gain, "对比一次排完，真实天气回放"),
-                ("重排用时", "约 10 秒", "全量 10000 颗目标")]
+        nums = [("事件", "未运行", "可在「突发重规划」自选事件"), ("历史天气实验", gain, "仓库历史记录，非当前计划实测"),
+                ("重排用时", "待运行", "运行后显示本次耗时")]
         took = "—"
     box = step_box(7, "动态重规划",
                    "执行中出现突发事件（站点停机、目标升为高优先级、临时加一个必须观测的目标）时：冻结已经开始的任务，"
@@ -1112,7 +1265,7 @@ def page_demo():
     box = step_box(8, "结果输出",
                    "导出赛题要求的观测计划（站点、目标、起止时间、时长、切换释放时间、Skyfield 复核的仰角与太阳角、得分、首次或重复观测），"
                    "以及目标状态表和结果摘要。",
-                   "点击下载时生成，约 1 秒",
+                   "点击下载时生成",
                    [("观测计划", f"{len(run.target):,} 行", "CSV，UTF-8"), ("目标状态表", f"{len(srows):,} 行", "CSV"),
                     ("结果摘要", "JSON", "指标、规则与校验结果")],
                    ["校验与导出"])
@@ -1124,6 +1277,8 @@ def page_demo():
 PAGES = {"演示": page_demo, "概览": page_overview, "站点地图": page_map, "甘特图": page_gantt, "时间价格": page_price,
          "任务解释": page_explain, "天气与月光": page_weather, "突发重规划": page_replan, "校验与导出": page_export,
          "结果对比": page_compare, "规则说明": page_rules}
+if "pending_page" in st.session_state:
+    st.session_state["page"] = st.session_state.pop("pending_page")
 for (name, page), tab in zip(PAGES.items(), st.tabs(list(PAGES), key="page", on_change="rerun")):
     if tab.open:
         with tab:

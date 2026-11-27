@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,8 +18,8 @@ class Config:
     data_dir: str = str(REPO_ROOT / "data")
 
     # ---- 规划范围 ----
-    start_utc: str = "2026-08-01T00:00:00"     # 企业老师 2026-10-21 在群里确认：8 月 1 日 0:00 至 8 月 7 日 0:00（UTC）
-    days: float = 6.0
+    start_utc: str = "2026-07-31T00:00:00"     # 学生拍摄方案 v3.0（2026-11-23）
+    days: float = 7.0
     cell_s: int = 30                      # 规划用的时间网格；按秒精修后任务起止精确到秒
 
     # ---- 可观测条件 ----
@@ -50,12 +51,13 @@ class Config:
     score_ref: str | float = "sumP"
 
     # ---- 运行 ----
-    cache_dir: str = str(SCHEME_DIR / "cache")
+    cache_dir: str = os.environ.get("OBSPLAN_CACHE", str(SCHEME_DIR / "cache"))
     seed: int = 2026
 
     @property
     def start_dt(self) -> datetime:
-        return datetime.fromisoformat(self.start_utc).replace(tzinfo=timezone.utc)
+        value = datetime.fromisoformat(self.start_utc)
+        return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value.astimezone(timezone.utc)
 
     @property
     def n_cells(self) -> int:

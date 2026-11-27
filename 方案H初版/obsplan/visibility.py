@@ -14,6 +14,8 @@ import sys
 import threading
 import time
 import types
+import tempfile
+import zipfile
 from concurrent.futures import ProcessPoolExecutor
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -96,16 +98,31 @@ class Windows:
 
     def save(self, path: Path):
         dk = np.array([(s, a, b) for s, runs in enumerate(self.dark) for a, b in runs], dtype=np.int32).reshape(-1, 3)
-        np.savez_compressed(path, station=self.station, target=self.target, k0=self.k0, k1=self.k1,
-                            dark=dk, n_samples=self.n_samples, sgp4_failed=self.sgp4_failed)
+        _save_atomic(path, station=self.station, target=self.target, k0=self.k0, k1=self.k1,
+                     dark=dk, n_samples=self.n_samples, sgp4_failed=self.sgp4_failed)
 
     @classmethod
     def load(cls, path: Path, n_stations: int) -> "Windows":
-        z = np.load(path)
-        dark = [[] for _ in range(n_stations)]
-        for s, a, b in z["dark"]:
-            dark[s].append((int(a), int(b)))
-        return cls(z["station"], z["target"], z["k0"], z["k1"], dark, int(z["n_samples"]), z["sgp4_failed"])
+        with np.load(path, allow_pickle=False) as z:
+            dark = [[] for _ in range(n_stations)]
+            for s, a, b in z["dark"]:
+                dark[s].append((int(a), int(b)))
+            return cls(z["station"], z["target"], z["k0"], z["k1"], dark, int(z["n_samples"]), z["sgp4_failed"])
+
+
+def _save_atomic(path, **arrays):
+    path = Path(path)
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".windows-", suffix=".tmp", delete=False) as file:
+            temporary = Path(file.name)
+            np.savez_compressed(file, **arrays)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None:
+            temporary.unlink(missing_ok=True)
 
 
 def _runs(edge_ok: np.ndarray, min_len: int):
@@ -316,10 +333,10 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
         dark_runs.append(list(zip(a.tolist(), b.tolist())))
     st_pos, st_up = station_ecef(ds.st_lon, ds.st_lat, ds.st_alt_m)
     moon = moon_ecef(cfg, sec) if cfg.moon_sep_deg > 0 else None
-    chunk = 200
+    chunk = max(1, min(200, int(os.environ.get("OBSPLAN_WINDOW_CHUNK", "200"))))
     jobs = [(cfg, list(zip(ds.line1[i:i + chunk], ds.line2[i:i + chunk])), i, st_pos, st_up, dark, moon)
             for i in range(0, ds.n_targets, chunk)]
-    workers = workers or _default_workers()
+    workers = workers or int(os.environ.get("OBSPLAN_WINDOW_WORKERS", "0")) or _default_workers()
     with ProcessPoolExecutor(workers, mp_context=multiprocessing.get_context("spawn")) as ex:
         with _spawn_without_main():               # 子进程在提交任务时启动
             res = ex.map(_chunk_job, jobs)
@@ -346,10 +363,13 @@ def compute_windows(cfg: Config, ds: Dataset, workers: int | None = None, verbos
 def get_windows(cfg: Config, ds: Dataset, refresh=False) -> Windows:
     path = Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz"
     if path.exists() and not refresh:
-        return Windows.load(path, ds.n_stations)
+        try:
+            return Windows.load(path, ds.n_stations)
+        except (OSError, ValueError, KeyError, EOFError, zipfile.BadZipFile):
+            path.rename(path.with_suffix(f".corrupt-{time.time_ns()}.npz"))
     path.parent.mkdir(parents=True, exist_ok=True)
     w = compute_windows(cfg, ds, keep_short=True)
     w.save(path)
     st, tg, k0, k1 = w.short
-    np.savez_compressed(path.with_name(f"short_{cfg.scenario_key()}.npz"), station=st, target=tg, k0=k0, k1=k1)
+    _save_atomic(path.with_name(f"short_{cfg.scenario_key()}.npz"), station=st, target=tg, k0=k0, k1=k1)
     return w

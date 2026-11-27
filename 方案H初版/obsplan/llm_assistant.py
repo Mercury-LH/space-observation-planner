@@ -87,7 +87,10 @@ def _when(text: str, cfg) -> int | None:
     start = cfg.start_dt
     m = re.search(r"开始后\s*([\d.]+)\s*(小时|h)", text)
     if m:
-        return int(float(m.group(1)) * 3600)
+        try:
+            return int(float(m.group(1)) * 3600)
+        except (ValueError, OverflowError):
+            return None
     hh = mm = 0
     tm = re.search(r"(\d{1,2})\s*[:：]\s*(\d{2})", text) or re.search(r"(\d{1,2})\s*[点时](半|\d{1,2}分)?", text)
     if tm:
@@ -122,7 +125,9 @@ def parse_rules(text: str, cfg, ds) -> Event | None:
     horizon = int(cfg.n_cells * cfg.cell_s)
     st = re.search(r"(\d{1,2}|[一二三四五六七八九十])\s*号\s*站", t)
     if st and re.search(r"(停机|故障|维护|检修|不可用|下线|宕机)", t):
-        hrs = re.search(r"([\d.]+|[一二三四五六七八九十两半]+)\s*(个)?\s*(小时|h)", t)
+        # “开始后 30 小时”描述事件时刻，不能误当成停机持续时间。
+        duration_text = re.sub(r"开始后\s*[\d.]+\s*(?:小时|h)", "", t)
+        hrs = re.search(r"([\d.]+|[一二三四五六七八九十两半]+)\s*(个)?\s*(小时|h)", duration_text)
         station = int(_num(st.group(1))) - 1
         hours = _num(hrs.group(1)) if hrs else float("nan")
         if 0 <= station < ds.n_stations and hours == hours and hours > 0 and t_s is not None and 0 <= t_s < horizon:

@@ -144,8 +144,8 @@ export function RunLaunchBadge({ ref, origin, page, title, href }) {
   return (
     <>
       {page === "run" ? (
-        <a className="run-launch-slot" ref={slotRef} href={href} target="_blank" rel="noreferrer"
-          aria-label="进入规划安排（新标签页）" title="进入规划安排">
+        <a className="run-launch-slot" ref={slotRef} href={href}
+          aria-label="查看运行状态" title="查看运行状态">
           <RunOrbitMark />
         </a>
       ) : (

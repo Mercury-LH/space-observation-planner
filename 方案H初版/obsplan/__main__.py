@@ -62,6 +62,9 @@ def read_plan(cfg: Config, ds, path: Path, seconds_from_start: bool = False):
     from .schedule import Schedule
     if path.suffix.lower() == ".json":
         data = json.loads(path.read_text(encoding="utf-8"))
+        if isinstance(data, list) and (not data or any(isinstance(r, dict) and "noradId" in r for r in data)):
+            from .submission import parse_json, to_schedule
+            return to_schedule(parse_json(path.read_bytes()), cfg, ds), []
         rows = data.get("observations", data.get("tasks", data)) if isinstance(data, dict) else data
         rows = [{k: v for k, v in r.items()} for r in rows]
     else:
@@ -96,6 +99,26 @@ def cmd_validate(args) -> int:
     from .validator import validate
     cfg = _cfg(args)
     ds = load(cfg)
+    if Path(args.plan).suffix.lower() == ".json":
+        raw = json.loads(Path(args.plan).read_text(encoding="utf-8"))
+        if isinstance(raw, list):
+            from .forecast import local_forecasts
+            from .submission import json_bytes, parse_json, score
+            rows = parse_json(Path(args.plan).read_bytes())
+            if args.forecast:
+                import hashlib
+                data = Path(args.forecast).read_bytes()
+                forecasts = parse_json(data)
+                source = {"kind": "provided-file", "official": False,
+                          "filename": Path(args.forecast).name, "sha256": hashlib.sha256(data).hexdigest()}
+            else:
+                forecasts, source = local_forecasts(cfg, ds, rows)
+            report = score(rows, ds, forecasts, source=source)
+            print(json_bytes(report["summary"]).decode())
+            if args.out:
+                Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+                Path(args.out).write_bytes(json_bytes(report))
+            return 0 if report["summary"]["clean"] else 1
     sch, skipped = read_plan(cfg, ds, Path(args.plan), args.seconds_from_start)
     print(f"读入 {len(sch)} 个任务（跳过 {len(skipped)} 行）；规划期 {cfg.start_utc} 起 {cfg.days:g} 天；"
           f"规则：仰角 {cfg.elev_min:g}–{cfg.elev_max:g}°，太阳角 < {cfg.sun_max:g}°，目标受照 {'是' if cfg.use_sunlit else '否'}"
@@ -115,7 +138,7 @@ def cmd_validate(args) -> int:
                "config": json.loads(cfg.to_json())}
         Path(args.out).write_text(json.dumps(rep, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
         print("报告已写入", args.out)
-    return 0 if chk["legal"] else 1
+    return 0 if chk["legal"] and not skipped else 1
 
 
 def cmd_plan(args) -> int:
@@ -124,13 +147,20 @@ def cmd_plan(args) -> int:
     from .problem import Problem
     from .schedule import evaluate, export_csv
     from .visibility import get_windows
+    from .submission import END_EXCLUSIVE, START, json_bytes, records, score, submission_problem
+    from datetime import timedelta
     cfg = _cfg(args)
+    if args.chain > 0:
+        raise ValueError("v3 提交模式尚未审计弹射链的编号与边界补任务，请使用 --chain 0")
+    if cfg.start_dt < START or cfg.start_dt + timedelta(days=cfg.days) > END_EXCLUSIVE:
+        raise ValueError("提交规划必须位于 2026-07-31 至 2026-08-06")
     t0 = time.time()
     ds = load(cfg)
     if ds.issues:
         print("数据检查：", "；".join(ds.issues))
     win = get_windows(cfg, ds)
     pb = Problem.build(cfg, ds, win)
+    pb = submission_problem(pb, list(range(ds.n_stations)))
     t1 = time.time()
     kw = {}
     if args.weather:
@@ -150,12 +180,8 @@ def cmd_plan(args) -> int:
     rinfo = None
     if not args.no_refine:
         from .refine import finish
-        sch, rinfo = finish(pb, sch)
+        sch, rinfo = finish(pb, sch, near=False)
     cinfo = None
-    if args.chain > 0 and not args.no_refine:
-        from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
-        sch, ci = improve(pb, sch, minutes=args.chain)
-        cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -165,6 +191,18 @@ def cmd_plan(args) -> int:
         from .validator import validate
         check = validate(cfg, ds, sch)
     export_csv(cfg, ds, sch, out / "plan.csv", check)
+    from .submission import parse_json, to_schedule
+    delivery = records(cfg, ds, sch)
+    encoded = json_bytes(delivery)
+    to_schedule(parse_json(encoded), cfg, ds)
+    (out / "submission.json").write_bytes(encoded)
+    v3_report = None
+    if args.validate:
+        from .forecast import local_forecasts
+        forecasts, source = local_forecasts(cfg, ds, delivery)
+        v3_report = score(delivery, ds, forecasts, source=source)
+        (out / "validation-v3.json").write_bytes(json_bytes(v3_report))
+        (out / "forecast-local.json").write_bytes(json_bytes(forecasts))
     from .target_status import describe, summarize, target_status
     from .target_status import export as export_status
     status_rows = target_status(pb, sch, None if check is None else ~check["invalid_mask"])
@@ -172,7 +210,9 @@ def cmd_plan(args) -> int:
     summary = {"config": json.loads(cfg.to_json()), "mode": args.mode, "weather_aware": bool(args.weather),
                "placement_rule": placement,
                "portfolio": None if pf is None else {"picked": pf["picked"], "objective": pf["objective"]},
-               "metrics": ev, "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
+               "metrics": ev, "v3": None if v3_report is None else v3_report["summary"],
+               "eligible_targets": int(((ds.satnum >= 10000) & (ds.satnum <= 99999)).sum()),
+               "observable_targets": int((pb.max_obs > 0).sum()), "sgp4_failed": int(win.sgp4_failed.sum()),
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1)}, "refine": rinfo,
                "chain": cinfo,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
@@ -188,8 +228,8 @@ def cmd_plan(args) -> int:
     if check is not None:
         print("Skyfield 校验：", "全部合法" if check["legal"] else check["violations"])
     print("目标状态：" + describe(summary["target_status"]))
-    print("已写出", out / "plan.csv", "、", out / "target_status.csv", "和", out / "summary.json")
-    return 0
+    print("已写出", out / "submission.json", "、", out / "plan.csv", "、", out / "target_status.csv", "和", out / "summary.json")
+    return 0 if check is None or (check["legal"] and v3_report["summary"]["clean"]) else 1
 
 
 def cmd_status(args) -> int:
@@ -298,6 +338,7 @@ def main(argv=None) -> int:
             p.add_argument("plan")
             p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
             p.add_argument("--out", help="把校验报告写成 JSON")
+            p.add_argument("--forecast", help="v3 预报窗口 JSON 数组；不指定则使用独立 Skyfield 本地预报")
         elif name == "status":
             p.add_argument("plan")
             p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")

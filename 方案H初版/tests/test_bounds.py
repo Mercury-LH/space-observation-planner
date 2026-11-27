@@ -9,6 +9,17 @@ from obsplan.refine import probe_bounds, refine
 from obsplan.schedule import evaluate
 
 
+@pytest.fixture(scope="session")
+def cfg(legacy_cfg):
+    """此组证明适用于最多三次观测的历史六天范围；七天范围另测拒绝上界。"""
+    return legacy_cfg
+
+
+@pytest.fixture(scope="session")
+def sub(legacy_sub):
+    return legacy_sub
+
+
 def test_by_second_value_minus_price_peaks_on_grid():
     """按秒口径的依据（不需要数据）：价格在每个 30 秒格内是常数、得分对时长是线性的，
     那么真实可见区间内任意起止（整秒或小数）的任务，"价值 − 价格"不超过窗口两端各放宽一格后格点任务的最大值。"""

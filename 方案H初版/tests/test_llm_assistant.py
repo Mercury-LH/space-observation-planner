@@ -4,9 +4,9 @@ from obsplan.llm_assistant import explain_plan, parse_event, parse_rules
 
 def test_station_down_variants(cfg, ds):
     ev = parse_rules("8月3日12点起6号站停机6小时", cfg, ds)
-    assert ev.kind == "down" and ev.station == 5 and ev.hours == 6 and ev.t_s == (2 * 24 + 12) * 3600
+    assert ev.kind == "down" and ev.station == 5 and ev.hours == 6 and ev.t_s == (3 * 24 + 12) * 3600
     ev = parse_rules("08-03 12:30 3号站点故障，大约2.5小时", cfg, ds)
-    assert ev.kind == "down" and ev.station == 2 and ev.hours == 2.5 and ev.t_s == (2 * 24 + 12) * 3600 + 1800
+    assert ev.kind == "down" and ev.station == 2 and ev.hours == 2.5 and ev.t_s == (3 * 24 + 12) * 3600 + 1800
     ev = parse_rules("第2天晚上8点 十号站检修三小时", cfg, ds)
     assert ev.kind == "down" and ev.station == 9 and ev.hours == 3 and ev.t_s == (24 + 20) * 3600
 
@@ -14,7 +14,7 @@ def test_station_down_variants(cfg, ds):
 def test_priority_and_must(cfg, ds):
     sat0, sat1 = int(ds.satnum[0]), int(ds.satnum[1])
     ev = parse_rules(f"8月2日6点 目标 {sat0} 升为高优先级", cfg, ds)
-    assert ev.kind == "priority" and ev.target == 0 and ev.level == "高" and ev.t_s == (24 + 6) * 3600
+    assert ev.kind == "priority" and ev.target == 0 and ev.level == "高" and ev.t_s == (2 * 24 + 6) * 3600
     ev = parse_rules(f"卫星{sat1}必须观测", cfg, ds)
     assert ev.kind == "must" and ev.target == 1 and ev.t_s == 0
 
@@ -25,6 +25,34 @@ def test_unparseable_and_out_of_range(cfg, ds):
     assert parse_rules("8月3日12点 66号站停机6小时", cfg, ds) is None           # 没有这个站
     ev, how = parse_event("今天天气不错", cfg, ds, use_llm=False)
     assert ev is None and how == "无法解析"
+
+
+def test_relative_time_does_not_become_outage_duration(cfg, ds):
+    ev, how = parse_event("开始后30小时，6号站停机6小时", cfg, ds, use_llm=False)
+    assert how == "本地规则"
+    assert ev.t_s == 30 * 3600 and ev.hours == 6 and ev.station == 5
+    assert parse_rules("开始后30小时，6号站停机", cfg, ds) is None
+
+
+def test_malformed_relative_time_is_recoverable(cfg, ds):
+    ev, how = parse_event("开始后1.2.3小时，6号站停机6小时", cfg, ds, use_llm=False)
+    assert ev is None and how == "无法解析"
+
+
+def test_no_key_never_calls_remote_assistant(cfg, ds, monkeypatch):
+    from obsplan import llm_assistant as llm
+
+    monkeypatch.setattr(llm, "api_key", lambda: None)
+
+    def forbid_chat(*args, **kwargs):
+        raise AssertionError("无 key 时不得调用远程助手")
+
+    monkeypatch.setattr(llm, "chat", forbid_chat)
+    ev, how = llm.parse_event("8月3日12点起6号站停机6小时", cfg, ds)
+    assert ev.hours == 6 and how == "本地规则"
+    assert llm.parse_event("今天天气不错", cfg, ds) == (None, "无法解析")
+    text, how = llm.explain_plan({"tasks": 5, "covered": 4, "score": 18., "combined": .6})
+    assert how == "模板" and "4 颗目标" in text
 
 
 def test_explain_template():

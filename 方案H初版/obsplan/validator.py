@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections import defaultdict
 from functools import lru_cache
 from pathlib import Path
+import os
 
 import numpy as np
 from sgp4.api import Satrec
@@ -39,10 +40,11 @@ def _ephemeris_dir(cfg: Config) -> str:
 
 # Skyfield 算站点看太阳的视位置，每个时间点约占 22 KB 中间内存；最忙的站点有三四十万个任务秒，一次算完要 7–9 GB。
 # 按块计算（每块 2 万个时间点，约 0.45 GB），结果与一次算完逐位相同。
-SUN_CHUNK = 20000
+SUN_CHUNK = max(100, min(20000, int(os.environ.get("OBSPLAN_SUN_CHUNK", "20000"))))
 
 
-def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk: int = SUN_CHUNK) -> dict:
+def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk: int = SUN_CHUNK,
+             include_windows: bool = False) -> dict:
     from skyfield.api import EarthSatellite, wgs84
 
     ts, eph = _sky(_ephemeris_dir(cfg))
@@ -56,21 +58,32 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
     def times(secs):
         return ts.utc(st0.year, st0.month, st0.day, st0.hour, st0.minute, st0.second + secs)
 
+    if not np.isfinite(step_s) or step_s <= 0:
+        raise ValueError("采样间隔必须是正数")
+    usable = np.ones(n, bool)
     for i in range(n):
-        if not (0 <= sch.station[i] < ds.n_stations and 0 <= sch.target[i] < ds.n_targets):
+        if not (np.isfinite(sch.station[i]) and np.isfinite(sch.target[i])
+                and sch.station[i] == int(sch.station[i]) and sch.target[i] == int(sch.target[i])
+                and 0 <= sch.station[i] < ds.n_stations and 0 <= sch.target[i] < ds.n_targets):
             bad["编号不存在"].append(i)
+            usable[i] = False
+        if not (np.isfinite(sch.start_s[i]) and np.isfinite(sch.dur_s[i]) and sch.dur_s[i] > 0):
+            bad["观测时间无效"].append(i)
+            usable[i] = False
         if sch.start_s[i] < 0 or sch.start_s[i] + sch.dur_s[i] > horizon:
             bad["超出规划时间范围"].append(i)
         if sch.dur_s[i] < cfg.obs_min_s:
             bad["观测时长不足120秒"].append(i)
 
-    task_secs = [np.arange(sch.start_s[i], sch.start_s[i] + sch.dur_s[i] + 1e-9, step_s) for i in range(n)]
+    task_secs = [np.arange(sch.start_s[i], sch.start_s[i] + sch.dur_s[i] + 1e-9, step_s)
+                 if usable[i] else np.empty(0) for i in range(n)]
+    visible = [np.ones(len(secs), bool) for secs in task_secs]
     sites = [wgs84.latlon(float(ds.st_lat[j]), float(ds.st_lon[j]), elevation_m=float(ds.st_alt_m[j]))
              for j in range(ds.n_stations)]
 
     # 站点太阳高度角：每站一次性计算
     for j in range(ds.n_stations):
-        idx = np.nonzero(sch.station == j)[0]
+        idx = np.nonzero((sch.station == j) & usable)[0]
         if len(idx) == 0:
             continue
         secs = np.concatenate([task_secs[i] for i in idx])
@@ -80,12 +93,14 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
         for i in idx:
             k = len(task_secs[i])
             per_task[i, 2] = alt[pos:pos + k].max()
+            if cfg.use_sun:
+                visible[i] &= np.isfinite(alt[pos:pos + k]) & (alt[pos:pos + k] < cfg.sun_max)
             pos += k
             if cfg.use_sun and per_task[i, 2] >= cfg.sun_max:
                 bad["站点太阳高度角不满足"].append(i)
 
     by_target = defaultdict(list)
-    for i in range(n):
+    for i in np.flatnonzero(usable):
         by_target[int(sch.target[i])].append(i)
     for t, idx in by_target.items():
         sat = EarthSatellite(ds.line1[t], ds.line2[t], ts=ts)
@@ -96,6 +111,9 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
         geo = sat.at(tt)
         rn = np.linalg.norm(geo.position.km, axis=0)
         implausible = ~np.isfinite(rn) | (rn < 0.9 * a_km * (1 - raw.ecco)) | (rn > 1.1 * a_km * (1 + raw.ecco))
+        # Skyfield exposes propagation errors through the geocentric message array.
+        if geo.message is not None:
+            implausible |= np.asarray(geo.message, dtype=object) != None  # noqa: E711
         lit = geo.is_sunlit(eph) if cfg.use_sunlit else np.ones(len(secs), bool)
         pos = 0
         for i in idx:
@@ -105,6 +123,8 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
             j = int(sch.station[i])
             alt = (sat - sites[j]).at(tt[sl]).altaz()[0].degrees
             per_task[i, 0], per_task[i, 1] = alt.min(), alt.max()
+            visible[i] &= (~implausible[sl] & np.isfinite(alt) & (alt >= cfg.elev_min)
+                           & (alt <= cfg.elev_max) & lit[sl])
             if implausible[sl].any():
                 bad["轨道传播失败或不可信"].append(i)
             if alt.min() < cfg.elev_min:
@@ -121,11 +141,12 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
                 mv = mpos.position.km
                 cos = np.einsum("ij,ij->j", sv, mv) / (np.linalg.norm(sv, axis=0) * np.linalg.norm(mv, axis=0))
                 sep = np.degrees(np.arccos(np.clip(cos, -1, 1)))
+                visible[i] &= ~((malt > 0) & (sep < cfg.moon_sep_deg))
                 if np.any((malt > 0) & (sep < cfg.moon_sep_deg)):
                     bad["离月亮太近"].append(i)
 
     for j in range(ds.n_stations):
-        idx = np.nonzero(sch.station == j)[0]
+        idx = np.nonzero((sch.station == j) & usable)[0]
         idx = idx[np.argsort(sch.start_s[idx], kind="stable")]
         for a, b in zip(idx[:-1], idx[1:]):
             if sch.start_s[b] < sch.start_s[a] + sch.dur_s[a] + cfg.switch_s:
@@ -141,12 +162,23 @@ def validate(cfg: Config, ds: Dataset, sch: Schedule, step_s: float = 1.0, chunk
     invalid = np.zeros(n, bool)
     for v in bad.values():
         invalid[v] = True
-    return {
+    result = {
         "legal": not bad,
         "violations": {k: len(v) for k, v in bad.items()},
+        "task_violations": {k: [int(i) for i in v] for k, v in bad.items()},
         "invalid_mask": invalid,
         "per_task": per_task,
         "min_elev_margin": float(np.nanmin(per_task[:, 0]) - cfg.elev_min) if n else None,
         "max_elev_margin": float(cfg.elev_max - np.nanmax(per_task[:, 1])) if n else None,
         "sun_margin": float(cfg.sun_max - np.nanmax(per_task[:, 2])) if n and cfg.use_sun else None,
     }
+    if include_windows:
+        intervals = []
+        for secs, ok in zip(task_secs, visible):
+            # A duration is a difference of endpoints, never a count of samples.
+            edges = ok[:-1] & ok[1:]
+            d = np.diff(np.r_[False, edges, False].astype(np.int8))
+            intervals.append([(float(secs[a]), float(secs[b]))
+                              for a, b in zip(np.flatnonzero(d == 1), np.flatnonzero(d == -1))])
+        result["visible_intervals"] = intervals
+    return result

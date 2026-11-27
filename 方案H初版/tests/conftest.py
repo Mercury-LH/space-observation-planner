@@ -24,6 +24,25 @@ def cfg():
 
 
 @pytest.fixture(scope="session")
+def legacy_cfg():
+    c = Config(start_utc="2026-08-01T00:00:00", days=6)
+    if not _has_data(c):
+        pytest.skip("没有赛题数据")
+    return c
+
+
+@pytest.fixture(scope="session")
+def legacy_sub(legacy_cfg):
+    from obsplan.data import load
+    from obsplan.ga import sub_problem
+    from obsplan.problem import Problem
+    from obsplan.visibility import get_windows
+    dataset = load(legacy_cfg)
+    problem = Problem.build(legacy_cfg, dataset, get_windows(legacy_cfg, dataset))
+    return sub_problem(problem, np.random.default_rng(7), target_frac=.1, n_st=3)
+
+
+@pytest.fixture(scope="session")
 def ds(cfg):
     from obsplan.data import load
     return load(cfg)
