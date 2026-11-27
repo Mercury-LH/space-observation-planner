@@ -1,5 +1,6 @@
 import { useImperativeHandle, useLayoutEffect, useRef } from "react";
 import { RunOrbitMark } from "./RunOrbitMark";
+import { cssTimeToMilliseconds } from "./cssTime.js";
 import "./RunLaunchBadge.css";
 
 export function captureWorkspacePill(button) {
@@ -60,8 +61,8 @@ export function RunLaunchBadge({ ref, origin, page, title, href }) {
     const word = layer.querySelector(".run-flight__word");
     const size = target.width;
     const css = getComputedStyle(dialog);
-    const duration = parseFloat(css.getPropertyValue("--drawer-enter-duration"));
-    const exitDuration = parseFloat(css.getPropertyValue("--drawer-exit-duration"));
+    const duration = cssTimeToMilliseconds(css.getPropertyValue("--drawer-enter-duration"), 900);
+    const exitDuration = cssTimeToMilliseconds(css.getPropertyValue("--drawer-exit-duration"), 600);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     layer.style.setProperty("--flight-size", `${size}px`);
     Object.assign(word.style, {

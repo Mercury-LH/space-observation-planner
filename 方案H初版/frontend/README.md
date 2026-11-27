@@ -36,8 +36,11 @@ npm run dev -- --host 127.0.0.1 --port 4173 --strictPort
 ```sh
 npm run build
 npm run test:sites
+npm run test:motion
 ```
 
 生产构建输出到 `dist/client/`，并生成静态托管所需的 `dist/server/index.js` 和 `dist/.openai/hosting.json`。四项静态托管测试覆盖文件服务、页面回退及打包结果。
+
+动效回归验证 CSS 时间单位在生产压缩前后等价，避免按钮飞行在发布后瞬间完成。动效验收使用生产构建，检查三个首页入口的进入、返回及中途关闭。
 
 接手说明见 [二级页面开发交接](二级页面开发交接.md)，视觉约定见 [AGENTS.md](AGENTS.md)，历史验收记录见 [design-qa.md](design-qa.md)。`qa/` 截图与 `references/` 设计参考是本地审阅材料，已由 `.gitignore` 排除；仓库中的源码和 `public/` 资源用于重建前端。
