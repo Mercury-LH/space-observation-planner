@@ -55,7 +55,7 @@ select:focus-visible {
 .homepage {
   position: relative;
   isolation: isolate;
-  --desktop-scene-height: max(760px, 100svh);
+  --desktop-scene-height: max(480px, 100svh);
   min-height: var(--desktop-scene-height);
   height: 100svh;
   overflow: hidden;
@@ -75,6 +75,20 @@ select:focus-visible {
   left: 16%;
   top: 50%;
   transform: translate(-16%, -50%);
+}
+/* A wide browser must not enlarge the photograph beyond its available height.
+   Keep the dish, mount and moving landscape together, and blend the remaining
+   width into the existing night sky instead of cropping the pedestal. */
+@media (min-width: 801px) and (min-aspect-ratio: 1672 / 941) {
+  .scene-plane {
+    width: calc(var(--desktop-scene-height) * 1672 / 941);
+    height: var(--desktop-scene-height);
+    left: 0;
+    top: auto;
+    bottom: 0;
+    transform: none;
+    mask-image: linear-gradient(to right, #000 78%, transparent 100%);
+  }
 }
 .landscape {
   position: absolute;
@@ -696,9 +710,6 @@ td {
   }
 }
 @media (max-height: 790px) and (min-width: 801px) {
-  .homepage {
-    --desktop-scene-height: max(680px, 100svh);
-  }
   .topbar {
     height: 80px;
   }

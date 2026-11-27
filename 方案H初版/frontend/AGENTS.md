@@ -6,6 +6,7 @@
 - Preserve accepted appearance and motion. Run submission now uses the same-origin `/api` service, H/E/B, UTC date and stations. Results and immutable downloads belong to the selected persisted run; do not restore the fixed 239-task example as the live result.
 - Submission dates are limited to 2026-07-31 through 2026-08-06. A displayed next-day 00:00 is exclusive; exported observation endpoints may not exceed 2026-08-06T23:59:59Z.
 - Keep local Skyfield validation visibly distinct from unavailable official forecast validation. API and operational details live in `../docs/v3-integration.md`.
+- On 2026-11-27 the user removed the explanatory sentence about Skyfield forecast windows and comparison with official forecasts from the results UI. Keep the actual local validation status and report data accurate.
 
 Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
 
@@ -32,6 +33,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Give the brand and both navigation labels a bold weight, with the brand larger than the two actions. Use Novaxlo’s animated blue-and-green Earth Loader as the small brand mark, without a loading caption.
 - Play the Milky Way and windblown grass automatically whenever the homepage is visible. Omit scene playback controls. The dish, struts and receiver start tracking together as soon as their layers load. Use a visibly broad sweep (−8° to +6°), eased starts and stops, and short observing pauses. Keep the pedestal and front bearing stationary. Occasionally, when a signal on the map reaches a station, show one clearly visible ice-blue glow on the moving receiver. Both effects are independent of cursor movement and keyboard focus. Bring out the dust and stars of the Milky Way while retaining the dark sky around it. Let meteors appear regularly, with occasional pairs and quiet gaps.
 - On narrow screens, put the observatory below the entry list so the telescope stays visible.
+- Fit the desktop observatory to the browser's available height when the viewport is wider than the source photograph; keep the pedestal visible and feather the photo into the original night background. Do not enlarge it to fill a wide viewport and crop its top/bottom. Desktop layouts from 480px in available height should not inherit a 680px/760px minimum.
 - Above the homepage entries, use a transparent dotted world map with clearly traceable, fine blue-gray connecting arcs and small station nodes. Several ice-blue signal points should be visibly in transit at the same time on different arcs, with varied departure times and speeds. Keep the continents prominent against the night sky, especially Asia and Australia.
 - User annotation explicitly removed the hero eyebrow, heading, introductory paragraph, entry caption, and decorative footer copy. Do not add slogans, taglines, decorative English, or other unsolicited explanatory small text without the user's approval. Preserve scoped edits rather than adding replacement copy.
 

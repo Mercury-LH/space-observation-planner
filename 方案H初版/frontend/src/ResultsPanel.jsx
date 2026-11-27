@@ -194,7 +194,7 @@ export default function Results({ planner, onRun }) {
           <WorkspaceDownloadIcon />逐任务校验报告
         </WorkspaceAction>}
         {summary.v3 && <p>本地 v3 得分 {summary.v3.final_score === null ? "待确认" : summary.v3.final_score.toFixed(3)} · 硬错误 {summary.v3.hard_errors} · 软错误 {summary.v3.soft_errors} · 待确认 {summary.v3.unresolved}</p>}
-        <p className="form-hint">{summary.forecast_source ? "预报窗口由本地 Skyfield 独立计算；尚未与官方预报文件核对。" : "计划已生成，独立校验尚未完成。"}</p>
+        {!summary.forecast_source && <p className="form-hint">计划已生成，独立校验尚未完成。</p>}
         <p className="form-hint">可提交目标 {summary.notes.eligible_targets} 个；另有 {summary.notes.excluded_id_below_10000 + summary.notes.excluded_id_above_99999} 个原始编号不满足五位整数要求。</p>
         {run.validation_error && <p role="alert">{run.validation_error}</p>}
         {planner.error && <p role="alert">{planner.error}</p>}
