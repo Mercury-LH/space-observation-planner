@@ -362,7 +362,7 @@ def _unit_ab(seq, n, tk_w, tk_s, tk_e, tk_tg, tg_tasks, wL, wR, gap, dmin, sw, w
         if wall_hi - sw < h:
             h = wall_hi - sw
         x = tk_tg[p]
-        for c in range(3):
+        for c in range(tg_tasks.shape[1]):
             q = tg_tasks[x, c]
             if q < 0 or q == p:
                 continue
@@ -446,17 +446,18 @@ def _fit_without(u, j, a, b, A2, B2, lo2, hi2, ulen, dmin, sw, D):
 @njit(cache=True)
 def _slots(x, skip, cl, cr, tk_s, tk_e, tg_tasks, gap, dmin, out_a, out_b):
     """目标 x（不算任务 skip）再加一次观测、可用区间 [cl, cr]：与已有观测保持 48 小时后剩下的区间。返回区间个数。"""
-    os_ = np.empty(3, np.int64)
-    oe_ = np.empty(3, np.int64)
+    K = tg_tasks.shape[1]                    # 每颗目标最多 K 次（Problem.k_max）；out_a/out_b 至少 K 格
+    os_ = np.empty(K, np.int64)
+    oe_ = np.empty(K, np.int64)
     c = 0
-    for j in range(3):
+    for j in range(K):
         q = tg_tasks[x, j]
         if q >= 0 and q != skip:
             os_[c], oe_[c] = tk_s[q], tk_e[q]
             c += 1
-    if c >= 3:
+    if c >= K:
         return 0
-    for i in range(c):                       # 按开始时间排序（最多 3 个）
+    for i in range(c):                       # 按开始时间排序（最多 K - 1 个）
         for j in range(i + 1, c):
             if os_[j] < os_[i]:
                 os_[i], os_[j] = os_[j], os_[i]
@@ -525,8 +526,8 @@ def _pattern_mask(x, ks, ke, w_skip, c_ptr, c_w, c_l, c_r, gap, dmin, mask):
 def _open_mask(targets, c_ptr, c_l, c_r, tk_s, tk_e, tg_tasks, gap, dmin):
     """每颗目标：它的候选里有没有"与已有观测隔 48 小时后还放得下一次"的时间段（只看时间，不看那里有没有空位）。"""
     out = np.zeros(len(targets), np.bool_)
-    sa = np.empty(4, np.int64)
-    sb = np.empty(4, np.int64)
+    sa = np.empty(tg_tasks.shape[1] + 1, np.int64)
+    sb = np.empty(tg_tasks.shape[1] + 1, np.int64)
     for i in range(len(targets)):
         x = targets[i]
         for ci in range(c_ptr[x], c_ptr[x + 1]):
@@ -550,8 +551,8 @@ def _search(new_tid, max_depth, max_q, D, c_ptr, c_unit, c_l, c_r, tk_tg, tk_s, 
     q_task[0], q_par[0], q_unit[0], q_depth[0] = new_tid, -1, skip_u, 0
     root_tg = tk_tg[new_tid]
     head, tail = 0, 1
-    sa = np.empty(4, np.int64)
-    sb = np.empty(4, np.int64)
+    sa = np.empty(tg_tasks.shape[1] + 1, np.int64)
+    sb = np.empty(tg_tasks.shape[1] + 1, np.int64)
     while head < tail:
         e = head
         head += 1
@@ -693,7 +694,8 @@ class Timeline:
                 self.unmatched += 1
                 r = np.searchsorted(starts[s], self.tk_s[i] // cfg.cell_s, side="right") - 1
                 tk_night[i] = night_off[s] + max(int(r), 0)
-        self.tg_tasks = np.full((pb.n_targets, 3), -1, np.int64)
+        self.k_max = pb.k_max                     # 每颗目标最多几次观测（6 天 3 次，7 天 4 次）
+        self.tg_tasks = np.full((pb.n_targets, self.k_max), -1, np.int64)
         self.tg_cnt = np.zeros(pb.n_targets, np.int64)
         for i in range(n):
             t = self.tk_tg[i]
@@ -1025,7 +1027,7 @@ class Timeline:
         shift：顶出一个任务后，新任务可以插在它前后几个位置以内；retries：一条链不划算时禁用出问题的那一步再搜几次；
         drop：允许直接删掉优先级更低的重复观测来腾位置。
         pattern：留节奏（见 _propose_pattern）。0 = 不管；1 = 优先放在留得住节奏的位置，放不进再随便放；2 = 只放这样的位置。"""
-        if self.tg_cnt[x] >= 3:
+        if self.tg_cnt[x] >= self.k_max:
             return 0.0
         if pattern and root_mask is None:
             prop = self._propose_pattern(x, self.n, self.scr, max_depth, min_gain, shift, retries, drop, self.stats,
@@ -1167,7 +1169,7 @@ class Timeline:
         它要改的时间线都没被动过、要删的重复观测还在且目标还有别的观测、和被挪动过的同目标观测仍隔 48 小时。"""
         if any(u in changed_units for u in prop["new_seqs"]):
             return False
-        if self.tg_cnt[prop["x"]] >= 3:
+        if self.tg_cnt[prop["x"]] >= self.k_max:
             return False
         for y in prop["dropped"]:
             if not self.alive[y] or self.tg_cnt[self.tk_tg[y]] < 2:
@@ -1189,7 +1191,7 @@ class Timeline:
         拿掉谁）在最新的顺序上重做一遍，只重解线性规划——线性规划会按最新的起止时间重新检查窗口、切换和 48 小时间隔，
         可行且仍然划算就返回新方案。比重新搜链便宜得多（约 2 毫秒）。做不了返回 None。"""
         x, tid = prop["x"], prop["tid"]
-        if self.tg_cnt[x] >= 3:
+        if self.tg_cnt[x] >= self.k_max:
             return None
         for y in prop["dropped"]:
             if not self.alive[y] or self.tg_cnt[self.tk_tg[y]] < 2:
@@ -1316,7 +1318,7 @@ class Timeline:
             if ok and total < min_total and needy_in_unit is not None:
                 tried = 0
                 for x2 in needy_in_unit.get(u_old, ()):
-                    if x2 == x or self.tg_cnt[x2] >= 3:
+                    if x2 == x or self.tg_cnt[x2] >= self.k_max:
                         continue
                     total += self.try_add(int(x2), max_depth=min(max_depth, 2), **kw)
                     tried += 1
@@ -1581,7 +1583,7 @@ def run_pass_parallel(tl: Timeline, targets, threads: int = 8, max_depth: int = 
         while i < len(targets):
             if deadline is not None and time.time() > deadline:
                 break
-            cur_b = [x for x in targets[i:i + batch] if tl.tg_cnt[x] < 3]
+            cur_b = [x for x in targets[i:i + batch] if tl.tg_cnt[x] < tl.k_max]
             defer = defer_on and i < n_first                 # 第一轮的冲突推迟到队尾（仍然多线程找）；队尾那一轮再冲突才当场重找
             i += batch
             if tl.n + 2 * batch >= tl.cap:                   # 临时编号放在数组尾部，快满时退回单线程
@@ -1882,7 +1884,7 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                 note(cp, spec, "cover", 0, tl)
                 say(f"  [弹射链] 切法 {spec}：补覆盖 {cp['covered']}/{cp['tried']} 颗（{cp['seconds']:.1f}s）")
             for k in range(passes):
-                cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+                cand = np.nonzero((pb.P >= min_priority) & (tl.tg_cnt < np.minimum(tl.k_max, pb.max_obs)) & (tl.tg_cnt > 0))[0]
                 cand = cand[rng.permutation(len(cand))]
                 cand = cand[np.argsort(-pb.P[cand], kind="stable")]
                 if pattern:                                  # 只有一次观测的先做：它们的第二次要挑位置
@@ -1894,7 +1896,7 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                 added = [0]
 
                 def chain_stage(d, pat, batch):
-                    left = cand[tl.tg_cnt[cand] < np.minimum(3, pb.max_obs[cand])]
+                    left = cand[tl.tg_cnt[cand] < np.minimum(tl.k_max, pb.max_obs[cand])]
                     if late() or not len(left):
                         return
                     if threads > 1:
@@ -1944,7 +1946,7 @@ def improve(pb: Problem, sch: Schedule, minutes: float = 5.0, depth: int = 4, ro
                     """高优先级放不进去的零碎空当：给其余目标补重复观测（只直接塞，不顶别人），再删一遍不划算的重复观测。"""
                     if not fill:
                         return
-                    low = np.nonzero((pb.P < min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+                    low = np.nonzero((pb.P < min_priority) & (tl.tg_cnt < np.minimum(tl.k_max, pb.max_obs)) & (tl.tg_cnt > 0))[0]
                     low = low[rng.permutation(len(low))]
                     low = low[np.argsort(-pb.P[low], kind="stable")]
                     if len(low):

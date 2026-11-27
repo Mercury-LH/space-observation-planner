@@ -21,8 +21,9 @@ TIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
 @pytest.fixture(scope="module")
 def c0():
-    """不依赖赛题数据的默认配置（cfg 夹具在没有数据时会跳过）。"""
-    return Config()
+    """不依赖赛题数据的配置（cfg 夹具在没有数据时会跳过）。这些测试按 8/1 0 点起 6 天写的（规划期终点 8/7 0 点
+    正好比规范截止时刻晚 1 秒），默认规划期改成规范的 7/31 起 7 天后仍固定用这个，便于手算期望值。"""
+    return Config(start_utc="2026-08-01T00:00:00", days=6.0)
 
 
 @pytest.fixture
@@ -523,7 +524,7 @@ def test_integration_quick_few_records(cfg, ds, sub):
     rep = out["reports"][0]
     assert rep["hard"] == 0 and rep["soft"] == 0 and rep["normal"] == 3
     assert rep["factor"] == 1.0 and rep["final_score"] == pytest.approx(rep["valid_score"]) and rep["valid_score"] > 0
-    assert rep["warnings"] == {}
+    assert set(rep["warnings"]) <= {"noradId 不足 5 位（整数没有前导 0）"}   # 抽到编号小于 10000 的卫星时只提示、不算错
 
     from datetime import datetime, timedelta
     bad = [dict(r) for r in rows]
@@ -574,3 +575,22 @@ def test_fit_to_range_noop_inside(c0):
     out, fi = fit_to_range(c0, sch)
     assert fi == {"trimmed": 0, "dropped": 0, "trimmed_s": 0}
     assert out.start_s.tolist() == [3600] and out.dur_s.tolist() == [200]
+
+
+def test_default_period_is_spec_range():
+    """默认规划期就是规范 v3.0 的时间范围：7/31 0 点起 7 天；任务最晚结束在 08-06 23:59:59（规划期最后 1 秒不能用）。"""
+    from obsplan.submission import SPEC_END, SPEC_START, fit_applies
+    c = Config()
+    assert c.start_utc + "Z" == SPEC_START and c.days == 7.0
+    assert c.end_s == 7 * 86400 - 1
+    assert (c.start_dt + __import__("datetime").timedelta(seconds=c.end_s)).strftime("%Y-%m-%dT%H:%M:%SZ") == SPEC_END
+    assert fit_applies(c)
+
+
+@pytest.mark.parametrize("start,days,end,fit", [("2026-08-01T00:00:00", 6.0, 6 * 86400 - 1, True),   # 旧口径：同样少最后 1 秒
+                                                ("2026-07-31T00:00:00", 1.0, 86400, True),          # 在范围内结束：不截
+                                                ("2026-10-01T00:00:00", 6.0, 6 * 86400, False)])    # 范围外的场景：不截也不裁
+def test_end_s(start, days, end, fit):
+    from obsplan.submission import fit_applies
+    c = Config(start_utc=start, days=days)
+    assert c.end_s == end and fit_applies(c) == fit

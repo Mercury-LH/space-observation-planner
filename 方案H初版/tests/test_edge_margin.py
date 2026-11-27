@@ -20,13 +20,14 @@ def test_scenario_key_unchanged_without_margin(cfg):
 
 @pytest.mark.parametrize("B", [1, 2, 3])
 def test_probe_bounds_shrinks_both_ends_except_horizon(cfg, ds, pb, B):
-    """同一批网格窗口：留 B 秒余量的边界 = 不留余量的边界往里各收 B 秒；规划期的起点 0 和终点不收。"""
+    """同一批网格窗口：留 B 秒余量的边界 = 不留余量的边界往里各收 B 秒；规划期的起点 0 和最晚结束时刻不收。"""
     st, tg, k0, k1 = _sample(pb)
     L0, R0 = probe_bounds(cfg, ds, st, tg, k0, k1)
     LB, RB = probe_bounds(cfg.with_(edge_margin_s=B), ds, st, tg, k0, k1)
-    horizon = cfg.n_cells * cfg.cell_s
+    end = cfg.end_s                                               # 最晚结束时刻（规范截止 08-06 23:59:59）不收
     assert np.array_equal(LB, np.where(L0 > 0, L0 + B, L0))
-    assert np.array_equal(RB, np.where(R0 < horizon, R0 - B, R0))
+    assert np.array_equal(RB, np.where(R0 < end, R0 - B, R0))
+    assert R0.max() <= end and RB.max() <= end
 
 
 def test_probe_bounds_horizon_edges_not_shrunk(cfg, ds, pb):
@@ -51,7 +52,7 @@ def test_margin_windows_stay_inside_shrunk_bounds(cfg, ds):
     base, w = get_windows(cfg, ds), get_windows(c2, ds)
     z = np.load(Path(cfg.cache_dir) / f"winbounds_{cfg.scenario_key()}.npz")
     L, R = z["L"], z["R"]
-    horizon = cfg.n_cells * cfg.cell_s
+    end = cfg.end_s
     raw = {(int(s), int(t), int(a)): (int(lo), int(hi)) for s, t, a, lo, hi in
            zip(base.station, base.target, base.k0, L, R)}
     assert (w.k1 - w.k0 >= cfg.min_cells).all() and len(w.k0) <= len(base.k0)
@@ -61,7 +62,7 @@ def test_margin_windows_stay_inside_shrunk_bounds(cfg, ds):
         lo, hi = raw.get((int(s), int(t), int(a)), raw.get((int(s), int(t), int(a) - 1), (None, None)))
         assert lo is not None
         assert a * cfg.cell_s >= (lo + B if lo > 0 else lo)
-        assert b * cfg.cell_s <= (hi - B if hi < horizon else hi)
+        assert b * cfg.cell_s <= (hi - B if hi < end else hi)
         hit += 1
     assert hit > 1000
     # 探查出的按秒边界，正好是真实边界往里收 2 秒（规划期起止不收）
@@ -71,7 +72,7 @@ def test_margin_windows_stay_inside_shrunk_bounds(cfg, ds):
     for i, lb, rb in zip(idx, LB, RB):
         s, t, a = int(w.station[i]), int(w.target[i]), int(w.k0[i])
         lo, hi = raw.get((s, t, a), raw.get((s, t, a - 1)))
-        assert lb == (lo + B if lo > 0 else lo) and rb == (hi - B if hi < horizon else hi)
+        assert lb == (lo + B if lo > 0 else lo) and rb == (hi - B if hi < end else hi)
         assert lb <= w.k0[i] * cfg.cell_s and rb >= w.k1[i] * cfg.cell_s
 
 
@@ -113,3 +114,12 @@ def test_margin_windows_without_short_cache(cfg, ds, tmp_path):
     assert np.array_equal(w.k0, ref.k0) and np.array_equal(w.k1, ref.k1)
     a, b = np.load(tmp_path / f"short_{c2.scenario_key()}.npz"), np.load(src / f"short_{c2.scenario_key()}.npz")
     assert all(np.array_equal(a[k], b[k]) for k in ("station", "target", "k0", "k1"))
+
+
+def test_windows_and_bounds_stop_at_spec_end(cfg, ds, pb):
+    """默认规划期：网格窗口的末个采样点和按秒边界都不超过 08-06 23:59:59，所以计划不会排到 8/7 0 点那一秒。"""
+    from obsplan.second_bounds import all_bounds
+    assert cfg.end_s == cfg.n_cells * cfg.cell_s - 1
+    assert int(pb.w_k1.max()) * cfg.cell_s <= cfg.end_s
+    L, R = all_bounds(pb, Path(cfg.cache_dir) / f"bounds_all_{cfg.scenario_key()}.npz", verbose=False)
+    assert int(R.max()) == cfg.end_s and (L < R).all()

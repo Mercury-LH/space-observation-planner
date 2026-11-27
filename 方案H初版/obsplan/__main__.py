@@ -240,6 +240,10 @@ def cmd_plan(args) -> int:
         from .chain import improve                          # 按秒跨站弹射链（obsplan/chain.py）
         sch, ci = improve(pb, sch, minutes=chain_min)
         cinfo = {k: ci[k] for k in ("start", "best", "seconds", "stats")}
+    spec_fit = None
+    from .submission import fit_applies, fit_note, fit_to_range
+    if fit_applies(cfg):                                    # 规划期最后 1 秒不在规范范围里：贴着终点的任务裁 1 秒
+        sch, spec_fit = fit_to_range(cfg, sch)
     t2 = time.time()
     ev = evaluate(cfg, ds, sch)
     out = Path(args.out)
@@ -261,7 +265,7 @@ def cmd_plan(args) -> int:
                "seconds": {"data_and_windows": round(t1 - t0, 1), "planning": round(t2 - t1, 1),
                            "solve": round(t_solve - t1, 1), "refine": round(t_refine - t_solve, 1),
                            "chain": round(t2 - t_refine, 1)}, "refine": rinfo,
-               "chain": cinfo,
+               "chain": cinfo, "spec_fit": spec_fit,
                "validation": None if check is None else {"legal": check["legal"], "violations": check["violations"]},
                "target_status": summarize(status_rows)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2, default=float), encoding="utf-8")
@@ -269,6 +273,8 @@ def cmd_plan(args) -> int:
           f"任务 {ev['tasks']} 个（重复 {ev['repeat_tasks']}）；数据与窗口 {t1 - t0:.0f} 秒，规划 {t2 - t1:.0f} 秒")
     if cinfo is not None:
         print(f"弹射链 {cinfo['seconds']:.0f} 秒：综合 {cinfo['start']['combined']:.6f} → {cinfo['best']['combined']:.6f}")
+    if spec_fit and (spec_fit["trimmed"] or spec_fit["dropped"]):
+        print(fit_note(spec_fit) + "（规范 v3.0 的时间范围到 2026-08-06 23:59:59）")
     if pf is not None:
         o = pf["objective"]
         print(f"放置规则（稳健模式，两条都排、取综合高的）：伐谋 {o['rule']:.5f}，人工 {o['manual']:.5f} → 采用{placement}")
@@ -456,7 +462,7 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("plan", "validate", "windows", "status"):
         p = sub.add_parser(name)
-        p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+        p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
         p.add_argument("--days", type=float)
         p.add_argument("--moon", type=float, help="月光规避角（度），0 为不考虑")
         if name in ("plan", "windows"):
@@ -486,7 +492,7 @@ def main(argv=None) -> int:
             p.add_argument("--refresh", action="store_true")
     p = sub.add_parser("env", help="加分项：几份计划在月光、目标亮度、真实天气下的对比")
     p.add_argument("plans", nargs="+", help="计划文件（第一份通常是标准计划）")
-    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
     p.add_argument("--days", type=float)
     p.add_argument("--moon-sep", type=float, default=30.0, help="月亮在地平线以上时，目标离月亮至少多少度")
     p.add_argument("--m-std", type=float, default=6.0, help="目标在 1000 km、相位角 90° 时的视星等（赛题无尺寸数据，统一取典型值）")
@@ -497,7 +503,7 @@ def main(argv=None) -> int:
     p = sub.add_parser("export", help="把计划（CSV/JSON）转成主办方提交格式 v3.0 的 JSON")
     p.add_argument("plan")
     p.add_argument("-o", "--out", help="输出文件（默认与输入同目录的 <文件名>_submission.json）")
-    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
     p.add_argument("--days", type=float)
     p.add_argument("--seconds-from-start", action="store_true", help="计划中的时间是相对规划开始的秒数")
     p.add_argument("--fit-spec-range", action="store_true",
@@ -508,7 +514,7 @@ def main(argv=None) -> int:
     p.add_argument("--cascade-48h", action="store_true", help="48 小时冷却违规后，该卫星之后的观测都判硬错误")
     p.add_argument("--out", help="把复算报告写成 JSON")
     p.add_argument("--details", help="第一个 shrink 的逐条明细 CSV")
-    p.add_argument("--start", help="规划开始 UTC，如 2026-08-01")
+    p.add_argument("--start", help="规划开始 UTC（默认 2026-07-31，规范 v3.0 的时间范围）")
     p.add_argument("--days", type=float)
     p.add_argument("--seconds-from-start", action="store_true", help="计划 CSV 中的时间是相对规划开始的秒数")
     args = ap.parse_args(argv)

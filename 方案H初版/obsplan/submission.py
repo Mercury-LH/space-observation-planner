@@ -35,13 +35,13 @@ from pathlib import Path
 import numpy as np
 from sgp4.api import Satrec
 
-from .config import Config
+from .config import SPEC_END_UTC, SPEC_START_UTC, Config
 from .data import Dataset
 from .schedule import Schedule, score_ref, task_score
 
 SPEC_VERSION = "v3.0"
-SPEC_START = "2026-07-31T00:00:00Z"            # 规范第 4 节：时间范围（含两端）
-SPEC_END = "2026-08-06T23:59:59Z"
+SPEC_START = SPEC_START_UTC + "Z"               # 规范第 4 节：时间范围（含两端），定义在 config.py
+SPEC_END = SPEC_END_UTC + "Z"
 TOL_NORMAL_S = 1.0                              # 偏差 ≤ 1 秒正常计分
 TOL_SOFT_S = 5.0                                # 1–5 秒为软错误（该条 ×50%），超过 5 秒为硬错误
 SOFT_FACTOR = 0.5
@@ -93,6 +93,16 @@ def fit_to_range(cfg: Config, sch: Schedule, spec_start: str = SPEC_START,
                    algo=sch.algo, runtime_s=sch.runtime_s, info=dict(sch.info))
     return out, {"trimmed": int(trimmed.sum()), "dropped": int((~keep).sum()),
                  "trimmed_s": int(((ns - s) + (e - ne))[trimmed].sum())}
+
+
+def fit_applies(cfg: Config) -> bool:
+    """规划期的起点在规范的时间范围里（默认规划期就是）：这时 `plan` 自动把计划裁进范围。
+    起点在范围外的场景（例如 10 月口径的泛化检验）不裁，否则整份计划都会被删掉。"""
+    return _utc(SPEC_START) <= cfg.start_dt <= _utc(SPEC_END)
+
+
+def fit_note(fi: dict) -> str:
+    return f"按规范时间范围裁短 {fi['trimmed']} 条（共 {fi['trimmed_s']} 秒）、删掉 {fi['dropped']} 条"
 
 
 def write_json(cfg: Config, ds: Dataset, sch: Schedule, path: str | Path) -> dict:

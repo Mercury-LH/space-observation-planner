@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import sys
 import time
-from datetime import date
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -34,7 +33,7 @@ def main() -> int:
     at = AppTest.from_file(str(ROOT / "app" / "streamlit_app.py"), default_timeout=900).run()
     assert not at.exception, at.exception
     sb = at.sidebar
-    sb.date_input[0].set_value(date(2026, 8, 1))
+    sb.date_input[0].set_value(Config().start_dt.date())   # 默认规划开始（规范 v3.0：7/31）
     sb.number_input[0].set_value(DAYS)              # 规划天数
     sb.number_input[1].set_value(ELEV_MIN)          # 最低仰角
     sb.slider[2].set_value(0.05)                    # 演示模式：目标比例

@@ -50,11 +50,11 @@ class Status:
 
 
 def residual_problem(pb: Problem, status: Status) -> Problem:
-    """剩余问题：各站从 c_now 起；已成功观测过的目标，窗口从上次成功观测结束 48 小时后起，观测满 3 次的不再有窗口。"""
+    """剩余问题：各站从 c_now 起；已成功观测过的目标，窗口从上次成功观测结束 48 小时后起，观测满 k_max 次（6 天 3 次，7 天 4 次）的不再有窗口。"""
     k0 = np.maximum(pb.w_k0, status.c_now[pb.w_st])
     if status.succ:
         tg = np.fromiter(status.succ, np.int64, len(status.succ))
-        full = np.array([len(obs) >= 3 for obs in status.succ.values()])
+        full = np.array([len(obs) >= pb.k_max for obs in status.succ.values()])
         last_end = np.array([max(a + m for a, m in obs) for obs in status.succ.values()], np.int64)
         lim = np.full(pb.n_targets, np.iinfo(np.int64).min)
         lim[tg] = np.where(full, np.iinfo(np.int64).max, last_end + pb.gap)
@@ -242,10 +242,10 @@ def simulate(pb: Problem, truth: np.ndarray, policy: str, clim: np.ndarray, thre
                 usable[:, a:b] = q_h[:, a:b] >= clip_p
                 pr = clip_windows(full, usable)
             vct = np.full(pb.n_targets, pb.vc)
-            left = np.full(pb.n_targets, 3, np.int64)
+            left = np.full(pb.n_targets, pb.k_max, np.int64)
             for t, obs in status.succ.items():
                 vct[t] = 0.0
-                left[t] = 3 - len(obs)
+                left[t] = pb.k_max - len(obs)
             qc = cell_probability(pr, q_h)
             sch, _ = lagrange.solve(pr, iters=iters, fast=fast, verbose=False,
                                     cell_weight=qc, backup=np.zeros(pb.n_targets),

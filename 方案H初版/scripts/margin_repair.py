@@ -30,7 +30,7 @@ from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.schedule import Schedule, evaluate, export_csv  # noqa: E402
 from obsplan.second_bounds import all_bounds  # noqa: E402
-from obsplan.submission import write_json  # noqa: E402
+from obsplan.submission import fit_applies, fit_to_range, write_json  # noqa: E402
 from obsplan.validator import validate  # noqa: E402
 from obsplan.visibility import get_windows  # noqa: E402
 
@@ -100,6 +100,9 @@ def main() -> int:
     t0 = time.time()
     rep, ci = improve(pbB, cut, minutes=args.minutes) if args.minutes > 0 else (cut, None)
     t_rep = time.time() - t0
+    spec_fit = None
+    if fit_applies(cfgB):                                # 与 `obsplan plan` 相同：裁进规范的时间范围
+        rep, spec_fit = fit_to_range(cfgB, rep)
     e_rep = evaluate(cfgB, ds, rep)
     L2, R2 = raw_bounds(pb0, rep)                        # 修补后再按不留余量的边界核对一遍
     LB2, RB2 = shrink(L2, R2, B, horizon)
@@ -120,7 +123,7 @@ def main() -> int:
                         **{k: e_cut[k] for k in ("covered", "score", "combined", "tasks")}},
             "repaired": {k: e_rep[k] for k in ("covered", "score", "combined", "tasks")},
             "short_of_margin": short_of_margin, "legal": bool(chk["legal"]), "violations": chk["violations"],
-            "chain_seconds": None if ci is None else ci["seconds"], "submission_notes": notes}
+            "chain_seconds": None if ci is None else ci["seconds"], "spec_fit": spec_fit, "submission_notes": notes}
     (out / f"repair_edge{B}.json").write_text(json.dumps(info, ensure_ascii=False, indent=1, default=float),
                                               encoding="utf-8")
     return 0 if chk["legal"] and short_of_margin == 0 else 1

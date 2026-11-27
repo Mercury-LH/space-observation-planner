@@ -102,7 +102,7 @@ def repair_coverage(targets, st, tg, a, m, w, alive, n, owner, t_cnt, t_obs_a, t
     inserted = 0
     cap = len(st)
     for u in targets:
-        if t_cnt[u] >= 3 or n + 4 >= cap:
+        if t_cnt[u] >= t_task.shape[1] or n + 4 >= cap:          # 每颗目标最多 Problem.k_max 次
             continue
         gain_base = (vc if t_cnt[u] == 0 else 0.0) + vs * P[u] * frac[m_min]
         best_gain = 1e-12
@@ -453,7 +453,7 @@ def improve(pb: Problem, state: State, rounds: int = 3, max_pos: int = 40, verbo
         mv = compact(station_order(), -1, st_, tg_, a_, m_, w_, alive_, owner_, tc, toa, tom, tt, pb.w_k0, pb.w_k1, pb.gap)
         f1 = fill()
         tick("压紧与补空")
-        rep = np.nonzero((state.t_cnt > 0) & (state.t_cnt < 3))[0]
+        rep = np.nonzero((state.t_cnt > 0) & (state.t_cnt < state.t_task.shape[1]))[0]
         if repeat_min_priority is not None:     # 只对高价值目标做"挤让插入重复观测"，其余交给分档补空
             rep = rep[pb.P[rep] >= repeat_min_priority]
         rep = rep[np.argsort(-pk[rep], kind="stable")]

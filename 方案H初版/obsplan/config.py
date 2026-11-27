@@ -9,6 +9,10 @@ from pathlib import Path
 SCHEME_DIR = Path(__file__).resolve().parents[1]     # 方案H初版/
 REPO_ROOT = SCHEME_DIR.parent                         # 仓库根目录
 
+# 主办方《提交格式规范》v3.0 第 4 节：提交的观测必须落在这个时间范围里（UTC，含两端）
+SPEC_START_UTC = "2026-07-31T00:00:00"
+SPEC_END_UTC = "2026-08-06T23:59:59"
+
 
 @dataclass(frozen=True)
 class Config:
@@ -17,8 +21,11 @@ class Config:
     data_dir: str = str(REPO_ROOT / "data")
 
     # ---- 规划范围 ----
-    start_utc: str = "2026-08-01T00:00:00"     # 企业老师 2026-10-21 在群里确认：8 月 1 日 0:00 至 8 月 7 日 0:00（UTC）
-    days: float = 6.0
+    # 主办方《提交格式规范》v3.0（2026-11-23）第 4 节：2026-07-31 00:00:00 至 08-06 23:59:59 UTC，共 7 天。
+    # 规划期的最后 1 秒（8/7 0:00）不在规范范围内，`plan` 会把正好结束在那一刻的任务裁掉 1 秒（submission.fit_to_range）。
+    # 原来企业老师 10-21 在群里确认的是 8 月 1 日 0:00 至 8 月 7 日 0:00（6 天）：--start 2026-08-01 --days 6
+    start_utc: str = "2026-07-31T00:00:00"
+    days: float = 7.0
     cell_s: int = 30                      # 规划用的时间网格；按秒精修后任务起止精确到秒
 
     # ---- 可观测条件 ----
@@ -63,6 +70,16 @@ class Config:
     @property
     def n_cells(self) -> int:
         return int(round(self.days * 86400 / self.cell_s))
+
+    @property
+    def end_s(self) -> int:
+        """任务最晚可以结束在第几秒（相对规划开始）。规划期的起点落在规范 v3.0 的时间范围里时，不超过规范的
+        截止时刻 08-06 23:59:59——默认规划期的终点 8/7 0:00 本身不在范围里，所以最后 1 秒不能用；其他情况就是规划期终点。"""
+        horizon = self.n_cells * self.cell_s
+        lo, hi = (datetime.fromisoformat(s).replace(tzinfo=timezone.utc) for s in (SPEC_START_UTC, SPEC_END_UTC))
+        if lo <= self.start_dt <= hi:
+            return int(min(horizon, (hi - self.start_dt).total_seconds()))
+        return int(horizon)
 
     @property
     def min_cells(self) -> int:

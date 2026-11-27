@@ -30,10 +30,11 @@ def test_plan_json_seconds(cfg, ds, tmp_path):
 
 def test_read_plan_submission_format(cfg, ds, tmp_path):
     """主办方提交格式 v3.0 的字段（siteCode / noradId / startTime / endTime）也能读。"""
+    from datetime import timedelta
     t = int(ds.satnum[1])
+    iso = lambda s: (cfg.start_dt + timedelta(seconds=s)).strftime("%Y-%m-%dT%H:%M:%SZ")   # 规划开始后 s 秒
     path = tmp_path / "sub.json"
-    path.write_text(json.dumps([{"noradId": t, "siteCode": "site_3", "startTime": "2026-08-01T00:10:00Z",
-                                 "endTime": "2026-08-01T00:13:00Z"}]))
+    path.write_text(json.dumps([{"noradId": t, "siteCode": "site_3", "startTime": iso(600), "endTime": iso(780)}]))
     back, skipped = read_plan(cfg, ds, path)
     assert skipped == [] and back.station[0] == 2 and back.target[0] == 1
     assert np.isclose(back.start_s[0], 600.0) and np.isclose(back.dur_s[0], 180.0)

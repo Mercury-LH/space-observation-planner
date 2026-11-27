@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import sys
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import numpy as np
@@ -81,9 +81,10 @@ if labels:
     choice = st.sidebar.selectbox("查看结果", keys, index=idx, format_func=lambda p: labels[p])
 
 with st.sidebar.expander("新建规划", expanded=not labels):
-    st.caption("规则默认取自答疑文档，规划期默认为企业老师 2026-10-21 确认的 8 月 1–7 日（UTC），可按需修改。")
-    d0 = st.date_input("规划开始（UTC 0 点）", value=date(2026, 8, 1))
-    days = st.number_input("规划天数", 1.0, 7.0, 6.0, 1.0)
+    st.caption("规则默认取自答疑文档，规划期默认按主办方提交格式规范 v3.0：2026-07-31 00:00 至 08-06 23:59:59（UTC，7 天），"
+               "可按需修改（10-21 企业老师确认的旧口径是 8 月 1 日起 6 天）。")
+    d0 = st.date_input("规划开始（UTC 0 点）", value=Config().start_dt.date())
+    days = st.number_input("规划天数", 1.0, 7.0, float(Config().days), 1.0)
     c1, c2 = st.columns(2)
     elev_min = c1.number_input("最低仰角 °", 0.0, 30.0, 10.0, 1.0)
     elev_max = c2.number_input("最高仰角 °", 60.0, 90.0, 85.0, 1.0)
@@ -651,7 +652,7 @@ def page_rules():
     st.markdown(f"""
 | 项目 | 本次设置 | 依据 |
 |---|---|---|
-| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 企业老师 2026-10-21 确认为 8 月 1–7 日；时间制见答疑 #42 |
+| 规划期 | {cfg.start_utc[:10]} 起 {cfg.days:g} 天（UTC） | 提交格式规范 v3.0：2026-07-31 00:00 至 08-06 23:59:59（10-21 企业老师确认的旧口径是 8 月 1–7 日）；时间制见答疑 #42 |
 | 仰角 | {cfg.elev_min:g}°–{cfg.elev_max:g}°（规划时各留 {cfg.elev_margin:g}° 余量） | 站址文件、答疑 #26 |
 | 站点太阳高度角 | < {cfg.sun_max:g}°（留 {cfg.sun_margin:g}° 余量） | 答疑 #26 |
 | 目标受照 | {'须被太阳照亮（地影边界留 %g km 余量）' % cfg.sunlit_margin_km if cfg.use_sunlit else '不考虑'} | 答疑 #26、#36、#44 |
@@ -744,7 +745,7 @@ def show_replan(got: dict):
         elif ti.get("ok"):
             st.write(f"必须观测的目标 {ds.satnum[x]} 已安排：{obs_text(ao)}。")
         else:
-            why = ("已观测满 3 次" if ti["frozen_obs"] >= 3 else
+            why = (f"已观测满 {ti.get('k_max', 3)} 次" if ti["frozen_obs"] >= ti.get("k_max", 3) else
                    "事件之后没有可见窗口（或与之前的观测间隔不足 48 小时）" if ti["windows_after_t"] == 0 else
                    "可见时段都被不能调整的任务占用")
             st.warning(f"目标 {ds.satnum[x]} 没能安排：{why}。")
@@ -1061,7 +1062,7 @@ def page_demo():
         (f"（伐谋、人工两条规则各排一份，取综合高的：伐谋 {pick['objective']['rule']:.4f}，人工 {pick['objective']['manual']:.4f}）"
          if pick else "")
     step_box(4, "任务规划",
-             ("价格协调：每颗目标按当前价格独立挑选最划算的至多 3 次观测（间隔 48 小时），被争抢的时段涨价、没人要的降价，"
+             ("价格协调：每颗目标按当前价格独立挑选最划算的一组观测（两两间隔 48 小时，6 天至多 3 次、7 天至多 4 次），被争抢的时段涨价、没人要的降价，"
               f"反复迭代；收敛后{place_text}，再做局部搜索（挤让插入、压紧、补空、延长），"
               "最后按秒精修起止时间。" if run.algo == "H" else f"{ALGOS.get(run.algo, run.algo)}，之后按秒精修起止时间。") +
              (f"这份结果是在原计划上处理突发事件“{rpn['event']}”后重排得到的。" if rpn else ""),
@@ -1092,7 +1093,7 @@ def page_demo():
              "总观测时长、首次与最近一次观测时间，以及没有覆盖或没有观测满的原因。",
              fmt_s(table_timing["status_s"]),
              [("已覆盖", f"{ssum['covered']:,}", f"可观测 {ssum['observable']:,} 颗"),
-              ("观测 2 次以上", f"{ssum['targets_observed_2plus']:,}", f"3 次 {tot.get('已观测 3 次', 0):,} 颗"),
+              ("观测 2 次以上", f"{ssum['targets_observed_2plus']:,}", f"3 次以上 {tot.get('已观测 3 次', 0) + tot.get('已观测 4 次', 0):,} 颗"),
               ("高优先级覆盖", f"{hi_cov:,} / {sum(hi_rows.values()):,}", f"未覆盖（全部） {tot.get('未覆盖', 0)} 颗")],
              ["概览"])
 

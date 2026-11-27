@@ -104,7 +104,7 @@ def solve(pb: Problem, mu: np.ndarray, block_h=4.0, commit_h=3.0, k_win=1, k_dur
         for j in keep_idx:
             w, m = int(cw[j]), int(cm[j])
             s, i = int(pb.w_st[w]), int(pb.w_tg[w])
-            if len(t_obs[i]) >= 3:
+            if len(t_obs[i]) >= pb.k_max:
                 continue
             lo, hi = max(int(pb.w_k0[w]), B0), min(int(pb.w_k1[w]), B1) - m
             for (pa, pm) in t_obs[i]:

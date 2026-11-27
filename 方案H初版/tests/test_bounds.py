@@ -118,7 +118,7 @@ def test_bounds_hold_for_grid_and_refined_plans(cfg, ds, sub, ext, plans):
 
 def test_dual_per_target_value_not_below_exact_enumeration(sub):
     """上界合法的关键：对偶值里每颗目标的"最优出价"，不小于按精确规则（下一次开始 ≥ 上一次结束 + 48 小时）
-    在 1–3 次观测的所有组合里能取到的最大值。这里的精确算法是独立写的，不经过价格子问题的代码。"""
+    在 1–k_max 次观测（6 天 3 次、7 天 4 次）的所有组合里能取到的最大值。这里的精确算法是独立写的，不经过价格子问题的代码。"""
     rng = np.random.default_rng(5)
     S, T = sub.n_stations, sub.n_samples + 2
     targets = rng.choice(np.unique(sub.w_tg), 40, replace=False)
@@ -148,8 +148,11 @@ def test_dual_per_target_value_not_below_exact_enumeration(sub):
             return np.where(n > 0, run[np.maximum(n - 1, 0)], -np.inf)
 
         two = r + best_before(r)                                             # 以 k 结尾的两次观测
-        three = r + best_before(two)                                         # 以 k 结尾的三次观测
-        exact = max(max(r.max(), two.max(), three.max()) + sub.vc, 0.0)
+        chain, best = two, max(r.max(), two.max())
+        for _ in range(sub.k_max - 2):                                       # 以 k 结尾的三次、四次……观测
+            chain = r + best_before(chain)
+            best = max(best, chain.max())
+        exact = max(best + sub.vc, 0.0)
         assert total[i] >= exact - 1e-12
         chains += two.max() > r.max()
         tight += abs(total[i] - exact) <= 1e-12

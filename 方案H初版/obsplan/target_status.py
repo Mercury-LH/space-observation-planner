@@ -18,7 +18,8 @@ from .problem import Problem
 from .schedule import Schedule, counted_mask, task_score
 
 STATUS = {"SGP4_FAILED": "外推异常", "NO_WINDOW": "无可见窗口", "UNCOVERED": "未覆盖",
-          "OBSERVED_1": "已观测 1 次", "OBSERVED_2": "已观测 2 次", "OBSERVED_3": "已观测 3 次"}
+          "OBSERVED_1": "已观测 1 次", "OBSERVED_2": "已观测 2 次", "OBSERVED_3": "已观测 3 次",
+          "OBSERVED_4": "已观测 4 次"}       # 7 天规划期里隔 48 小时最多能观测 4 次
 COLUMNS = ["target_id", "target_name", "priority", "orbit_class", "status", "status_cn", "n_obs", "max_obs",
            "observed_seconds", "task_score", "first_obs_utc", "last_obs_utc", "stations", "n_windows",
            "window_seconds", "n_stations_visible", "note"]

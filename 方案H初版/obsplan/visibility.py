@@ -383,9 +383,9 @@ def _edge_margin_windows(cfg: Config, ds: Dataset, refresh: bool = False) -> Win
         L, R = window_bounds(base_cfg, ds, base)
         np.savez_compressed(raw, L=L, R=R)
         print(f"[windows] 探查全部 {len(L)} 个窗口的按秒边界，用时 {time.time() - t0:.1f}s")
-    horizon = cfg.n_cells * cell
+    end = cfg.end_s                                               # 规划期起点 0 和终点（规范截止时刻）不是可见边界，不收
     L2 = np.where(L > 0, L + B, L)
-    R2 = np.where(R < horizon, R - B, R)
+    R2 = np.minimum(np.where(R < end, R - B, R), end)
     k0 = np.maximum(-(-L2 // cell), base.k0).astype(base.k0.dtype)
     k1 = np.minimum(R2 // cell, base.k1).astype(base.k1.dtype)
     keep = k1 - k0 >= cfg.min_cells
@@ -409,13 +409,27 @@ def _edge_margin_windows(cfg: Config, ds: Dataset, refresh: bool = False) -> Win
     return w
 
 
+def _clip_end(cfg: Config, w: Windows) -> Windows:
+    """窗口的末个采样点不超过 cfg.end_s（默认规划期的最后 1 秒 8/7 0:00 不在规范范围里，贴着终点的窗口少一格）；
+    少一格后不够最短观测的窗口去掉。缓存里存的是没截的窗口，读回或算完都在这里截。"""
+    kmax = cfg.end_s // cfg.cell_s
+    if len(w.k1) == 0 or int(w.k1.max()) <= kmax:
+        return w
+    k1 = np.minimum(w.k1, kmax).astype(w.k1.dtype)
+    keep = k1 - w.k0 >= cfg.min_cells
+    out = Windows(w.station[keep], w.target[keep], w.k0[keep], k1[keep], w.dark, w.n_samples, w.sgp4_failed)
+    if hasattr(w, "short"):
+        out.short = w.short
+    return out
+
+
 def get_windows(cfg: Config, ds: Dataset, refresh=False) -> Windows:
     path = Path(cfg.cache_dir) / f"windows_{cfg.scenario_key()}.npz"
     if path.exists() and not refresh:
-        return Windows.load(path, ds.n_stations)
+        return _clip_end(cfg, Windows.load(path, ds.n_stations))
     path.parent.mkdir(parents=True, exist_ok=True)
     w = _edge_margin_windows(cfg, ds, refresh) if cfg.edge_margin_s > 0 else compute_windows(cfg, ds, keep_short=True)
     w.save(path)
     st, tg, k0, k1 = w.short
     np.savez_compressed(path.with_name(f"short_{cfg.scenario_key()}.npz"), station=st, target=tg, k0=k0, k1=k1)
-    return w
+    return _clip_end(cfg, w)

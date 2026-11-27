@@ -106,7 +106,7 @@ def main() -> int:
               f"不可行的时间线 {int((~tl.unit_ok).sum())} 条，准备 {time.time() - t0:.0f}s", flush=True)
         dp = drop_pass(tl)
         for k in range(args.passes):
-            cand = np.nonzero((pb.P >= args.min_priority) & (tl.tg_cnt < np.minimum(3, pb.max_obs)) & (tl.tg_cnt > 0))[0]
+            cand = np.nonzero((pb.P >= args.min_priority) & (tl.tg_cnt < np.minimum(tl.k_max, pb.max_obs)) & (tl.tg_cnt > 0))[0]
             cand = cand[rng.permutation(len(cand))]
             cand = cand[np.argsort(-pb.P[cand], kind="stable")]
             if args.limit:

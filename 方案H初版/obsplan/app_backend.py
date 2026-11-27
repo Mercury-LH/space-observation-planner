@@ -271,6 +271,9 @@ def run_planning(pb: Problem, algo: str, iters: int = 300, progress=None, weathe
                 progress(0.98, f"按秒跨站弹射链（最多 {chain_minutes:g} 分钟）：把高优先级任务的延长换成多一次观测……")
             sch, ci = chain_improve(pb, sch, minutes=chain_minutes)
             notes["chain"] = {"minutes": chain_minutes, "seconds": ci["seconds"], "start": ci["start"], "best": ci["best"]}
+    from .submission import fit_applies, fit_to_range
+    if full_problem and fit_applies(cfg):                   # 与命令行相同：贴着规划期终点的任务裁进规范时间范围
+        sch, notes["spec_fit"] = fit_to_range(cfg, sch)
     rt = time.time() - t0
     m = evaluate(cfg, pb.ds, sch)
     run_id = time.strftime("%Y%m%d-%H%M%S") + f"-{algo}"

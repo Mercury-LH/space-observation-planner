@@ -87,7 +87,7 @@ def suggest_targets(pb: Problem, sch: Schedule, t_s: int, kind: str, limit: int 
         after[tg[start >= t_s]] = True
         last = np.full(pb.n_targets, -10 ** 12, np.int64)
         np.maximum.at(last, tg, end)
-        for x in np.nonzero((pb.max_obs > 0) & ~after & (cnt < 3))[0]:
+        for x in np.nonzero((pb.max_obs > 0) & ~after & (cnt < pb.k_max))[0]:
             lo = max(t_s, int(last[x]) + gap) if cnt[x] else t_s
             ws = pb.t_win[pb.t_ptr[x]:pb.t_ptr[x + 1]]
             if np.any((pb.w_k1[ws] - pb.m_min) * cell >= lo + 600):
@@ -228,7 +228,7 @@ def _force(pr: Problem, st, x: int, after_cell: int, fixed_info: dict, protect) 
     alive = np.nonzero(st.alive[:st.n])[0]
     if np.any((st.tg[alive] == x) & (st.a[alive] >= after_cell)) or any(v[3] == x for v in fixed_info.values()):
         return True, []
-    if st.t_cnt[x] >= 3:
+    if st.t_cnt[x] >= st.t_task.shape[1]:
         return False, []
     P = pr.P.copy()
     P[x] = MUST_P
@@ -258,7 +258,7 @@ def _force(pr: Problem, st, x: int, after_cell: int, fixed_info: dict, protect) 
         s, c0, c1, t, a, m = fixed_info[f]
         sep = all(a >= st.t_obs_a[t, j] + st.t_obs_m[t, j] + pr.gap or a + m + pr.gap <= st.t_obs_a[t, j]
                   for j in range(st.t_cnt[t]))
-        if (st.owner[s, c0:c1] < 0).all() and st.t_cnt[t] < 3 and sep:      # 没有被任务占用（边界格可能已封锁）
+        if (st.owner[s, c0:c1] < 0).all() and st.t_cnt[t] < st.t_task.shape[1] and sep:      # 没有被任务占用（边界格可能已封锁）
             st.owner[s, c0:c1] = -3
             _fixed_record(st, t, a, m, on=True)
         else:
@@ -279,7 +279,7 @@ def _local_repair(pr: Problem, st, focus: np.ndarray, n_keep: int, snap: dict, m
     unc = unc[np.argsort(-pr.P[unc], kind="stable")]
     st.n, _ = repair_coverage(unc, *_repair_args(st), pr.w_st, pr.w_k0, pr.w_k1, pr.t_ptr, pr.t_win,
                               P, pr.frac, pr.vc, pr.vs, pr.gap, pr.m_min, 40)
-    rep = focus[(st.t_cnt[focus] > 0) & (st.t_cnt[focus] < 3)]
+    rep = focus[(st.t_cnt[focus] > 0) & (st.t_cnt[focus] < st.t_task.shape[1])]
     rep = rep[np.argsort(-pr.P[rep], kind="stable")]
     # 必须观测目标自己的重复观测按正常价值算（放最后）：只会用它的另一次观测替换，不会让它失去 t 之后的观测
     for part, value in ((rep[rep != must], P), (rep[rep == must], pr.P)):
@@ -407,7 +407,7 @@ def replan(pb: Problem, sch: Schedule, ev: Event, mode: str = "minimal", iters: 
     vct = np.where(n_frozen > 0, 0.0, pr.vc)
     if ev.kind == "must":
         vct[ev.target] = MUST_VC * pr.vc
-    left = np.maximum(0, 3 - n_frozen)
+    left = np.maximum(0, pb.k_max - n_frozen)
     tick("剩余问题")
 
     # ---- 2. 扰动最小：t 之后仍然可行的原任务放回网格
@@ -547,6 +547,7 @@ def replan(pb: Problem, sch: Schedule, ev: Event, mode: str = "minimal", iters: 
                       for i in mine_new[np.argsort(comb.start_s[mine_new])]],
             "windows_after_t": int(pr.t_ptr[x + 1] - pr.t_ptr[x]),
             "frozen_obs": int(n_frozen[x]),
+            "k_max": int(pb.k_max),
         }
         if ev.kind == "must":
             res["target"]["ok"] = bool(np.any(comb.target[comb.start_s >= t] == x))

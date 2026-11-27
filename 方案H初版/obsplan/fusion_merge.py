@@ -170,7 +170,7 @@ def solve_subset(pb: Problem, pool: Pool, free: np.ndarray, fixed: np.ndarray, h
     fix_obs: dict[int, list] = {}
     for k in fixed:
         fix_obs.setdefault(int(pool.tg[k]), []).append((int(pool.a[k]), int(pool.m[k])))
-    ok &= fix_cnt[pool.tg[free]] < 3
+    ok &= fix_cnt[pool.tg[free]] < pb.k_max
     for j in np.nonzero(ok)[0]:
         t = int(pool.tg[free[j]])
         if t in fix_obs:

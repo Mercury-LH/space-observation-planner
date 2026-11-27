@@ -144,12 +144,12 @@ def by_second_problem(pb: Problem, short=None, targets: np.ndarray | None = None
 
 def _dual_setup(pb: Problem):
     from . import lagrange
-    if 3 * (pb.gap + pb.m_min) + pb.m_min <= pb.n_samples - 1:
-        raise NotImplementedError("规划期长到一颗目标可能观测 4 次以上；价格子问题只算到 3 次，对偶上界不适用")
     N = pb.n_targets
     order = lagrange.balanced_order(lagrange.target_work(pb.t_ptr, pb.t_win, pb.w_k0, pb.w_k1))
-    bufs = (np.zeros(N), np.zeros((N, 3, 3), np.int64), np.zeros(N, np.int64))
-    const = (pb.vs * pb.P, np.full(N, pb.vc), np.full(N, 3, np.int64), np.zeros((1, 1)), np.zeros(N))
+    # 子问题每颗目标最多排 k_max 次（>= 精确的最多次数 max_obs），任何可行计划都在子问题的可行域里，上界合法
+    K = pb.k_max
+    bufs = (np.zeros(N), np.zeros((N, K, 3), np.int64), np.zeros(N, np.int64))
+    const = (pb.vs * pb.P, np.full(N, pb.vc), np.full(N, K, np.int64), np.zeros((1, 1)), np.zeros(N))
     return order, bufs, const
 
 

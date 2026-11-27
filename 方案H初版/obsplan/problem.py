@@ -54,6 +54,12 @@ class Problem:
         p.max_obs = p._max_obs()
         return p
 
+    @property
+    def k_max(self) -> int:
+        """每颗目标最多排几次观测（各算法里按目标记录观测的数组宽度）。6 天规划期里两两隔 48 小时最多 3 次；
+        7 天（规范 v3.0 的默认规划期）里大多数目标能排 4 次。取 max(3, 最多能排的次数)，6 天时与原来完全相同。"""
+        return max(3, int(self.max_obs.max())) if len(self.max_obs) else 3
+
     def _max_obs(self) -> np.ndarray:
         """最早结束优先：每次选能最早结束的那次观测，得到每颗目标最多能排几次（用于上界）。"""
         out = np.zeros(self.n_targets, np.int64)

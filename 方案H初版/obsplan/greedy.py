@@ -149,7 +149,7 @@ def greedy_core(order1, order2, v1, v2, c_win, c_m, w_st, w_tg, w_k0, w_k1,
         w = c_win[c]
         i = w_tg[w]
         cnt = t_cnt[i]
-        if cnt >= 3:
+        if cnt >= t_task.shape[1]:                  # 每颗目标最多 Problem.k_max 次
             continue
         m = c_m[c]
         s = w_st[w]
@@ -177,9 +177,10 @@ class State:
         T = pb.n_samples + 2
         self.owner = np.full((pb.n_stations, T), -1, np.int32)
         self.t_cnt = np.zeros(pb.n_targets, np.int64)
-        self.t_obs_a = np.zeros((pb.n_targets, 3), np.int64)
-        self.t_obs_m = np.zeros((pb.n_targets, 3), np.int64)
-        self.t_task = np.full((pb.n_targets, 3), -1, np.int64)
+        K = pb.k_max                             # 每颗目标最多几次观测（6 天 3 次，7 天 4 次）
+        self.t_obs_a = np.zeros((pb.n_targets, K), np.int64)
+        self.t_obs_m = np.zeros((pb.n_targets, K), np.int64)
+        self.t_task = np.full((pb.n_targets, K), -1, np.int64)
         self.st = np.zeros(cap, np.int64)
         self.tg = np.zeros(cap, np.int64)
         self.a = np.zeros(cap, np.int64)
