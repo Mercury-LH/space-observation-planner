@@ -204,7 +204,7 @@ def solve_subset(pb: Problem, pool: Pool, free: np.ndarray, fixed: np.ndarray, h
         for cl in interval_cliques(a_c[j], a_c[j] + m_c[j] + gap, j):
             model.AddAtMostOne([x[q] for q in cl])
             n_amo += 1
-        lim = 3 - int(fix_cnt[t])
+        lim = pb.k_max - int(fix_cnt[t])
         if len(j) > lim:
             model.Add(sum(x[q] for q in j) <= lim)
         if fix_cnt[t] == 0:

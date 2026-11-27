@@ -168,7 +168,7 @@ def subset_problem(pb: Problem, target_frac: float, stations: list[int], seed: i
     w = pb.win
     w2 = Windows(pb.w_st[sel].astype(np.int16), pb.w_tg[sel].astype(np.int32), pb.w_k0[sel].astype(np.int32),
                  pb.w_k1[sel].astype(np.int32), w.dark, w.n_samples, w.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, w2)
+    return pb.rebuild(w2)
 
 
 CLOUD_THRESHOLD = 30.0

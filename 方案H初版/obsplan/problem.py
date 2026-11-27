@@ -35,6 +35,7 @@ class Problem:
     t_ptr: np.ndarray
     t_win: np.ndarray        # 窗口下标，每个目标内按时间排序
     max_obs: np.ndarray      # 每颗目标在 48 小时间隔下最多能观测几次
+    k_floor: int = 3         # k_max 的下限：由原问题重建的问题（剩余、裁剪、子问题、放宽）沿用原问题的 k_max，见 rebuild
 
     @classmethod
     def build(cls, cfg: Config, ds: Dataset, win: Windows) -> "Problem":
@@ -58,7 +59,15 @@ class Problem:
     def k_max(self) -> int:
         """每颗目标最多排几次观测（各算法里按目标记录观测的数组宽度）。6 天规划期里两两隔 48 小时最多 3 次；
         7 天（规范 v3.0 的默认规划期）里大多数目标能排 4 次。取 max(3, 最多能排的次数)，6 天时与原来完全相同。"""
-        return max(3, int(self.max_obs.max())) if len(self.max_obs) else 3
+        return max(self.k_floor, int(self.max_obs.max())) if len(self.max_obs) else self.k_floor
+
+    def rebuild(self, win: Windows, cfg: Config | None = None) -> "Problem":
+        """用新的窗口（剩余问题、按天气裁剪、子问题、按秒放宽问题）重建问题。新问题按自己的窗口重算 max_obs，
+        但按目标记录观测的数组宽度 k_max 不小于原问题的：从原计划带过来的观测（冻结的、固定的、放回网格的）
+        一颗目标最多可能有原问题的 k_max 次，剩余窗口算出来的上限可能更小（7 天计划过了一天多以后只剩 3 次）。"""
+        p = Problem.build(self.cfg if cfg is None else cfg, self.ds, win)
+        p.k_floor = max(p.k_floor, self.k_max)
+        return p
 
     def _max_obs(self) -> np.ndarray:
         """最早结束优先：每次选能最早结束的那次观测，得到每颗目标最多能排几次（用于上界）。"""

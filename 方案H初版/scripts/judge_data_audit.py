@@ -24,7 +24,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from obsplan import scenes  # noqa: E402
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.visibility import Windows, get_windows  # noqa: E402
@@ -105,7 +105,8 @@ def cached_scenes() -> list[tuple[str, Path, Path]]:
 
 def load_cached(cid: str, d: Path, c: Path):
     spec = json.loads((d / "spec.json").read_text(encoding="utf-8"))
-    cfg = Config(start_utc=spec["start_utc"], data_dir=str(d), cache_dir=str(c), seed=int(spec["seed"]))
+    cfg = Config(start_utc=spec["start_utc"], days=OLD_DAYS, data_dir=str(d), cache_dir=str(c),   # 合成场景都是 6 天
+                 seed=int(spec["seed"]))
     ds = load(cfg)
     win = Windows.load(Path(c) / f"windows_{cfg.scenario_key()}.npz", ds.n_stations)
     return cfg, ds, Problem.build(cfg, ds, win), spec

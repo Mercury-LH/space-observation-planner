@@ -22,7 +22,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, OLD_START_UTC, Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.dynamic import calibrate, simulate  # noqa: E402
 from obsplan.environment import fetch_cloud_history, fetch_forecast_history  # noqa: E402
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
     prev_path = root / "results" / "dynamic.json"
     prev = json.loads(prev_path.read_text(encoding="utf-8")) if prev_path.exists() else {"years": {}}
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     ds = load(cfg)
     pb = Problem.build(cfg, ds, get_windows(cfg, ds))
     cloud = fetch_cloud_history(cfg, ds, verbose=False)          # 2016–2025

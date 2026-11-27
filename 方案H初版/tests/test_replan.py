@@ -122,3 +122,38 @@ def test_compare_plans_identical_is_all_kept(plan):
     sel = plan.start_s >= T_EVENT
     o, n = compare_plans(plan, sel, plan, sel)
     assert set(o[sel]) == {"保留"} and set(n[sel]) == {"保留"} and set(o[~sel]) <= {"冻结"}
+
+
+def test_residual_state_fits_four_observations(cfg, ds, pb):
+    """7 天计划里有目标观测 4 次；事件过了一天多以后，剩余窗口算出的上限只有 3 次，
+    重建的剩余问题仍要沿用原问题的 k_max，否则冻结 + 固定 + 放回网格的观测放不下（以前会 IndexError / numba 越界写）。"""
+    from pathlib import Path
+
+    from obsplan import replan as R
+    from obsplan.__main__ import read_plan
+    from obsplan.dynamic import Status, residual_problem, state_factory
+    path = Path(__file__).resolve().parents[1] / "outputs" / "final_best" / "best_7d_edge5.csv"
+    if not path.exists() or pb.k_max < 4:
+        pytest.skip("需要 7 天正式计划")
+    sch = read_plan(cfg, ds, path)[0]
+    assert (np.bincount(sch.target) >= 4).any()
+    cell = cfg.cell_s
+    for hours in (36, 60):
+        t = hours * 3600
+        start, end = sch.start_s, sch.start_s + sch.dur_s
+        frozen = start < t
+        fi = np.nonzero(frozen)[0]
+        c_now = np.full(pb.n_stations, -(-t // cell), np.int64)
+        np.maximum.at(c_now, sch.station[fi], (-(-(end[fi] + cfg.switch_s) // cell)).astype(np.int64))
+        succ = {}
+        for i in fi[np.argsort(start[fi], kind="stable")]:
+            a = int(start[i] // cell)
+            succ.setdefault(int(sch.target[i]), []).append((a, int(-(-end[i] // cell)) - a))
+        status = Status(succ=succ, c_now=c_now)
+        pr = residual_problem(pb, status)
+        assert pr.k_max == pb.k_max
+        owner = state_factory(pr, status)().owner
+        grid, fixed = R._snap(pr, sch, np.nonzero(~frozen)[0], owner, succ)
+        fixed_obs = [(int(sch.target[i]), int(start[i] // cell), int(-(-end[i] // cell) - start[i] // cell)) for i in fixed]
+        st = R._factory(pr, status, [], fixed_obs, grid)()
+        assert st.t_task.shape[1] == pb.k_max and int(st.t_cnt.max()) <= pb.k_max

@@ -52,7 +52,7 @@ def fine_problem(pb: Problem, wL: np.ndarray, wR: np.ndarray, cell: int = 10, ve
     dark = [[(max(a * r - r, 0), min(b * r + r, last)) for a, b in runs] for runs in pb.win.dark]
     win = Windows(w_st[order].astype(np.int16), w_tg[order].astype(np.int32), f0[order].astype(np.int32),
                   f1[order].astype(np.int32), dark, last + 1, pb.win.sgp4_failed)
-    return Problem.build(fcfg, pb.ds, win)
+    return pb.rebuild(win, fcfg)
 
 
 @njit(parallel=True, cache=True)

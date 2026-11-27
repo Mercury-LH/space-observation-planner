@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from obsplan import lagrange  # noqa: E402
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, OLD_START_UTC, Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
 from obsplan.refine import finish  # noqa: E402
@@ -21,7 +21,7 @@ from obsplan.visibility import get_windows  # noqa: E402
 
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     out = {"iterations": [], "modes": []}
     for mode, iters, fast in (("快速", 150, True), ("高质量", 300, False)):
         t0 = time.time()

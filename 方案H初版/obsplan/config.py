@@ -12,6 +12,9 @@ REPO_ROOT = SCHEME_DIR.parent                         # 仓库根目录
 # 主办方《提交格式规范》v3.0 第 4 节：提交的观测必须落在这个时间范围里（UTC，含两端）
 SPEC_START_UTC = "2026-07-31T00:00:00"
 SPEC_END_UTC = "2026-08-06T23:59:59"
+# 6 天旧口径（企业老师 2026-10-21 确认）：文档里 6 天的实验结果、侯治民的六天合成场景都按它复现
+OLD_START_UTC = "2026-08-01T00:00:00"
+OLD_DAYS = 6.0
 
 
 @dataclass(frozen=True)

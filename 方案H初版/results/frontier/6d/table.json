@@ -1,0 +1,159 @@
+{
+ "rows": [
+  {
+   "name": "fast_chain0",
+   "label": "快速（不跑弹射链）",
+   "note": "",
+   "command": "python -m obsplan plan --mode fast --chain 0",
+   "mode": "fast",
+   "chain_minutes": 0.0,
+   "runs": 3,
+   "wall_s": 53.2,
+   "wall_min_s": 45.3,
+   "wall_max_s": 56.9,
+   "combined": 0.969009,
+   "combined_min": 0.969009,
+   "combined_max": 0.969009,
+   "covered": 9987,
+   "score": 28237.78,
+   "avg_cores": 2.15,
+   "phases_s": {
+    "windows": 0.0,
+    "solve": 49.0,
+    "refine": 3.3,
+    "chain": 0.0
+   },
+   "all_legal": true,
+   "machine": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10
+   },
+   "time": "2026-11-26 02:33:39"
+  },
+  {
+   "name": "fast_chain05",
+   "label": "快速 + 30 秒",
+   "note": "",
+   "command": "python -m obsplan plan --mode fast --chain 0.5",
+   "mode": "fast",
+   "chain_minutes": 0.5,
+   "runs": 3,
+   "wall_s": 53.6,
+   "wall_min_s": 52.7,
+   "wall_max_s": 53.7,
+   "combined": 0.9886,
+   "combined_min": 0.988532,
+   "combined_max": 0.988601,
+   "covered": 9999,
+   "score": 29379.62,
+   "avg_cores": 3.09,
+   "phases_s": {
+    "windows": 0.0,
+    "solve": 22.8,
+    "refine": 3.3,
+    "chain": 26.6
+   },
+   "all_legal": true,
+   "machine": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10
+   },
+   "time": "2026-11-26 02:40:03"
+  },
+  {
+   "name": "recommended",
+   "label": "推荐档（默认，约 2 分钟）",
+   "note": "",
+   "command": "python -m obsplan plan",
+   "mode": "fast",
+   "chain_minutes": 1.3,
+   "runs": 3,
+   "wall_s": 96.2,
+   "wall_min_s": 95.9,
+   "wall_max_s": 100.9,
+   "combined": 0.991258,
+   "combined_min": 0.991258,
+   "combined_max": 0.991393,
+   "covered": 9999,
+   "score": 29539.42,
+   "avg_cores": 3.17,
+   "phases_s": {
+    "windows": 0.0,
+    "solve": 22.0,
+    "refine": 3.2,
+    "chain": 69.8
+   },
+   "all_legal": true,
+   "machine": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10
+   },
+   "time": "2026-11-26 02:48:40"
+  },
+  {
+   "name": "fast_chain3",
+   "label": "快速 + 3 分钟",
+   "note": "",
+   "command": "python -m obsplan plan --mode fast --chain 3",
+   "mode": "fast",
+   "chain_minutes": 3.0,
+   "runs": 3,
+   "wall_s": 201.8,
+   "wall_min_s": 201.8,
+   "wall_max_s": 202.4,
+   "combined": 0.994255,
+   "combined_min": 0.993978,
+   "combined_max": 0.994333,
+   "covered": 9999,
+   "score": 29719.62,
+   "avg_cores": 3.84,
+   "phases_s": {
+    "windows": 0.0,
+    "solve": 21.1,
+    "refine": 3.3,
+    "chain": 176.5
+   },
+   "all_legal": true,
+   "machine": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10
+   },
+   "time": "2026-11-26 03:02:28"
+  },
+  {
+   "name": "fast_chain9",
+   "label": "十分钟档（快速 + 9 分钟）",
+   "note": "",
+   "command": "python -m obsplan plan --mode fast --chain 9",
+   "mode": "fast",
+   "chain_minutes": 9.0,
+   "runs": 3,
+   "wall_s": 562.1,
+   "wall_min_s": 562.0,
+   "wall_max_s": 562.1,
+   "combined": 0.995458,
+   "combined_min": 0.995444,
+   "combined_max": 0.99546,
+   "covered": 9999,
+   "score": 29791.91,
+   "avg_cores": 3.73,
+   "phases_s": {
+    "windows": 0.0,
+    "solve": 21.3,
+    "refine": 3.2,
+    "chain": 536.6
+   },
+   "all_legal": true,
+   "machine": {
+    "platform": "macOS-27.2.1-arm64-arm-64bit",
+    "processor": "arm",
+    "cpus": 10
+   },
+   "time": "2026-11-26 03:34:17"
+  }
+ ]
+}

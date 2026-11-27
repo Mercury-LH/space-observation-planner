@@ -68,10 +68,10 @@ def fig_windows():
 def _night_profile():
     """每个窗口按它覆盖的每一格计入夜间位置直方图（而不是只看窗口中点）。"""
     sys.path.insert(0, str(ROOT))
-    from obsplan.config import Config
+    from obsplan.config import OLD_DAYS, OLD_START_UTC, Config
     from obsplan.data import load
     from obsplan.visibility import get_windows
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     ds = load(cfg)
     w = get_windows(cfg, ds)
     leo = np.array([float(l[52:63]) for l in ds.line2]) > 11.25
@@ -305,10 +305,10 @@ def fig_environment():
         return
     env = json.loads(p.read_text(encoding="utf-8"))
     sys.path.insert(0, str(ROOT))
-    from obsplan.config import Config
+    from obsplan.config import OLD_DAYS, OLD_START_UTC, Config
     from obsplan.data import load
     from obsplan.environment import fetch_cloud_history
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     cloud = fetch_cloud_history(cfg, load(cfg), verbose=False)
     clear = np.nanmean(cloud <= env["threshold_pct"], axis=(0, 2))
     fig, (ax, ax2) = plt.subplots(1, 2, figsize=(10.4, 3.8), gridspec_kw={"width_ratios": [1.15, 1]})
@@ -385,7 +385,7 @@ def fig_pass():
     sys.path.insert(0, str(ROOT))
     from datetime import timedelta
     from obsplan.app_backend import Run, orbit_class, pass_profile
-    from obsplan.config import Config
+    from obsplan.config import OLD_DAYS, OLD_START_UTC, Config
     from obsplan.data import load
     from obsplan.problem import Problem
     from obsplan.visibility import get_windows
@@ -395,7 +395,7 @@ def fig_pass():
         print("没有 H 高质量 结果，跳过过境详情图")
         return
     run = runs[-1]
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     ds = load(cfg)
     pb = Problem.build(cfg, ds, get_windows(cfg, ds))
     orbit = orbit_class(ds)

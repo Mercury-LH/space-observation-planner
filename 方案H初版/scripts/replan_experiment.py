@@ -22,7 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from obsplan.app_backend import load_problem, run_planning  # noqa: E402
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, OLD_START_UTC, Config  # noqa: E402
 from obsplan.replan import KINDS, MODES, Event, busiest_station, replan, suggest_targets  # noqa: E402
 from obsplan.schedule import evaluate  # noqa: E402
 
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     ap.add_argument("--plan", type=Path, help="已有计划 CSV（默认重新规划 H+）")
     args = ap.parse_args()
     root = Path(__file__).resolve().parents[1]
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     ds, pb, _ = load_problem(cfg)
     if args.plan:
         from obsplan.__main__ import read_plan

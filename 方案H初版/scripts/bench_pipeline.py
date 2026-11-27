@@ -22,7 +22,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from obsplan import famou_h_eval, lagrange  # noqa: E402
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, OLD_START_UTC, Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.evolved import load_rule  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
@@ -67,7 +67,7 @@ def main() -> int:
     famou_h_eval.feature_rows = timed("伐谋规则特征", famou_h_eval.feature_rows)
     lagrange.improve = timed("局部搜索", lagrange.improve)
 
-    cfg = Config()
+    cfg = Config(start_utc=OLD_START_UTC, days=OLD_DAYS)        # 文档里的这组结果是 6 天旧口径
     t0 = time.perf_counter()
     ds = load(cfg)
     t1 = time.perf_counter()

@@ -25,7 +25,7 @@ def sub_problem(pb: Problem, rng, target_frac=0.3, n_st=3) -> Problem:
     win = pb.win
     w2 = Windows(pb.w_st[sel].astype(np.int16), pb.w_tg[sel].astype(np.int32), pb.w_k0[sel].astype(np.int32),
                  pb.w_k1[sel].astype(np.int32), win.dark, win.n_samples, win.sgp4_failed)
-    return Problem.build(pb.cfg, pb.ds, w2)
+    return pb.rebuild(w2)
 
 
 class Scenario:

@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from obsplan import lagrange  # noqa: E402
 from obsplan.checks import structural_violations  # noqa: E402
-from obsplan.config import Config  # noqa: E402
+from obsplan.config import OLD_DAYS, Config  # noqa: E402
 from obsplan.data import load  # noqa: E402
 from obsplan.evolved import load_rule  # noqa: E402
 from obsplan.problem import Problem  # noqa: E402
@@ -91,8 +91,8 @@ VARIANTS = ("H", "H+", "稳健")     # 人工规则；伐谋规则；两条都�
 def run_scene(d: Path, mode: str, rule, row: dict | None = None) -> dict:
     """跑一个场景里 row 还缺的方案（row 为 None 时三个都跑）。"""
     spec = json.loads((d / "spec.json").read_text(encoding="utf-8"))
-    cfg = Config(start_utc=spec["start_utc"], data_dir=str(d), cache_dir=str(OUT / "cache" / spec["catalog_id"]),
-                 seed=int(spec["seed"]))
+    cfg = Config(start_utc=spec["start_utc"], days=OLD_DAYS, data_dir=str(d),          # 合成场景都是 6 天
+                 cache_dir=str(OUT / "cache" / spec["catalog_id"]), seed=int(spec["seed"]))
     ds = load(cfg)
     if ds.issues:
         raise ValueError(f"{spec['catalog_id']} 输入有问题：{ds.issues}")
