@@ -98,3 +98,44 @@ uv run --no-sync python -m obsplan validate outputs/plan-v3/submission.json --fo
 - 回滚先停 worker 与 API，恢复上一版后端/前端 symlink 和 Nginx 配置，执行 `nginx -t` 后 reload，再按上一版能力启动服务。保留持久结果目录，不清空队列或覆盖历史文件。首个后端版本之前没有 API，回滚即恢复静态前端并停用两个新服务。
 
 日志：`journalctl -u observation-planner-api -u observation-planner-worker`。不要在多个版本中同时运行同一持久目录的 worker。公网 80 端口的网络连通性与主机内 Nginx/API 验收分开报告。
+
+### 本次已部署版本与操作命令
+
+应用发布版本 `af8fd58`；服务器已安装 Python 3.12.16，解释器放在 `/opt/observation-planner/python/`，服务不依赖 root 家目录。首次切换前的完整 Nginx 配置保存在 `/var/backups/observation-planner/af8fd58/nginx.conf`，原前端指向 `releases/b4f8c37`。
+
+```sh
+# 查看当前应用和队列健康
+systemctl status observation-planner-api observation-planner-worker
+curl -fsS http://127.0.0.1/api/health
+journalctl -u observation-planner-worker -n 80 --no-pager
+
+# 本机通过 SSH 隧道访问；私钥口令只在本机输入
+ssh -N -o ServerAliveInterval=10 -o ServerAliveCountMax=6 \
+  -L 127.0.0.1:4180:127.0.0.1:80 root@47.114.72.44
+# 然后打开 http://127.0.0.1:4180/
+```
+
+回滚到本次发布之前的静态前端（不会删除任何运行结果）：
+
+```sh
+systemctl disable --now observation-planner-worker observation-planner-api
+cp -a /var/backups/observation-planner/af8fd58/nginx.conf \
+  /etc/nginx/sites-available/observation-planner
+nginx -t
+ln -s /var/www/observation-planner/releases/b4f8c37 \
+  /var/www/observation-planner/current.rollback
+mv -Tf /var/www/observation-planner/current.rollback /var/www/observation-planner/current
+systemctl reload nginx
+```
+
+回到本次后端版本时，恢复 `af8fd58` 前端链接、合入 `deploy/nginx-api.conf` 并通过 `nginx -t`，再启用两个 systemd 服务。数据库与历史结果继续使用 `/var/lib/observation-planner/`。新版本 Nginx reload 后应等待健康接口返回 200；Nginx 的旧工作进程可能在短暂过渡期继续响应，不能把立即出现的一次 404 当作最终发布结果。
+
+服务器直连 PyPI 下载过慢时，本次用以下方式安装：先从锁文件导出固定版本及其哈希，再从镜像下载并强制校验，最后用冻结同步检查。镜像没有改变锁文件、包版本或哈希约束。
+
+```sh
+uv export --frozen --no-dev --extra api --format requirements-txt \
+  --output-file /tmp/obsplan-requirements.txt
+uv pip sync --python .venv/bin/python --require-hashes \
+  --index-url https://mirrors.aliyun.com/pypi/simple /tmp/obsplan-requirements.txt
+uv sync --frozen --no-dev --extra api
+```

@@ -32,13 +32,32 @@ def main():
     output.mkdir(parents=True, exist_ok=True)
     summaries = []
     with httpx.Client(base_url=args.base, timeout=30, trust_env=False) as client:
-        client.get("/api/config").raise_for_status()
+        def request(method, path, **kwargs):
+            # Every POST below is idempotent. A tunnel disconnect must not turn
+            # an already accepted job into a duplicate or discard its session.
+            deadline = time.monotonic() + args.timeout
+            interrupted = False
+            while True:
+                try:
+                    response = client.request(method, path, **kwargs)
+                    if interrupted:
+                        print("HTTP connection restored", flush=True)
+                    return response
+                except httpx.TransportError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    if not interrupted:
+                        print("HTTP connection interrupted; retaining session and retrying", flush=True)
+                    interrupted = True
+                    time.sleep(2)
+
+        request("GET", "/api/config").raise_for_status()
 
         def wait(rid, field, active):
             deadline = time.monotonic() + args.timeout
             last = None
             while time.monotonic() < deadline:
-                response = client.get(f"/api/runs/{rid}")
+                response = request("GET", f"/api/runs/{rid}")
                 response.raise_for_status()
                 row = response.json()
                 state = (row[field], row["stage"])
@@ -54,22 +73,24 @@ def main():
             started = time.monotonic()
             body = {"algo": algo, "date": "2026-07-31", "days": args.days, "stations": args.stations}
             headers = {"Idempotency-Key": uuid.uuid4().hex}
-            response = client.post("/api/runs", json=body, headers=headers)
+            response = request("POST", "/api/runs", json=body, headers=headers)
             response.raise_for_status()
             rid = response.json()["id"]
-            again = client.post("/api/runs", json=body, headers=headers)
+            again = request("POST", "/api/runs", json=body, headers=headers)
             assert again.status_code == 200 and again.json()["id"] == rid
             run = wait(rid, "state", {"queued", "running"})
             assert run["state"] == "ready", run
-            response = client.post(f"/api/runs/{rid}/validate")
+            response = request("POST", f"/api/runs/{rid}/validate")
             response.raise_for_status()
             run = wait(rid, "validation_state", {"queued", "running"})
             assert run["validation_state"] == "passed", run
-            result = client.get(f"/api/runs/{rid}/result").json()
+            result_response = request("GET", f"/api/runs/{rid}/result")
+            result_response.raise_for_status()
+            result = result_response.json()
             dest = output / rid
             dest.mkdir(exist_ok=True)
             for kind, url in result["files"].items():
-                content = client.get(url)
+                content = request("GET", url)
                 content.raise_for_status()
                 suffix = ".csv" if kind == "csv" else ".json"
                 (dest / f"{kind}{suffix}").write_bytes(content.content)
